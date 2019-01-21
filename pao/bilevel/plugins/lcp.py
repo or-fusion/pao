@@ -14,15 +14,15 @@ import logging
 from pyomo.core.base import Block, VarList, ConstraintList, Objective, Var, Constraint, maximize, ComponentUID, Set, TransformationFactory
 from pyomo.repn import generate_standard_repn
 from pyomo.mpec import ComplementarityList, complements
-from pyomo.bilevel.plugins.transform import Base_BilevelTransformation
-from pyomo.bilevel.components import SubModel
+from pao.bilevel.plugins.transform import Base_BilevelTransformation
+from pao.bilevel.components import SubModel
 
 
-logger = logging.getLogger('pyomo.core')
+logger = logging.getLogger('pao')
 
 
 
-@TransformationFactory.register('bilevel.linear_mpec', doc="Generate a linear MPEC from the optimality conditions of the submodel")
+@TransformationFactory.register('pao.bilevel.linear_mpec', doc="Generate a linear MPEC from the optimality conditions of the submodel")
 class LinearComplementarity_BilevelTransformation(Base_BilevelTransformation):
 
     def __init__(self):
@@ -33,14 +33,14 @@ class LinearComplementarity_BilevelTransformation(Base_BilevelTransformation):
         #
         # Process options
         #
-        submodel = self._preprocess('bilevel.linear_mpec', instance, **kwds)
+        submodel = self._preprocess('pao.bilevel.linear_mpec', instance, **kwds)
         instance.reclassify_component_type(submodel, Block)
         #
         # Create a block with optimality conditions
         #
         setattr(instance, self._submodel+'_kkt', self._add_optimality_conditions(instance, submodel))
-        instance._transformation_data['bilevel.linear_mpec'].submodel_cuid = ComponentUID(submodel)
-        instance._transformation_data['bilevel.linear_mpec'].block_cuid = ComponentUID(getattr(instance,self._submodel+'_kkt'))
+        instance._transformation_data['pao.bilevel.linear_mpec'].submodel_cuid = ComponentUID(submodel)
+        instance._transformation_data['pao.bilevel.linear_mpec'].block_cuid = ComponentUID(getattr(instance,self._submodel+'_kkt'))
         #-------------------------------------------------------------------------------
         #
         # Disable the original submodel and

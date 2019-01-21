@@ -12,13 +12,13 @@ from pyomo.core.base import Constraint, Objective, Block
 from pyomo.repn import generate_standard_repn
 from pyomo.core.base.plugin import TransformationFactory
 from pyomo.core.base import Var, Set
-from pyomo.bilevel.plugins.transform import Base_BilevelTransformation
+from pao.bilevel.plugins.transform import Base_BilevelTransformation
 
 import logging
-logger = logging.getLogger('pyomo.core')
+logger = logging.getLogger('pao')
 
 
-@TransformationFactory.register('bilevel.linear_dual', doc="Dualize a SubModel block")
+@TransformationFactory.register('pao.bilevel.linear_dual', doc="Dualize a SubModel block")
 class LinearDual_BilevelTransformation(Base_BilevelTransformation):
 
     def __init__(self):
@@ -28,7 +28,7 @@ class LinearDual_BilevelTransformation(Base_BilevelTransformation):
         #
         # Process options
         #
-        submodel = self._preprocess('bilevel.linear_dual', instance, **kwds)
+        submodel = self._preprocess('pao.bilevel.linear_dual', instance, **kwds)
         self._fix_all()
         #
         # Generate the dual
@@ -59,7 +59,7 @@ class LinearDual_BilevelTransformation(Base_BilevelTransformation):
         """
         Generate the dual of a submodel
         """ 
-        transform = TransformationFactory('duality.linear_dual')
+        transform = TransformationFactory('pao.duality.linear_dual')
         return transform._dualize(submodel, unfixed)
 
     def _xfrm_bilinearities(self, dual):

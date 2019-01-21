@@ -9,9 +9,9 @@
 #  ___________________________________________________________________________
 
 from pyomo.core.base import Transformation, Var, ComponentUID
-from pyomo.bilevel import SubModel
+from pao.bilevel import SubModel
 import logging
-logger = logging.getLogger('pyomo.core')
+logger = logging.getLogger('pao')
 
 
 class Base_BilevelTransformation(Transformation):

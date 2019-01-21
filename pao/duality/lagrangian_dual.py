@@ -18,7 +18,7 @@ from pyomo.core.plugins.transform.standard_form import StandardForm
 from pyomo.core.plugins.transform.util import partial, process_canonical_repn
 
 
-@TransformationFactory.register("core.lagrangian_dual", doc="Create the LP dual model.")
+@TransformationFactory.register("pao.lagrangian_dual", doc="Create the LP dual model.")
 class DualTransformation(IsomorphicTransformation):
     """
     Creates a standard form Pyomo model that is equivalent to another model

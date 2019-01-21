@@ -16,7 +16,7 @@ import sys
 import os
 from os.path import abspath, dirname, normpath, join
 currdir = dirname(abspath(__file__))
-exdir = normpath(join(currdir,'..','..','..','examples','bilevel'))
+exdir = currdir #normpath(join(currdir,'..','..','..','examples','bilevel'))
 
 import pyutilib.th as unittest
 import pyutilib.misc
@@ -39,7 +39,7 @@ solvers = pyomo.opt.check_available_solvers('cplex', 'glpk', 'ipopt')
 class CommonTests:
 
     solve = True
-    solver='bilevel_blp_global'
+    solver='pao.bilevel_blp_global'
 
     def run_bilevel(self, *_args, **kwds):
         if self.solve:
@@ -55,7 +55,7 @@ class CommonTests:
         if 'preprocess' in kwds:
             pp = kwds['preprocess']
             if pp == 'linear_mpec':
-                args.append('--transform=bilevel.linear_mpec')
+                args.append('--transform=pao.bilevel.linear_mpec')
         args.append('-c')
 
         # These were being ignored by the solvers for this package,
@@ -124,7 +124,7 @@ class Reformulate(unittest.TestCase, CommonTests):
     def run_bilevel(self,  *args, **kwds):
         module = pyutilib.misc.import_file(args[0])
         instance = module.pyomo_create_model(None, None)
-        xfrm = TransformationFactory('bilevel.linear_mpec')
+        xfrm = TransformationFactory('pao.bilevel.linear_mpec')
         xfrm.apply_to(instance, deterministic=True)
         instance.pprint(filename=join(currdir,self.problem+'_linear_mpec.out'))
 
@@ -181,7 +181,7 @@ class Solve_CPLEX(Solver, CommonTests):
 @unittest.skipIf(not 'ipopt' in solvers, "The 'ipopt' executable is not available")
 class Solve_IPOPT(Solver, CommonTests):
 
-    solver='bilevel_blp_local'
+    solver='pao.bilevel_blp_local'
 
     def run_bilevel(self,  *args, **kwds):
         kwds['solver'] = 'ipopt'

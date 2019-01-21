@@ -8,5 +8,5 @@
 #  This software is distributed under the 3-clause BSD License.
 #  ___________________________________________________________________________
 #
-# pyomo.bilevel tests
+# pao.bilevel tests
 #

@@ -12,11 +12,11 @@ import time
 import pyutilib.misc
 from pyomo.core import TransformationFactory, Var, ComponentUID, Block, Objective, Set
 import pyomo.opt
-from pyomo.bilevel.components import SubModel
 import pyomo.common
+from pao.bilevel.components import SubModel
 
 
-@pyomo.opt.SolverFactory.register('bilevel_ld',
+@pyomo.opt.SolverFactory.register('pao.bilevel_ld',
     doc='Solver for bilevel problems using linear duality')
 class BILEVEL_Solver1(pyomo.opt.OptSolver):
 
@@ -34,7 +34,7 @@ class BILEVEL_Solver1(pyomo.opt.OptSolver):
         #
         # Cache the instance
         #
-        xfrm = TransformationFactory('bilevel.linear_dual')
+        xfrm = TransformationFactory('pao.bilevel.linear_dual')
         xfrm.apply_to(self._instance)
         #
         # Verify whether the objective is linear
@@ -100,7 +100,7 @@ class BILEVEL_Solver1(pyomo.opt.OptSolver):
             #
             # Transform the result back into the original model
             #
-            tdata = self._instance._transformation_data['bilevel.linear_dual']
+            tdata = self._instance._transformation_data['pao.bilevel.linear_dual']
             unfixed_cuids = set()
             # Copy variable values and fix them
             for vuid in tdata.fixed:

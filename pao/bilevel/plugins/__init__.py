@@ -9,9 +9,9 @@
 #  ___________________________________________________________________________
 
 def load():
-    import pyomo.bilevel.plugins.dual
-    import pyomo.bilevel.plugins.lcp
-    import pyomo.bilevel.plugins.solver1
-    import pyomo.bilevel.plugins.solver2
-    import pyomo.bilevel.plugins.solver3
-    import pyomo.bilevel.plugins.solver4
+    import pao.bilevel.plugins.dual
+    import pao.bilevel.plugins.lcp
+    import pao.bilevel.plugins.solver1
+    import pao.bilevel.plugins.solver2
+    import pao.bilevel.plugins.solver3
+    import pao.bilevel.plugins.solver4

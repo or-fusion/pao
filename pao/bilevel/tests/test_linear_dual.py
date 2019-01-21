@@ -15,7 +15,7 @@
 import os
 from os.path import abspath, dirname, normpath, join
 currdir = dirname(abspath(__file__))
-exdir = normpath(join(currdir,'..','..','..','examples','bilevel'))
+exdir = currdir #normpath(join(currdir,'..','..','..','examples','bilevel'))
 
 import pyutilib.th as unittest
 
@@ -43,7 +43,7 @@ class CommonTests:
             args = ['solve']
             if 'solver' in kwds:
                 _solver = kwds.get('solver','glpk')
-                args.append('--solver=bilevel_ld')
+                args.append('--solver=pao.bilevel_ld')
                 args.append('--solver-options="solver=%s"' % _solver)
             args.append('--save-results=result.yml')
             args.append('--results-format=yaml')
@@ -53,7 +53,7 @@ class CommonTests:
             #args.append('--solver=glpk')
             pp = kwds['preprocess']
             if pp == 'linear_dual':
-                args.append('--transform=bilevel.linear_dual')
+                args.append('--transform=pao.bilevel.linear_dual')
         args.append('-c')
 
         # These were being ignored by the solvers for this package,

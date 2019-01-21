@@ -25,12 +25,12 @@ from pyomo.core.base import (Transformation,
                              Block,
                              Model,
                              ConcreteModel)
-from pyomo.duality.collect import collect_linear_terms
+from pao.duality.collect import collect_linear_terms
 
 def load():
     pass
 
-logger = logging.getLogger('pyomo.core')
+logger = logging.getLogger('pao')
 
 
 #
@@ -39,7 +39,7 @@ logger = logging.getLogger('pyomo.core')
 # specified, then the entire model is dualized.
 # This returns a new Block object.
 #
-@TransformationFactory.register('duality.linear_dual', doc="Dualize a linear model")
+@TransformationFactory.register('pao.duality.linear_dual', doc="Dualize a linear model")
 class LinearDual_PyomoTransformation(Transformation):
 
 
