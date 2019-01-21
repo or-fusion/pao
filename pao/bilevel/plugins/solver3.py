@@ -15,12 +15,12 @@ import pyomo.common
 from pyomo.core import TransformationFactory, Var, Set
 
 
-@pyomo.opt.SolverFactory.register('bilevel_blp_local',
-    doc='Local solver for continuous bilevel linear problems')
+@pyomo.opt.SolverFactory.register('pao.bilevel.blp_local',
+                    doc='Local solver for continuous bilevel linear problems')
 class BILEVEL_Solver3(pyomo.opt.OptSolver):
 
     def __init__(self, **kwds):
-        kwds['type'] = 'bilevel_blp_local'
+        kwds['type'] = 'pao.bilevel.blp_local'
         pyomo.opt.OptSolver.__init__(self,**kwds)
         self._metasolver = True
 

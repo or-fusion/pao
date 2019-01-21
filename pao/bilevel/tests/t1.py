@@ -9,7 +9,7 @@
 #  ___________________________________________________________________________
 
 from pyomo.environ import *
-from pyomo.bilevel import *
+from pao.bilevel import *
 
 def pyomo_create_model(options, model_options):
 

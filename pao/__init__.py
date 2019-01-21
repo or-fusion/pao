@@ -15,4 +15,5 @@
 import pyomo.environ
 import pao.duality.plugins
 import pao.bilevel.plugins
+pao.bilevel.plugins.load()
 

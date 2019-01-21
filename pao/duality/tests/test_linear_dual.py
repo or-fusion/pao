@@ -20,9 +20,9 @@ exdir = currdir #normpath(join(currdir,'..','..','..','examples','pyomo','core')
 import pyutilib.th as unittest
 
 import pyomo.opt
-from pyomo.environ import *
 from pyomo.scripting.util import cleanup
 import pyomo.scripting.pyomo_main as main
+import pao
 
 
 from six import iteritems
@@ -116,7 +116,7 @@ class Reformulate(unittest.TestCase, CommonTests):
 
     @classmethod
     def setUpClass(cls):
-        import pyomo.environ
+        import pao
 
     def run_bilevel(self,  *args, **kwds):
         args = list(args)
@@ -136,7 +136,7 @@ class Solver(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        import pyomo.environ
+        import pao
 
     def tearDown(self):
         if os.path.exists(os.path.join(currdir,'result.yml')):
@@ -157,13 +157,14 @@ class Solve_GLPK(Solver, CommonTests):
     @classmethod
     def setUpClass(cls):
         global solvers
-        import pyomo.environ
+        import pao
         solvers = pyomo.opt.check_available_solvers('glpk')
 
     def setUp(self):
-        if (not yaml_available) or (not 'glpk' in solvers):
-            self.skipTest("YAML is not available or "
-                          "the 'glpk' executable is not available")
+        if not yaml_available:
+            self.skipTest("YAML is not available")
+        if not 'glpk' in solvers:
+            self.skipTest("The 'glpk' executable is not available")
 
     def run_bilevel(self,  *args, **kwds):
         kwds['solver'] = 'glpk'
@@ -175,13 +176,14 @@ class Solve_CPLEX(Solver, CommonTests):
     @classmethod
     def setUpClass(cls):
         global solvers
-        import pyomo.environ
+        import pao
         solvers = pyomo.opt.check_available_solvers('cplex')
 
     def setUp(self):
-        if (not yaml_available) or (not 'cplex' in solvers):
-            self.skipTest("YAML is not available or "
-                          "the 'cplex' executable is not available")
+        if not yaml_available:
+            self.skipTest("YAML is not available")
+        if not 'cplex' in solvers:
+            self.skipTest("The 'cplex' executable is not available")
 
     def run_bilevel(self,  *args, **kwds):
         kwds['solver'] = 'cplex'

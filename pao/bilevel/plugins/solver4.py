@@ -15,12 +15,12 @@ import pyomo.common
 from pyomo.core import TransformationFactory, Var, Set
 
 
-@pyomo.opt.SolverFactory.register('pao.bilevel_bqp',
-    doc='Global solver for bilevel quadratic problems')
+@pyomo.opt.SolverFactory.register('pao.bilevel.bqp',
+                        doc='Global solver for bilevel quadratic problems')
 class BILEVEL_Solver4(pyomo.opt.OptSolver):
 
     def __init__(self, **kwds):
-        kwds['type'] = 'pao.bilevel_bqp'
+        kwds['type'] = 'pao.bilevel.bqp'
         pyomo.opt.OptSolver.__init__(self,**kwds)
         self._metasolver = True
 

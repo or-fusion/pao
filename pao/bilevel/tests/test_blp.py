@@ -25,6 +25,7 @@ import pyomo.opt
 import pyomo.scripting.pyomo_main as pyomo_main
 from pyomo.scripting.util import cleanup
 from pyomo.environ import *
+import pao
 
 from six import iteritems
 
@@ -39,7 +40,7 @@ solvers = pyomo.opt.check_available_solvers('cplex', 'glpk', 'ipopt')
 class CommonTests:
 
     solve = True
-    solver='pao.bilevel_blp_global'
+    solver='pao.bilevel.blp_global'
 
     def run_bilevel(self, *_args, **kwds):
         if self.solve:
@@ -117,6 +118,10 @@ class Reformulate(unittest.TestCase, CommonTests):
 
     solve = False
 
+    @classmethod
+    def setUpClass(cls):
+        import pao
+
     def tearDown(self):
         if os.path.exists(os.path.join(currdir,'result.yml')):
             os.remove(os.path.join(currdir,'result.yml'))
@@ -135,7 +140,7 @@ class Reformulate(unittest.TestCase, CommonTests):
         self.assertFileEqualsBaseline( join(currdir,self.problem+'_linear_mpec.out'),
                                            self.referenceFile(problem,solver), tolerance=1e-5 )
 
-    @unittest.category('fragile')
+    #@unittest.category('fragile')
     def test_bqp(self):
         self.problem='test_bqp1'
         self.run_bilevel( join(exdir,'bqp_example1.py') )
@@ -163,6 +168,10 @@ class Solver(unittest.TestCase):
 @unittest.skipIf(not 'glpk' in solvers, "The 'glpk' executable is not available")
 class Solve_GLPK(Solver, CommonTests):
 
+    @classmethod
+    def setUpClass(cls):
+        import pao
+
     def run_bilevel(self,  *args, **kwds):
         kwds['solver'] = 'glpk'
         CommonTests.run_bilevel(self, *args, **kwds)
@@ -171,6 +180,10 @@ class Solve_GLPK(Solver, CommonTests):
 @unittest.skipIf(not yaml_available, "YAML is not available")
 @unittest.skipIf(not 'cplex' in solvers, "The 'cplex' executable is not available")
 class Solve_CPLEX(Solver, CommonTests):
+
+    @classmethod
+    def setUpClass(cls):
+        import pao
 
     def run_bilevel(self,  *args, **kwds):
         kwds['solver'] = 'cplex'
@@ -181,7 +194,11 @@ class Solve_CPLEX(Solver, CommonTests):
 @unittest.skipIf(not 'ipopt' in solvers, "The 'ipopt' executable is not available")
 class Solve_IPOPT(Solver, CommonTests):
 
-    solver='pao.bilevel_blp_local'
+    @classmethod
+    def setUpClass(cls):
+        import pao
+
+    solver='pao.bilevel.blp_local'
 
     def run_bilevel(self,  *args, **kwds):
         kwds['solver'] = 'ipopt'

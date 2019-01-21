@@ -23,6 +23,7 @@ import pyomo.opt
 import pyomo.scripting.pyomo_main as pyomo_main
 from pyomo.scripting.util import cleanup
 from pyomo.environ import *
+import pao
 
 from six import iteritems
 
@@ -43,7 +44,7 @@ class CommonTests:
             args = ['solve']
             if 'solver' in kwds:
                 _solver = kwds.get('solver','glpk')
-                args.append('--solver=pao.bilevel_ld')
+                args.append('--solver=pao.bilevel.ld')
                 args.append('--solver-options="solver=%s"' % _solver)
             args.append('--save-results=result.yml')
             args.append('--results-format=yaml')

@@ -12,9 +12,8 @@
 # A duality example adapted from
 #    http://www.stanford.edu/~ashishg/msande111/notes/chapter4.pdf
 #
-import pyomo.environ
-from pyomo.core import *
-from pyomo.bilevel import *
+from pyomo.environ import *
+from pao.bilevel import *
 
 def pyomo_create_model(options, model_options):
 

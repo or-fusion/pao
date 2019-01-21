@@ -16,12 +16,12 @@ import pyomo.common
 from pao.bilevel.components import SubModel
 
 
-@pyomo.opt.SolverFactory.register('pao.bilevel_ld',
-    doc='Solver for bilevel problems using linear duality')
+@pyomo.opt.SolverFactory.register('pao.bilevel.ld',
+                        doc='Solver for bilevel problems using linear duality')
 class BILEVEL_Solver1(pyomo.opt.OptSolver):
 
     def __init__(self, **kwds):
-        kwds['type'] = 'bilevel_ld'
+        kwds['type'] = 'pao.bilevel.ld'
         pyomo.opt.OptSolver.__init__(self,**kwds)
         self._metasolver = True
 
