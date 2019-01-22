@@ -5,4 +5,5 @@ pao:
     - python setup.py develop
     - pip install nose
     - pip install coverage
-    - nosetests --with-xunit --with-coverage --cover-package=pao .
+    - coverage run nosetests --with-xunit --with-coverage --cover-xml .
+    - coverage report -m
