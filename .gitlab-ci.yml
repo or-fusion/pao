@@ -1,0 +1,8 @@
+coek:
+  script:
+    - apt-get update
+    - apt-get install -y python-dev python-pip
+    - python setup.py develop
+    - pip install nose
+    - pip install coverage
+    - nosetests --with-xunit --with-coverage --cover-package=pao .
