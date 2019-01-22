@@ -2,8 +2,9 @@ pao:
   script:
     #- apt-get update
     #- apt-get install -y python-dev python-pip
-    - python setup.py develop
-    - pip install nose
-    - pip install coverage
-    - coverage run nosetests --with-xunit --with-coverage --cover-xml .
-    - coverage report -m
+    - virtualenv test
+    - test/bin/python setup.py develop
+    - test/bin/pip install nose
+    - test/bin/pip install coverage
+    - test/bin/coverage run nosetests --with-xunit --with-coverage --cover-xml .
+    - test/bin/coverage report -m
