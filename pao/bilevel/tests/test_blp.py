@@ -141,10 +141,15 @@ class Reformulate(unittest.TestCase, CommonTests):
                                            self.referenceFile(problem,solver), tolerance=1e-5 )
 
     #@unittest.category('fragile')
-    def test_bqp(self):
+    def test_bqp1(self):
         self.problem='test_bqp1'
         self.run_bilevel( join(exdir,'bqp_example1.py') )
         self.check( 'bqp1', 'linear_mpec' )
+
+    def test_bqp2(self):
+        self.problem='test_bqp2'
+        self.run_bilevel( join(exdir,'bqp_example2.py') )
+        self.check( 'bqp2', 'linear_mpec' )
 
 
 class Solver(unittest.TestCase):

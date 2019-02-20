@@ -22,7 +22,7 @@ def pyomo_create_model(options, model_options):
     M.o = Objective(expr=M.x1 - 4*M.y1)
     
     M.sub = SubModel(fixed=(M.x1, M.x2))
-    M.sub.o  = Objective( expr=              11*M.x2 +          12*M.x2*M.y1 +         M.y2 +       9*M.y3                      )
+    M.sub.o  = Objective( expr=             -11*M.x2 -          12*M.x2*M.y1 -         M.y2 -       9*M.y3,       sense=maximize)
     M.sub.c1 = Constraint(expr=                 M.x1 + 13*M.x2*M.y1 + 5*M.y1                                               <= 19)
     M.sub.c2 = Constraint(expr=20 <=          2*M.x1 +                6*M.y1 + 14*M.x2*M.y2 +      10*M.y3                      )
     M.sub.c3 = Constraint(expr=32 ==          4*M.x1 +                8*M.y1                               + 15*M.x2*M.y4       )
