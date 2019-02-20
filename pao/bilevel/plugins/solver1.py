@@ -56,7 +56,7 @@ class BILEVEL_Solver1(pyomo.opt.OptSolver):
         # Solve with a specified solver
         #
         solver = self.options.solver
-        if not self.options.solver:
+        if not self.options.solver:     #pragma:nocover
             solver = 'glpk'
 
         # use the with block here so that deactivation of the
