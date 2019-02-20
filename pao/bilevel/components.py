@@ -27,7 +27,7 @@ class SubModel(SimpleBlock):
         #
         _rule = kwargs.pop('rule', None )
         _fixed = kwargs.pop('fixed', None )
-        _var = kwargs.pop('var', None )     # Not documented
+        _var = kwargs.pop('var', None )
         #
         # Initialize the SimpleBlock
         #

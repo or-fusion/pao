@@ -117,6 +117,16 @@ class CommonTests:
         self.run_bilevel( join(exdir,'t1.py'))
         self.check( 't1', 'linear_dual' )
 
+    def test_t1a(self):
+        self.problem='test_t1a'
+        self.run_bilevel( join(exdir,'t1a.py'))
+        self.check( 't1', 'linear_dual' )
+
+    def test_t1b(self):
+        self.problem='test_t1b'
+        self.run_bilevel( join(exdir,'t1b.py'))
+        self.check( 't1b', 'linear_dual' )
+
     def Xtest_t2(self):
         self.problem='test_t2'
         self.run_bilevel( join(exdir,'t2.py'))

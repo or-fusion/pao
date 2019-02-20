@@ -56,12 +56,11 @@ class Base_BilevelTransformation(Transformation):
                 if not v in fixed:
                     unfixed.append((v,getattr(submodel._parent(),v).is_indexed()))
         elif submodel._var:
-            # NOTE: This argument is undocumented
-            _var = set(submodel._var)
-            unfixed = [(v,getattr(submodel._parent(),v).is_indexed()) for v in _var]
             fixed = []
+            unfixed = [(v.name,v.is_indexed()) for v in submodel._var]
+            unfixed_names = [v.name for v in submodel._var]
             for v in var:
-                if not v in _var:
+                if not v in unfixed_names:
                     fixed.append(v)
         else:
             #

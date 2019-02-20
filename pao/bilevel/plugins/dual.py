@@ -62,18 +62,3 @@ class LinearDual_BilevelTransformation(Base_BilevelTransformation):
         transform = TransformationFactory('pao.duality.linear_dual')
         return transform._dualize(submodel, unfixed)
 
-    def _xfrm_bilinearities(self, dual):
-        """
-        Replace bilinear terms in constraints with disjunctions
-        """ 
-        for (name, data) in dual.component_map(Constraint, active=True).items():
-            for ndx in data:
-                con = data[ndx]
-                degree = con.body.polynomial_degree()
-                if degree > 2:
-                    raise "RuntimeError: Cannot transform a model with polynomial degree %d" % degree
-                if degree == 2:
-                    terms = generate_standard_repn(con.body)
-                    for i, var in enumerate(terms.quadratic_vars):
-                        print("%s %s %s" % (i, str(var), str(terms.quadratic_coefs[i])))
-
