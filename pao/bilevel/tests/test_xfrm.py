@@ -24,12 +24,20 @@ import pao
 
 class Test(unittest.TestCase):
 
-    def test_missing_model(self):
+    def test_missing_submodel(self):
         m = ConcreteModel()
         m.x = Var()
         xfrm = TransformationFactory('pao.bilevel.linear_dual')
         self.assertRaises(RuntimeError, xfrm.apply_to, m)
 
+    def test_missing_fixed_or_unfixed(self):
+        m = ConcreteModel()
+        m.x = Var()
+        m.o = Objective(expr=m.x)
+        m.sub = pao.bilevel.SubModel()
+        m.sub.o = Objective(expr=-m.x)
+        xfrm = TransformationFactory('pao.bilevel.linear_dual')
+        self.assertRaises(RuntimeError, xfrm.apply_to, m)
 
 
 if __name__ == "__main__":
