@@ -27,7 +27,7 @@ from pyomo.core.base import (Transformation,
                              ConcreteModel)
 from pao.duality.collect import collect_linear_terms
 
-def load():
+def load(): #pragma:nocover
     pass
 
 logger = logging.getLogger('pao')
@@ -47,19 +47,19 @@ class LinearDual_PyomoTransformation(Transformation):
         super(LinearDual_PyomoTransformation, self).__init__()
 
     def _create_using(self, instance, **kwds):
-        options = kwds.pop('options', {})
-        bname = options.get('block',None)
+        bname = kwds.get('block',None)
         #
         # Iterate over the model collecting variable data,
         # until the block is found.
         #
         block = None
-        if block is None:
+        if bname is None:
             block = instance
         else:
             for (name, data) in instance.component_map(Block, active=True).items():
                 if name == bname:
-                    block = instance
+                    block = data
+                    break
         if block is None:
             raise RuntimeError("Missing block: "+bname)
         #
