@@ -24,8 +24,11 @@ def collect_linear_terms(block, unfixed):
     for obj in block.component_objects(Constraint, active=True):
         vnames.add((obj.getname(fully_qualified=True, relative_to=block), obj.is_indexed()))
     cnames = set(unfixed)
-    for obj in block.component_objects(Var, active=True):
-        cnames.add((obj.getname(fully_qualified=True, relative_to=block), obj.is_indexed()))
+    #for obj in block.component_objects(Var, active=True):
+    #    cnames.add((obj.getname(fully_qualified=True, relative_to=block), obj.is_indexed()))
+
+    all_vars = {}
+
     #
     A = {}
     b_coef = {}
@@ -45,6 +48,14 @@ def collect_linear_terms(block, unfixed):
                 o_terms = generate_standard_repn(odata[ndx].expr, compute_values=False)
                 d_sense = maximize
             for var, coef in zip(o_terms.linear_vars, o_terms.linear_coefs):
+                try:
+                    # The variable is in the subproblem
+                    varname = var.parent_component().getname(fully_qualified=True, relative_to=block)
+                except:
+                    # The variable is somewhere else in the model
+                    varname = var.parent_component().getname(fully_qualified=True, relative_to=block.model())
+                varndx = var.index()
+                all_vars[varname,varndx] = var
                 c_rhs[ var.parent_component().local_name, var.index() ] = coef
         # Stop after the first objective
         break
@@ -77,6 +88,7 @@ def collect_linear_terms(block, unfixed):
                     # The variable is somewhere else in the model
                     varname = var.parent_component().getname(fully_qualified=True, relative_to=block.model())
                 varndx = var.index()
+                all_vars[varname,varndx] = var
                 A.setdefault(varname, {}).setdefault(varndx,[]).append( Bunch(coef=coef, var=name, ndx=ndx) )
             #
             if not con.equality:
@@ -119,7 +131,7 @@ def collect_linear_terms(block, unfixed):
     #
     # Collect bound constraints
     #
-    def all_vars(b):
+    def Xall_vars(b):
         """
         This conditionally chains together the active variables in the current block with
         the active variables in all of the parent blocks (if any exist).
@@ -137,72 +149,75 @@ def collect_linear_terms(block, unfixed):
                 yield (name, obj)
             b = b.parent_block()
 
-    for name, data in all_vars(block):
+    #
+    # Collect bound constraints
+    #
+    for name, ndx in all_vars:
+        var = all_vars[name,ndx]
         #
-        # Skip fixed variables (in the parent)
+        # Skip fixed variables
         #
-        if not (name, data.is_indexed()) in cnames:
+        if var.fixed:
+            # NOTE: This shouldn't happen because of the way we collect terms
             continue
         #
         # Iterate over all variable indices
         #
-        for ndx in data:
-            var = data[ndx]
-            bounds = var.bounds
-            if bounds[0] is None and bounds[1] is None:
-                c_sense[name,ndx] = 'e'
-            elif bounds[0] is None:
-                if bounds[1] == 0.0:
-                    c_sense[name,ndx] = 'g'
-                else:
-                    c_sense[name,ndx] = 'e'
-                    #
-                    # Add constraint that defines the upper bound
-                    #
-                    name_ = name + "_upper_"
-                    varname = data.parent_component().getname(fully_qualified=True, relative_to=block)
-                    varndx = data[ndx].index()
-                    A.setdefault(varname, {}).setdefault(varndx,[]).append( Bunch(coef=1.0, var=name_, ndx=ndx) )
-                    #
-                    v_domain[name_,ndx] = -1
-                    b_coef[name_,ndx] = bounds[1]
-            elif bounds[1] is None:
-                if bounds[0] == 0.0:
-                    c_sense[name,ndx] = 'l'
-                else:
-                    c_sense[name,ndx] = 'e'
-                    #
-                    # Add constraint that defines the lower bound
-                    #
-                    name_ = name + "_lower_"
-                    varname = data.parent_component().getname(fully_qualified=True, relative_to=block)
-                    varndx = data[ndx].index()
-                    A.setdefault(varname, {}).setdefault(varndx,[]).append( Bunch(coef=1.0, var=name_, ndx=ndx) )
-                    #
-                    v_domain[name_,ndx] = 1
-                    b_coef[name_,ndx] = bounds[0]
+        bounds = var.bounds
+        if bounds[0] is None and bounds[1] is None:
+            c_sense[name,ndx] = 'e'
+        elif bounds[0] is None:
+            if bounds[1] == 0.0:
+                c_sense[name,ndx] = 'g'
             else:
-                # Bounded above and below
                 c_sense[name,ndx] = 'e'
                 #
                 # Add constraint that defines the upper bound
                 #
                 name_ = name + "_upper_"
-                varname = data.parent_component().getname(fully_qualified=True, relative_to=block)
-                varndx = data[ndx].index()
-                A.setdefault(varname, {}).setdefault(varndx,[]).append( Bunch(coef=1.0, var=name_, ndx=ndx) )
+                #varname = data.parent_component().getname(fully_qualified=True, relative_to=block)
+                #varndx = data[ndx].index()
+                A.setdefault(name, {}).setdefault(ndx,[]).append( Bunch(coef=1.0, var=name_, ndx=ndx) )
                 #
                 v_domain[name_,ndx] = -1
                 b_coef[name_,ndx] = bounds[1]
+        elif bounds[1] is None:
+            if bounds[0] == 0.0:
+                c_sense[name,ndx] = 'l'
+            else:
+                c_sense[name,ndx] = 'e'
                 #
                 # Add constraint that defines the lower bound
                 #
                 name_ = name + "_lower_"
-                varname = data.parent_component().getname(fully_qualified=True, relative_to=block)
-                varndx = data[ndx].index()
-                A.setdefault(varname, {}).setdefault(varndx,[]).append( Bunch(coef=1.0, var=name_, ndx=ndx) )
+                #varname = data.parent_component().getname(fully_qualified=True, relative_to=block)
+                #varndx = data[ndx].index()
+                A.setdefault(name, {}).setdefault(ndx,[]).append( Bunch(coef=1.0, var=name_, ndx=ndx) )
                 #
                 v_domain[name_,ndx] = 1
                 b_coef[name_,ndx] = bounds[0]
+        else:
+            # Bounded above and below
+            c_sense[name,ndx] = 'e'
+            #
+            # Add constraint that defines the upper bound
+            #
+            name_ = name + "_upper_"
+            #varname = data.parent_component().getname(fully_qualified=True, relative_to=block)
+            #varndx = data[ndx].index()
+            A.setdefault(name, {}).setdefault(ndx,[]).append( Bunch(coef=1.0, var=name_, ndx=ndx) )
+            #
+            v_domain[name_,ndx] = -1
+            b_coef[name_,ndx] = bounds[1]
+            #
+            # Add constraint that defines the lower bound
+            #
+            name_ = name + "_lower_"
+            #varname = data.parent_component().getname(fully_qualified=True, relative_to=block)
+            #varndx = data[ndx].index()
+            A.setdefault(name, {}).setdefault(ndx,[]).append( Bunch(coef=1.0, var=name_, ndx=ndx) )
+            #
+            v_domain[name_,ndx] = 1
+            b_coef[name_,ndx] = bounds[0]
     #
     return (A, b_coef, c_rhs, c_sense, d_sense, vnames, cnames, v_domain)
