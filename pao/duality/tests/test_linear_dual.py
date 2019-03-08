@@ -118,6 +118,11 @@ class CommonTests(object):
         self.run_bilevel(join(exdir,'t5.py'))
         self.check( 't5', 'linear_dual' )
 
+    def test_t6(self):
+        self.problem='test_t6'
+        self.run_bilevel(join(exdir,'t6.py'))
+        self.check( 't6', 'linear_dual' )
+
 
 class Reformulate(unittest.TestCase, CommonTests):
 
