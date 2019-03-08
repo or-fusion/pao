@@ -13,66 +13,74 @@
 
 import os
 from os.path import abspath, dirname, normpath, join
-
-currdir = dirname(abspath(__file__))
-exdir = currdir #normpath(join(currdir,'..','..','..','examples','pyomo','core'))
-
-import pyutilib.th as unittest
-
-import pyomo.opt
-from pyomo.scripting.util import cleanup
-import pyomo.scripting.pyomo_main as main
-import pao
-
-
 from six import iteritems
-
 try:
     import yaml
     yaml_available=True
 except ImportError:
     yaml_available=False
 
+import pyutilib.misc
+from pyutilib.misc import Options, Container
+import pyutilib.th as unittest
+
+from pyomo.environ import TransformationFactory, SolverFactory
+import pyomo.opt
+import pyomo.scripting.util
+import pao
+
+currdir = dirname(abspath(__file__))
+exdir = currdir
 solver = None
+
+
+
 class CommonTests(object):
 
     solve = True
 
     def run_bilevel(self, *_args, **kwds):
-        if self.solve:
-            args = ['solve']
-            _solver = kwds.get('solver','glpk')
-            args.append('--solver=%s' % _solver)
-            args.append('--save-results=result.yml')
-            args.append('--results-format=json')
-        else:
-            args = ['convert']
-        if 'transform' in kwds:
-            args.append('--transform=%s' % kwds['transform'])
-        args.append('-c')
-        args.append('--symbolic-solver-labels')
-        args.append('--file-determinism=2')
-
-        if False:
-            args.append('--stream-solver')
-            args.append('--tempdir='+currdir)
-            args.append('--keepfiles')
-            args.append('--debug')
-            args.append('--logging=verbose')
-
-        args = args + list(_args)
         os.chdir(currdir)
 
-        print('***')
-        #print(' '.join(args))
-        output = main.main(args)
         try:
-            output = main.main(args)
+            #
+            # Import the model file to create the model
+            #
+            usermodel = pyutilib.misc.import_file(_args[0], clear_cache=True)
+            instance = usermodel.model
+            #
+            # Apply transformations
+            #
+            if 'transform' in kwds:
+                xfrm = TransformationFactory(kwds['transform'])
+                if 'transform_kwds' in kwds:
+                    new_instance = xfrm.create_using(instance, **kwds['transform_kwds']) 
+                else:
+                    new_instance = xfrm.create_using(instance)
+            else:
+                new_instance = instance
+
+            if self.solve:
+                #
+                # Solve the problem
+                #
+                opt = SolverFactory( kwds.get('solver','glpk') )
+                results = opt.solve(new_instance)
+                new_instance.solutions.store_to(results)
+                results.write(filename='result.yml', format='json')
+            else:
+                #
+                # Write the file
+                #
+                io_options = {}
+                io_options['symbolic_solver_labels'] = True
+                io_options['file_determinism'] = 2
+                new_instance.name = 'Test'
+                new_instance.write(filename=self.problem+"_result.lp", io_options=io_options)
+
         except:
-            output = None
-        cleanup()
-        print('***')
-        return output
+            print("Failed to construct and transform the model")
+            raise
 
     def check(self, problem, solver):
         pass
@@ -128,8 +136,19 @@ class Reformulate(unittest.TestCase, CommonTests):
         return join(currdir, problem+"_"+solver+'.lp')
 
     def check(self, problem, solver):
-        self.assertFileEqualsBaseline( join(currdir,self.problem+'_result.lp'),
-                                           self.referenceFile(problem,solver), tolerance=1e-5 )
+        resfile = join(currdir,self.problem+'_result.lp')
+        self.assertFileEqualsBaseline( resfile, self.referenceFile(problem,solver), tolerance=1e-5 )
+
+    def test_t1a(self):
+        self.problem='test_t1a'
+        self.run_bilevel(join(exdir,'t1a.py'), transform_kwds={'block':'b'})
+        self.check( 't1', 'linear_dual' )
+
+    def test_t1b(self):
+        self.problem='test_t1b'
+        self.run_bilevel(join(exdir,'t1a.py'), transform_kwds={'block':'B'})
+        self.check( 't1b', 'linear_dual' )
+
 
 
 class Solver(unittest.TestCase):
