@@ -11,18 +11,18 @@ s.t.
 c_u_x1_:
 +4 c1
 +1 c2
-<= 6
+<= 7
 
 c_u_x2_:
 +2 c1
 +1 c2
 +1 c3
-<= 4
+<= 5
 
 c_u_x3_:
 +1 c1
 +1 c3
-<= 2
+<= 3
 
 c_e_ONE_VAR_CONSTANT: 
 ONE_VAR_CONSTANT = 1.0

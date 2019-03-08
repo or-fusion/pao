@@ -1,4 +1,4 @@
-\* Source Pyomo model name=unknown *\
+\* Source Pyomo model name=Test *\
 
 min 
 o:
