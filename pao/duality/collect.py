@@ -76,10 +76,12 @@ def collect_linear_terms(block, unfixed):
             lower_terms = generate_standard_repn(con.lower, compute_values=False) if not con.lower is None else None
             upper_terms = generate_standard_repn(con.upper, compute_values=False) if not con.upper is None else None
             #
-            if not lower_terms is None and not lower_terms.is_constant():
-                raise(RuntimeError, "Error during dualization:  Constraint '%s' has a lower bound that is non-constant")
-            if not upper_terms is None and not upper_terms.is_constant():
-                raise(RuntimeError, "Error during dualization:  Constraint '%s' has an upper bound that is non-constant")
+            # Omitting these for now.  It looks like Pyomo ensures that the lower or upper bounds are constant.
+            #
+            ##if not lower_terms is None and not lower_terms.is_constant():
+            ##    raise(RuntimeError, "Error during dualization:  Constraint '%s' has a lower bound that is non-constant")
+            ##if not upper_terms is None and not upper_terms.is_constant():
+            ##    raise(RuntimeError, "Error during dualization:  Constraint '%s' has an upper bound that is non-constant")
             #
             for var, coef in zip(body_terms.linear_vars, body_terms.linear_coefs):
                 try:
@@ -114,15 +116,15 @@ def collect_linear_terms(block, unfixed):
                     #
                     # Dual for lower bound
                     #
-                    ndx_ = tuple(list(ndx).append('lb'))
-                    v_domain[name, ndx_] = 1
-                    b_coef[name,ndx] = lower_terms.constant - body_terms.constant
+                    name_ = name + '_lb_'
+                    v_domain[name_, ndx] = 1
+                    b_coef[name_,ndx] = lower_terms.constant - body_terms.constant
                     #
                     # Dual for upper bound
                     #
-                    ndx_ = tuple(list(ndx).append('ub'))
-                    v_domain[name, ndx_] = -1
-                    b_coef[name,ndx] = upper_terms.constant - body_terms.constant
+                    name_ = name + '_ub_'
+                    v_domain[name_, ndx] = -1
+                    b_coef[name_,ndx] = upper_terms.constant - body_terms.constant
             else:
                 #
                 # Equality constraint
@@ -132,35 +134,14 @@ def collect_linear_terms(block, unfixed):
     #
     # Collect bound constraints
     #
-    def Xall_vars(b):
-        """
-        This conditionally chains together the active variables in the current block with
-        the active variables in all of the parent blocks (if any exist).
-        """
-        for obj in b.component_objects(Var, active=True, descend_into=True):
-            name = obj.parent_component().getname(fully_qualified=True, relative_to=b)
-            yield (name, obj)
-        #
-        # Look through parent blocks
-        #
-        b = b.parent_block()
-        while not b is None:
-            for obj in b.component_objects(Var, active=True, descend_into=False):
-                name = obj.parent_component().name
-                yield (name, obj)
-            b = b.parent_block()
-
-    #
-    # Collect bound constraints
-    #
     for name, ndx in all_vars:
         var = all_vars[name,ndx]
         #
         # Skip fixed variables
         #
-        if var.fixed:
-            # NOTE: This shouldn't happen because of the way we collect terms
-            continue
+        # NOTE: This shouldn't happen because of the way we collect terms
+        ##if var.fixed:
+        ##    continue
         #
         # Iterate over all variable indices
         #

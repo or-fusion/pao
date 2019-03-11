@@ -169,6 +169,14 @@ class Reformulate(unittest.TestCase, CommonTests):
         self.run_bilevel(join(exdir,'t2a.py'), transform_kwds={'block':'B'})
         self.check( 't2b', 'linear_dual' )
 
+    def test_t2c(self):
+        self.problem='test_t2c'
+        try:
+            self.run_bilevel(join(exdir,'t2a.py'), transform_kwds={'block':'C'})
+            self.fail("Expected RuntimeError because of missing block")
+        except RuntimeError:
+            pass
+
     def test_t10(self):
         self.problem='test_t10'
         self.run_bilevel(join(exdir,'t10.py'))

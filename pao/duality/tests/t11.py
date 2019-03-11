@@ -11,15 +11,30 @@
 from pyomo.environ import *
 
 model = ConcreteModel()
+
 model.x1 = Var(within=NonNegativeReals)
 model.x2 = Var(bounds=(None,11))
 model.x3 = Var(bounds=(-13,13))
-model.x4 = Var()
+model.x4 = Var([(4,4)])
+model.x5 = Var(bounds=(14,None))
 model.y = Var([1,2,3], within=NonPositiveReals)
+model.z = Var(initialize=-1)
 
 model.o = Objective(expr=6*model.x1 + 4*model.x2 + 2*model.x3 + 7*model.y[1], sense=maximize)
 
-model.c1 = Constraint(expr=4*model.x1 + 2*model.x2 + model.x3 + 101*model.x4 + 14*model.y[1] >= 5)
-model.c2 = Constraint(expr=model.x1 + model.x2 + 15*model.y[2] == 3)
-model.c3 = Constraint(expr=model.x2 + model.x3 + 103*model.x4 + 16*model.y[3] <= 4)
+model.c1 = Constraint(expr=4*model.x1 + 2*model.x2 + model.x3 + 101*model.x4[4,4] + 105*model.x5 + 14*model.y[1] >= 5)
+def c2_rule(model, i):
+    return model.x1 + model.x2 + 15*model.y[2] == 3
+model.c2 = Constraint([2], rule=c2_rule)
+def c3_rule(model, i, j):
+    return model.x2 + model.x3 + 103*model.x4[i,j] + 16*model.y[3] <= 4
+model.c3 = Constraint([(4,4)], rule=c3_rule)
+
+model.z.fixed = True
+model.c4 = Constraint(expr=model.z <= 0)
+
+model.c5 = Constraint(expr=inequality(-3, - 4*model.x1 - 5*model.x4[4,4] - 6*model.y[3], -7))
+def c6_rule(model, i):
+    return inequality(-8, - 9*model.x1 - 10*model.x4[4,4] - 11*model.y[3], -12)
+model.c6 = Constraint([6], rule=c6_rule)
 
