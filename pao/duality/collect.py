@@ -57,7 +57,7 @@ def collect_linear_terms(block, unfixed):
                     varname = var.parent_component().getname(fully_qualified=True, relative_to=block.model())
                 varndx = var.index()
                 all_vars[varname,varndx] = var
-                c_rhs[ var.parent_component().local_name, var.index() ] = coef
+                c_rhs[ varname,varndx ] = coef
         # Stop after the first objective
         break
     #
