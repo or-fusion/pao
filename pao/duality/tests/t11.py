@@ -1,0 +1,25 @@
+#  ___________________________________________________________________________
+#
+#  Pyomo: Python Optimization Modeling Objects
+#  Copyright 2017 National Technology and Engineering Solutions of Sandia, LLC
+#  Under the terms of Contract DE-NA0003525 with National Technology and 
+#  Engineering Solutions of Sandia, LLC, the U.S. Government retains certain 
+#  rights in this software.
+#  This software is distributed under the 3-clause BSD License.
+#  ___________________________________________________________________________
+
+from pyomo.environ import *
+
+model = ConcreteModel()
+model.x1 = Var(within=NonNegativeReals)
+model.x2 = Var(bounds=(None,11))
+model.x3 = Var(bounds=(-13,13))
+model.x4 = Var()
+model.y = Var([1,2,3], within=NonPositiveReals)
+
+model.o = Objective(expr=6*model.x1 + 4*model.x2 + 2*model.x3 + 7*model.y[1], sense=maximize)
+
+model.c1 = Constraint(expr=4*model.x1 + 2*model.x2 + model.x3 + 101*model.x4 + 14*model.y[1] >= 5)
+model.c2 = Constraint(expr=model.x1 + model.x2 + 15*model.y[2] == 3)
+model.c3 = Constraint(expr=model.x2 + model.x3 + 103*model.x4 + 16*model.y[3] <= 4)
+

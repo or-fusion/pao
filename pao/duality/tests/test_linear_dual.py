@@ -169,6 +169,16 @@ class Reformulate(unittest.TestCase, CommonTests):
         self.run_bilevel(join(exdir,'t2a.py'), transform_kwds={'block':'B'})
         self.check( 't2b', 'linear_dual' )
 
+    def test_t10(self):
+        self.problem='test_t10'
+        self.run_bilevel(join(exdir,'t10.py'))
+        self.check( 't10', 'linear_dual' )
+
+    def test_t11(self):
+        self.problem='test_t11'
+        self.run_bilevel(join(exdir,'t11.py'))
+        self.check( 't11', 'linear_dual' )
+
 
 
 class Solver(unittest.TestCase):
