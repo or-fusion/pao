@@ -39,6 +39,8 @@ def collect_linear_terms(block, unfixed):
     #
     # Collect objective
     #
+    # TODO: Create an error if there is more than one objective
+    #
     for odata in block.component_objects(Objective, active=True):
         for ndx in odata:
             if odata[ndx].sense == maximize:
