@@ -112,8 +112,10 @@ class LinearDual_PyomoTransformation(Transformation):
         #
         if d_sense == minimize:
             dual.o = Objective(expr=sum(- b_coef[name,ndx]*getvar(name,ndx) for name,ndx in b_coef), sense=d_sense)
+            rhs_multiplier = -1
         else:
             dual.o = Objective(expr=sum(b_coef[name,ndx]*getvar(name,ndx) for name,ndx in b_coef), sense=d_sense)
+            rhs_multiplier = 1
         #
         # Construct the constraints
         #
@@ -122,14 +124,13 @@ class LinearDual_PyomoTransformation(Transformation):
                 expr = 0
                 for term in terms:
                     expr += term.coef * getvar(term.var, term.ndx)
-                if not (cname, ndx) in c_rhs:
-                    c_rhs[cname, ndx] = 0.0
+                rhsval = rhs_multiplier*c_rhs.get((cname,ndx), 0.0)
                 if c_sense[cname, ndx] == 'e':
-                    e = expr - c_rhs[cname,ndx] == 0
+                    e = expr - rhsval == 0
                 elif c_sense[cname, ndx] == 'l':
-                    e = expr - c_rhs[cname,ndx] <= 0
+                    e = expr - rhsval <= 0
                 else:
-                    e = expr - c_rhs[cname,ndx] >= 0
+                    e = expr - rhsval >= 0
                 c = Constraint(expr=e)
                 if ndx is None:
                     c_name = cname

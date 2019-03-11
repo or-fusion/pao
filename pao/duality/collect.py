@@ -43,11 +43,10 @@ def collect_linear_terms(block, unfixed):
     #
     for odata in block.component_objects(Objective, active=True):
         for ndx in odata:
+            o_terms = generate_standard_repn(odata[ndx].expr, compute_values=False)
             if odata[ndx].sense == maximize:
-                o_terms = generate_standard_repn(-1*odata[ndx].expr, compute_values=False)
                 d_sense = minimize
             else:
-                o_terms = generate_standard_repn(odata[ndx].expr, compute_values=False)
                 d_sense = maximize
             for var, coef in zip(o_terms.linear_vars, o_terms.linear_coefs):
                 try:
