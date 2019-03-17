@@ -74,7 +74,7 @@ class CommonTests(object):
                 results = opt.solve(new_instance)
                 new_instance.solutions.store_to(results)
                 results.write(filename='result.yml', format='json')
-            else:
+            elif kwds.get('format','lp') == 'lp':
                 #
                 # Write the file
                 #
@@ -83,6 +83,12 @@ class CommonTests(object):
                 io_options['file_determinism'] = 2
                 new_instance.name = 'Test'
                 new_instance.write(filename=self.problem+"_result.lp", io_options=io_options)
+            else:
+                #
+                # This is a hack.  When we cannot write a valid LP file, we still
+                # write with the LP suffix to simplify the testing logic.
+                #
+                new_instance.pprint(filename=self.problem+"_result.lp")
 
         except:
             print("Failed to construct and transform the model")
@@ -190,7 +196,7 @@ class Reformulate(unittest.TestCase, CommonTests):
 
     def test_t3_fixedsome(self):
         self.problem='test_t3_fixedsome'
-        self.run_bilevel(join(exdir,'t3.py'), fixed=['x2','b.x1'])
+        self.run_bilevel(join(exdir,'t3.py'), fixed=['x2','b.x1'], format='txt')
         self.check( 't3_fixedsome', 'linear_dual' )
 
     def test_t10(self):

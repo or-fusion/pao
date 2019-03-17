@@ -103,6 +103,7 @@ def collect_dual_representation(block, fixed):
             nvars = 0
             for var, coef in zip(body_terms.linear_vars, body_terms.linear_coefs):
                 if id(var) in fixed_vars:
+                    body_terms.constant += coef*var
                     continue
                 nvars += 1
                 try:
