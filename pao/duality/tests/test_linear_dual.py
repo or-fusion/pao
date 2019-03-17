@@ -24,7 +24,7 @@ import pyutilib.misc
 from pyutilib.misc import Options, Container
 import pyutilib.th as unittest
 
-from pyomo.environ import TransformationFactory, SolverFactory
+from pyomo.environ import TransformationFactory, SolverFactory, ComponentUID
 import pyomo.opt
 import pyomo.scripting.util
 import pao
@@ -49,14 +49,20 @@ class CommonTests(object):
             usermodel = pyutilib.misc.import_file(_args[0], clear_cache=True)
             instance = usermodel.model
             #
+            # Collected fixed variables
+            #
+            _fixed = kwds.pop('fixed', [])
+            for v in _fixed:
+                v_ = ComponentUID(v).find_component_on(instance)
+            fixed = [ComponentUID(v).find_component_on(instance) for v in _fixed]
+            #
             # Apply transformations
             #
             if 'transform' in kwds:
                 xfrm = TransformationFactory(kwds['transform'])
-                if 'transform_kwds' in kwds:
-                    new_instance = xfrm.create_using(instance, **kwds['transform_kwds']) 
-                else:
-                    new_instance = xfrm.create_using(instance)
+                transform_kwds = kwds.get('transform_kwds', {})
+                transform_kwds['fixed'] = fixed
+                new_instance = xfrm.create_using(instance, **transform_kwds)
             else:
                 new_instance = instance
 
@@ -182,6 +188,11 @@ class Reformulate(unittest.TestCase, CommonTests):
         except RuntimeError:
             pass
 
+    def test_t3_fixedsome(self):
+        self.problem='test_t3_fixedsome'
+        self.run_bilevel(join(exdir,'t3.py'), fixed=['x2','b.x1'])
+        self.check( 't3_fixedsome', 'linear_dual' )
+
     def test_t10(self):
         self.problem='test_t10'
         self.run_bilevel(join(exdir,'t10.py'))
@@ -191,6 +202,30 @@ class Reformulate(unittest.TestCase, CommonTests):
         self.problem='test_t11'
         self.run_bilevel(join(exdir,'t11.py'))
         self.check( 't11', 'linear_dual' )
+
+    def test_err1(self):
+        self.problem='test_err1'
+        try:
+            self.run_bilevel(join(exdir,'err1.py'))
+            self.fail("Expected RuntimeError because model contains multiple objective expressions.")
+        except RuntimeError:
+            pass
+
+    def test_err2(self):
+        self.problem='test_err2'
+        try:
+            self.run_bilevel(join(exdir,'err2.py'))
+            self.fail("Expected RuntimeError because model contains no objective expression.")
+        except RuntimeError:
+            pass
+
+    def test_t3_fixedall(self):
+        self.problem='test_t3_fixedall'
+        try:
+            self.run_bilevel(join(exdir,'t3.py'), fixed=['x1','x2','b.x1'])
+            self.fail("Expected RuntimeError because model contains no objective expression.")
+        except RuntimeError:
+            pass
 
 
 

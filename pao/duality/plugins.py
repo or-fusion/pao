@@ -25,7 +25,7 @@ from pyomo.core.base import (Transformation,
                              Block,
                              Model,
                              ConcreteModel)
-from pao.duality.collect import collect_linear_terms
+from pao.duality.collect import collect_dual_representation
 
 def load(): #pragma:nocover
     pass
@@ -34,9 +34,96 @@ logger = logging.getLogger('pao')
 
 
 #
+# Generate the dual of a block
+#
+# Creates a new block that is the dual of the block object.  The resulting
+# block contains variables and constraints whose names are the dual names of
+# the primal block.  Note that this involves a many string operations.  A quicker
+# operations could be executed, but it would generate a dual representation that is
+# difficult to interpret.
+#
+# If the block is a model object, then this returns a ConcreteModel.  Otherwise, it
+# returns a Block.
+#
+def create_linear_dual(block, fixed):
+    #
+    # Collect linear terms from the block
+    #
+    A, b_coef, c_rhs, c_sense, d_sense, vnames, cnames, v_domain = collect_dual_representation(block, fixed)
+    #
+    # Construct the block
+    #
+    if isinstance(block, Model):
+        dual = ConcreteModel()
+    else:
+        dual = Block()
+    dual.construct()
+    _vars = {}
+    def getvar(name, ndx=None):
+        v = _vars.get((name,ndx), None)
+        if v is None:
+            v = Var()
+            if ndx is None:
+                v_name = name
+            elif type(ndx) is tuple:
+                v_name = "%s[%s]" % (name, ','.join(map(str,ndx)))
+            else:
+                v_name = "%s[%s]" % (name, str(ndx))
+            setattr(dual, v_name, v)
+            _vars[name,ndx] = v
+        return v
+    #
+    # Construct the objective
+    #
+    if d_sense == minimize:
+        dual.o = Objective(expr=sum(- b_coef[name,ndx]*getvar(name,ndx) for name,ndx in b_coef), sense=d_sense)
+        rhs_multiplier = -1
+    else:
+        dual.o = Objective(expr=sum(b_coef[name,ndx]*getvar(name,ndx) for name,ndx in b_coef), sense=d_sense)
+        rhs_multiplier = 1
+    #
+    # Construct the constraints
+    #
+    for cname in A:
+        for ndx, terms in iteritems(A[cname]):
+            expr = 0
+            for term in terms:
+                expr += term.coef * getvar(term.var, term.ndx)
+            rhsval = rhs_multiplier*c_rhs.get((cname,ndx), 0.0)
+            if c_sense[cname, ndx] == 'e':
+                e = expr - rhsval == 0
+            elif c_sense[cname, ndx] == 'l':
+                e = expr - rhsval <= 0
+            else:
+                e = expr - rhsval >= 0
+            c = Constraint(expr=e)
+            if ndx is None:
+                c_name = cname
+            elif type(ndx) is tuple:
+                c_name = "%s[%s]" % (cname, ','.join(map(str,ndx)))
+            else:
+                c_name = "%s[%s]" % (cname, str(ndx))
+            setattr(dual, c_name, c)
+        #
+        for (name, ndx), domain in iteritems(v_domain):
+            v = getvar(name, ndx)
+            flag = type(ndx) is tuple and (ndx[-1] == 'lb' or ndx[-1] == 'ub')
+            if domain == 1:
+                v.domain = NonNegativeReals
+            elif domain == -1:
+                v.domain = NonPositiveReals
+            else:
+                # TODO: verify that this case is possible
+                v.domain = Reals
+
+    return dual
+
+
+#
 # This transformation creates a new block that
 # is the dual of the specified block.  If no block is
 # specified, then the entire model is dualized.
+#
 # This returns a new Block object.
 #
 @TransformationFactory.register('pao.duality.linear_dual', doc="Dualize a linear model")
@@ -48,6 +135,7 @@ class LinearDual_PyomoTransformation(Transformation):
 
     def _create_using(self, instance, **kwds):
         bname = kwds.get('block',None)
+        fixed = kwds.get('fixed', [])
         #
         # Iterate over the model collecting variable data,
         # until the block is found.
@@ -65,90 +153,5 @@ class LinearDual_PyomoTransformation(Transformation):
         #
         # Generate the dual
         #
-        instance_ = self._dualize(block)
+        return create_linear_dual(block, fixed)
 
-        return instance_
-
-    def _dualize(self, block, unfixed=[]):
-        """
-        Generate the dual of a block
-        """
-        #
-        # Collect linear terms from the block
-        #
-        A, b_coef, c_rhs, c_sense, d_sense, vnames, cnames, v_domain = collect_linear_terms(block, unfixed)
-        ##print(A)
-        ##print(vnames)
-        ##print(cnames)
-        ##print(list(A.keys()))
-        ##print("---")
-        ##print(A.keys())
-        ##print(c_sense)
-        ##print(c_rhs)
-        #
-        # Construct the block
-        #
-        if isinstance(block, Model):
-            dual = ConcreteModel()
-        else:
-            dual = Block()
-        dual.construct()
-        _vars = {}
-        def getvar(name, ndx=None):
-            v = _vars.get((name,ndx), None)
-            if v is None:
-                v = Var()
-                if ndx is None:
-                    v_name = name
-                elif type(ndx) is tuple:
-                    v_name = "%s[%s]" % (name, ','.join(map(str,ndx)))
-                else:
-                    v_name = "%s[%s]" % (name, str(ndx))
-                setattr(dual, v_name, v)
-                _vars[name,ndx] = v
-            return v
-        #
-        # Construct the objective
-        #
-        if d_sense == minimize:
-            dual.o = Objective(expr=sum(- b_coef[name,ndx]*getvar(name,ndx) for name,ndx in b_coef), sense=d_sense)
-            rhs_multiplier = -1
-        else:
-            dual.o = Objective(expr=sum(b_coef[name,ndx]*getvar(name,ndx) for name,ndx in b_coef), sense=d_sense)
-            rhs_multiplier = 1
-        #
-        # Construct the constraints
-        #
-        for cname in A:
-            for ndx, terms in iteritems(A[cname]):
-                expr = 0
-                for term in terms:
-                    expr += term.coef * getvar(term.var, term.ndx)
-                rhsval = rhs_multiplier*c_rhs.get((cname,ndx), 0.0)
-                if c_sense[cname, ndx] == 'e':
-                    e = expr - rhsval == 0
-                elif c_sense[cname, ndx] == 'l':
-                    e = expr - rhsval <= 0
-                else:
-                    e = expr - rhsval >= 0
-                c = Constraint(expr=e)
-                if ndx is None:
-                    c_name = cname
-                elif type(ndx) is tuple:
-                    c_name = "%s[%s]" % (cname, ','.join(map(str,ndx)))
-                else:
-                    c_name = "%s[%s]" % (cname, str(ndx))
-                setattr(dual, c_name, c)
-            #
-            for (name, ndx), domain in iteritems(v_domain):
-                v = getvar(name, ndx)
-                flag = type(ndx) is tuple and (ndx[-1] == 'lb' or ndx[-1] == 'ub')
-                if domain == 1:
-                    v.domain = NonNegativeReals
-                elif domain == -1:
-                    v.domain = NonPositiveReals
-                else:
-                    # TODO: verify that this case is possible
-                    v.domain = Reals
-
-        return dual
