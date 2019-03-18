@@ -8,27 +8,21 @@
 #  This software is distributed under the 3-clause BSD License.
 #  ___________________________________________________________________________
 
-from pyomo.core.base import Constraint, Objective, Block
-from pyomo.repn import generate_standard_repn
+from pyomo.core.base import Objective, Block
 from pyomo.core.base.plugin import TransformationFactory
 from pyomo.core.base import Var, Set
 from pao.bilevel.plugins.transform import Base_BilevelTransformation
-
-import logging
-logger = logging.getLogger('pao')
 
 
 @TransformationFactory.register('pao.bilevel.linear_dual', doc="Dualize a SubModel block")
 class LinearDual_BilevelTransformation(Base_BilevelTransformation):
 
-    def __init__(self):
-        super(LinearDual_BilevelTransformation, self).__init__()
-
     def _apply_to(self, instance, **kwds):
+        submodel_name = kwds.pop('submodel', None)
         #
         # Process options
         #
-        submodel = self._preprocess('pao.bilevel.linear_dual', instance, **kwds)
+        submodel = self._preprocess('pao.bilevel.linear_dual', instance, sub=submodel_name)
         self._fix_all()
         #
         # Generate the dual
@@ -54,11 +48,10 @@ class LinearDual_BilevelTransformation(Base_BilevelTransformation):
             if not isinstance(data,Var) and not isinstance(data, Set):
                 data.deactivate()
 
-
     def _dualize(self, submodel, unfixed):
         """
         Generate the dual of a submodel
         """ 
         transform = TransformationFactory('pao.duality.linear_dual')
-        return transform._dualize(submodel, unfixed)
+        return transform.create_using(submodel, unfixed=unfixed)
 

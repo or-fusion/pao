@@ -25,9 +25,9 @@ class SubModel(SimpleBlock):
         #
         # Collect kwargs for SubModel
         #
-        _rule = kwargs.pop('rule', None )
-        _fixed = kwargs.pop('fixed', None )
-        _var = kwargs.pop('var', None )
+        _rule = kwargs.pop('rule', None)
+        _fixed = kwargs.pop('fixed', None)
+        _var = kwargs.pop('var', None)
         #
         # Initialize the SimpleBlock
         #

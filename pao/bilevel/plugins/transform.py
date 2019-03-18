@@ -10,18 +10,11 @@
 
 from pyomo.core.base import Transformation, Var, ComponentUID
 from pao.bilevel import SubModel
-import logging
-logger = logging.getLogger('pao')
 
 
 class Base_BilevelTransformation(Transformation):
 
-    def __init__(self):
-        super(Base_BilevelTransformation, self).__init__()
-
-    def _preprocess(self, tname, instance, **kwds):
-        options = kwds.pop('options', {})
-        sub = options.get('submodel',None)
+    def _preprocess(self, tname, instance, sub=None):
         #
         # Iterate over the model collecting variable data,
         # until the submodel is found.
@@ -29,7 +22,6 @@ class Base_BilevelTransformation(Transformation):
         var = {}
         submodel = None
         for (name, data) in instance.component_map(active=True).items():
-            #print((name, data))
             if isinstance(data,Var):
                 var[name] = data
             elif isinstance(data,SubModel):
