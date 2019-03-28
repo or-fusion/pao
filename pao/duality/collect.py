@@ -94,6 +94,10 @@ def collect_dual_representation(block, fixed):
         name = data.getname(relative_to=block)
         for ndx in data:
             con = data[ndx]
+            if not (con.equality or con.lower is None or con.upper is None):
+                dualvars = [name+"_lb_", name+"_ub_"]
+            else:
+                dualvars = [name]
             body_terms = generate_standard_repn(con.body, compute_values=False)
             if body_terms.is_fixed():
                 #
@@ -114,7 +118,8 @@ def collect_dual_representation(block, fixed):
                     varname = var.parent_component().getname(fully_qualified=True, relative_to=block.model())
                 varndx = var.index()
                 all_vars[varname,varndx] = var
-                A.setdefault(varname, {}).setdefault(varndx,[]).append( Bunch(coef=coef, var=name, ndx=ndx) )
+                for dvar in dualvars:
+                    A.setdefault(varname, {}).setdefault(varndx,[]).append( Bunch(coef=coef, var=dvar, ndx=ndx) )
             if nvars == 0:
                 #
                 # If a constraint has a fixed body, then don't collect it.
