@@ -42,6 +42,11 @@ logger = logging.getLogger('pao')
 # operations could be executed, but it would generate a dual representation that is
 # difficult to interpret.
 #
+# Note that the dualization of a maximization problem is performed by negating objective
+# and right-hand side coefficients after dualizing the corresponding minimization problem. 
+# This suggestion is made by Dimitri Bertsimas and John Tsitsiklis in section 4.2 page 143 of 
+# "Introduction to Linear Optimization"
+#
 # If the block is a model object, then this returns a ConcreteModel.  Otherwise, it
 # returns a Block.
 #
@@ -76,7 +81,7 @@ def create_linear_dual(block, fixed):
     # Construct the objective
     #
     if d_sense == minimize:
-        dual.o = Objective(expr=sum(- b_coef[name,ndx]*getvar(name,ndx) for name,ndx in b_coef), sense=d_sense)
+        dual.o = Objective(expr=sum(-   b_coef[name,ndx]*getvar(name,ndx) for name,ndx in b_coef), sense=d_sense)
         rhs_multiplier = -1
     else:
         dual.o = Objective(expr=sum(b_coef[name,ndx]*getvar(name,ndx) for name,ndx in b_coef), sense=d_sense)
