@@ -35,6 +35,9 @@ model.c4 = Constraint(expr=model.z <= 0)
 
 model.c5 = Constraint(expr=inequality(-3, - 4*model.x1 - 5*model.x4[4,4] - 6*model.y[3], -7))
 def c6_rule(model, i):
-    return inequality(-8, - 9*model.x1 - 10*model.x4[4,4] - 11*model.y[3], -12)
-model.c6 = Constraint([6], rule=c6_rule)
+    if i == 6:
+        return inequality(-8, - 9*model.x1 - 10*model.x4[4,4] - 11*model.y[3], -12)
+    else:
+        return - 12*model.x1 - 13*model.x4[4,4] - 14*model.y[3] == -15
+model.c6 = Constraint([6,7], rule=c6_rule)
 
