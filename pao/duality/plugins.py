@@ -59,6 +59,8 @@ def create_linear_dual(block, fixed):
         dual = Block()
     dual.construct()
     _vars = {}
+
+    # Return variable object from name and index (if applicable)
     def getvar(name, ndx=None):
         v = _vars.get((name,ndx), None)
         if v is None:
@@ -74,6 +76,8 @@ def create_linear_dual(block, fixed):
         return v
     #
     # Construct the objective
+    # Note that dualization of a maximization problem is handled by simply negating the objective and 
+    # left-hand side coefficients while keeping the dual sense.
     #
     if d_sense == minimize:
         dual.o = Objective(expr=sum(- b_coef[name,ndx]*getvar(name,ndx) for name,ndx in b_coef), sense=d_sense)
@@ -82,14 +86,23 @@ def create_linear_dual(block, fixed):
         dual.o = Objective(expr=sum(b_coef[name,ndx]*getvar(name,ndx) for name,ndx in b_coef), sense=d_sense)
         rhs_multiplier = 1
     #
-    # Construct the constraints
+    # Construct the constraints from dual A matrix
     #
     for cname in A:
         for ndx, terms in iteritems(A[cname]):
+
+            # Build left-hand side of constraint
             expr = 0
             for term in terms:
                 expr += term.coef * getvar(term.var, term.ndx)
+
+            #
+            # Assign right-hand side coefficient
+            # Note that rhs_multiplier is 1 if the dual is a maximization problem and -1 otherwise
+            #
             rhsval = rhs_multiplier*c_rhs.get((cname,ndx), 0.0)
+
+            # Using the correct inequality or equality
             if c_sense[cname, ndx] == 'e':
                 e = expr - rhsval == 0
             elif c_sense[cname, ndx] == 'l':
@@ -97,14 +110,19 @@ def create_linear_dual(block, fixed):
             else:
                 e = expr - rhsval >= 0
             c = Constraint(expr=e)
+
+            # Build constraint name
             if ndx is None:
                 c_name = cname
             elif type(ndx) is tuple:
                 c_name = "%s[%s]" % (cname, ','.join(map(str,ndx)))
             else:
                 c_name = "%s[%s]" % (cname, str(ndx))
+
+            # Add new constraint along with its name to the dual
             setattr(dual, c_name, c)
-        #
+
+        # Set variable domains
         for (name, ndx), domain in iteritems(v_domain):
             v = getvar(name, ndx)
             flag = type(ndx) is tuple and (ndx[-1] == 'lb' or ndx[-1] == 'ub')
@@ -114,6 +132,7 @@ def create_linear_dual(block, fixed):
                 v.domain = NonPositiveReals
             else:
                 # TODO: verify that this case is possible
+                # BA: This is possible when the variable's corresponding constraint is an equality
                 v.domain = Reals
 
     return dual
