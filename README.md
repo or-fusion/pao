@@ -24,4 +24,3 @@ cross-cutting capabilities that can be leveraged by multiple projects.
 
   * nosetests --with-xunit --with-coverage --cover-xml .
   * coverage report -m
-
