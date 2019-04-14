@@ -15,6 +15,8 @@ This module defines the transformation plugin for linear dualization.
 #  ___________________________________________________________________________
 
 #pylint: disable-msg=invalid-name
+#pylint: disable-msg=too-many-locals
+#pylint: disable-msg=too-many-branches
 
 import logging
 from six import iteritems
@@ -88,7 +90,7 @@ def create_linear_dual(block, fixed):
             v = Var()
             if ndx is None:
                 v_name = name
-            elif type(ndx) is tuple:
+            elif isinstance(ndx, tuple):
                 v_name = "%s[%s]" % (name, ','.join(map(str, ndx)))
             else:
                 v_name = "%s[%s]" % (name, str(ndx))
@@ -137,7 +139,7 @@ def create_linear_dual(block, fixed):
             # Build constraint name
             if ndx is None:
                 c_name = cname
-            elif type(ndx) is tuple:
+            elif isinstance(ndx, tuple):
                 c_name = "%s[%s]" % (cname, ','.join(map(str, ndx)))
             else:
                 c_name = "%s[%s]" % (cname, str(ndx))
@@ -168,10 +170,7 @@ class LinearDual_PyomoTransformation(Transformation):
     specified, then the entire model is dualized.
     """
 
-    def __init__(self):
-        super(LinearDual_PyomoTransformation, self).__init__()
-
-    def _create_using(self, instance, **kwds):
+    def _create_using(self, model, **kwds):
         bname = kwds.get('block', None)
         fixed = kwds.get('fixed', [])
         #
@@ -180,9 +179,9 @@ class LinearDual_PyomoTransformation(Transformation):
         #
         block = None
         if bname is None:
-            block = instance
+            block = model
         else:
-            for (name, data) in instance.component_map(Block, active=True).items():
+            for (name, data) in model.component_map(Block, active=True).items():
                 if name == bname:
                     block = data
                     break
