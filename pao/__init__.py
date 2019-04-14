@@ -1,4 +1,6 @@
-"""
+__version__ = '1.0.dev0'
+
+__doc__ = """
 pao package
 
 Defines modeling techniques and solvers for representing optimization
@@ -9,14 +11,16 @@ Importing PAO initializes the Pyomo environment and then registers
 the pao plugins.  We assume that a user will never import symbols from
 pao directly:
 
-    from pao import *
+    $ from pao import *
 
 Instead, users should import symbols directly from pao sub-packages:
 
-    from pao.bilevel import *
-"""
+    $ from pao.bilevel import *
 
-__all__ = ()
+Version: %s
+""" % __version__
+
+__all__ = ('__version__')
 
 import pyomo.environ
 import pao.duality.plugins
