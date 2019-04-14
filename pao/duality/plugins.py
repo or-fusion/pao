@@ -1,9 +1,3 @@
-"""
-plugins.py
-
-This module defines the transformation plugin for linear dualization.
-"""
-
 #  ___________________________________________________________________________
 #
 #  Pyomo: Python Optimization Modeling Objects
@@ -14,6 +8,12 @@ This module defines the transformation plugin for linear dualization.
 #  This software is distributed under the 3-clause BSD License.
 #  ___________________________________________________________________________
 
+"""
+pao.duality.plugins
+
+This module defines the transformation plugin for linear dualization.
+"""
+
 #pylint: disable-msg=invalid-name
 #pylint: disable-msg=too-many-locals
 #pylint: disable-msg=too-many-branches
@@ -21,18 +21,18 @@ This module defines the transformation plugin for linear dualization.
 import logging
 from six import iteritems
 
-from pyomo.core.base import (Transformation,
-                             TransformationFactory,
-                             Var,
-                             Constraint,
-                             Objective,
-                             minimize,
-                             NonNegativeReals,
-                             NonPositiveReals,
-                             Reals,
-                             Block,
-                             Model,
-                             ConcreteModel)
+from pyomo.core import (Transformation,
+                        TransformationFactory,
+                        Var,
+                        Constraint,
+                        Objective,
+                        minimize,
+                        NonNegativeReals,
+                        NonPositiveReals,
+                        Reals,
+                        Block,
+                        Model,
+                        ConcreteModel)
 from pao.duality.collect import collect_dual_representation
 
 def load(): #pragma:nocover

@@ -9,10 +9,11 @@
 #  ___________________________________________________________________________
 
 """
-collect.py module
+pao.duality.collect
 
-Defines the collect_dual_representation() function, which collects information
-that is used to compute a linear dual of a given block.
+This module defines the collect_dual_representation() function, which
+collects information that is used to compute a linear dual of a given
+block.
 """
 
 __all__ = ('collect_dual_representation')
@@ -23,8 +24,8 @@ __all__ = ('collect_dual_representation')
 #pylint: disable-msg=too-many-statements
 
 from pyutilib.misc import Bunch
-from pyomo.core.base import  Constraint, Objective, maximize, minimize
-from pyomo.repn.standard_repn import generate_standard_repn
+from pyomo.core import  Constraint, Objective, maximize, minimize
+from pyomo.repn import generate_standard_repn
 
 
 def collect_dual_representation(block, fixed):

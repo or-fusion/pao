@@ -26,7 +26,6 @@ import pyutilib.th as unittest
 
 from pyomo.environ import TransformationFactory, SolverFactory, ComponentUID
 import pyomo.opt
-import pyomo.scripting.util
 import pao
 
 currdir = dirname(abspath(__file__))
