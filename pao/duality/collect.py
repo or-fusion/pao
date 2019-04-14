@@ -49,22 +49,14 @@ def collect_dual_representation(block, fixed):
         c_rhs:    The dual constraint right-hand side
         c_sense:  The sense of each constraint in the dual
         d_sense:  The sense of the dual objective
-        vnames:   Names of the dual constraints
-        cnames:   Names of the dual variables
         v_domain: A dictionary that indicates the domain of the dual variable
                       (-1: Nonpositive, 0: Unbounded, 1: Nonnegative)
     """
     #
-    fixed_vars = {id(v) for v in fixed}
-    #
     # Variables are constraints of block
     # Constraints are unfixed variables of block and the parent model.
     #
-    vnames = set()
-    for obj in block.component_objects(Constraint, active=True):
-        vnames.add((obj.getname(fully_qualified=True, relative_to=block), obj.is_indexed()))
-    cnames = set()
-
+    fixed_vars = {id(v) for v in fixed}
     all_vars = {}
 
     A = {}
@@ -263,4 +255,4 @@ def collect_dual_representation(block, fixed):
             v_domain[name_, ndx] = 1
             b_coef[name_, ndx] = bounds[0]
     #
-    return (A, b_coef, c_rhs, c_sense, d_sense, vnames, cnames, v_domain)
+    return (A, b_coef, c_rhs, c_sense, d_sense, v_domain)

@@ -69,7 +69,7 @@ def create_linear_dual(block, fixed):
     #
     # NOTE: We are ignoring the vnames and cnames data
     #
-    A, b_coef, c_rhs, c_sense, d_sense, vnames, cnames, v_domain = \
+    A, b_coef, c_rhs, c_sense, d_sense, v_domain = \
         collect_dual_representation(block, fixed)
     #
     # Construct the block
