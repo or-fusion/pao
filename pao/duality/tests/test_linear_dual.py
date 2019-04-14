@@ -102,7 +102,7 @@ class CommonTests(object):
 
     def getObjective(self, fname):
         FILE = open(fname)
-        data = yaml.load(FILE)
+        data = yaml.load(FILE, Loader=yaml.SafeLoader)
         FILE.close()
         solutions = data.get('Solution', [])
         ans = []
