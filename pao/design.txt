@@ -2,8 +2,21 @@
 # This document includes notes about the design of PAO
 #
 
-. Do we need an indexed SubModel class?
+duality
+
+. Should this package expose specific dualization functions?
 
 . Should we create an error if there is more than one objective when creating a linear dual?
 This would further slow down the dualization process
 
+. Should we setup a linear dualization function that does not do string manipulation?  This might be significantly faster.
+
+. What other dualizations should be supported?  Quadratic?  Lagrangian?
+
+
+bilevel
+
+. Do we need an indexed SubModel class?
+
+
+miscellaneous
