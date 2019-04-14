@@ -11,8 +11,8 @@
 """
 collect.py module
 
-Defines the collect_dual_representation() function, which compute a linear
-dual of a given block.
+Defines the collect_dual_representation() function, which collects information
+that is used to compute a linear dual of a given block.
 """
 
 __all__ = ('collect_dual_representation')
@@ -29,14 +29,15 @@ from pyomo.repn.standard_repn import generate_standard_repn
 
 def collect_dual_representation(block, fixed):
     """
-    Process linear terms from a block and return a representation of the dual.  This
-    function does not change the block, but instead returns the following information:
+    Process linear terms from a block and return information that is
+    used to define the dual. This function does not change the block.
 
     Note that variable bounds are treated as constraints unless they are zero.  For example,
     a variable X with bounds (-1, 1) is treated as bounded with two additional inequality
     constraints for the lower and upper bounds.  However, a variable Y with bounds (0, 3)
     is treated as a nonnegative variable with an additional constraint that defines its
     upper bound.
+
 
     Arguments:
         block: The SubModel object that is dualized
