@@ -1,6 +1,4 @@
-__version__ = '1.0.dev0'
-
-__doc__ = """
+"""
 pao package
 
 Defines modeling techniques and solvers for representing optimization
@@ -18,7 +16,10 @@ Instead, users should import symbols directly from pao sub-packages:
     $ from pao.bilevel import *
 
 Version: %s
-""" % __version__
+"""
+
+__version__ = '1.0.dev0'
+__doc__ = __doc__ % __version__
 
 __all__ = ('__version__')
 
