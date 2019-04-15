@@ -1,11 +1,21 @@
+#  ___________________________________________________________________________
+#
+#  Pyomo: Python Optimization Modeling Objects
+#  Copyright 2017 National Technology and Engineering Solutions of Sandia, LLC
+#  Under the terms of Contract DE-NA0003525 with National Technology and
+#  Engineering Solutions of Sandia, LLC, the U.S. Government retains certain
+#  rights in this software.
+#  This software is distributed under the 3-clause BSD License.
+#  ___________________________________________________________________________
+
 """
-pao package
+pao
 
-Defines modeling techniques and solvers for representing optimization
-problems with adversarial behavior.  PAO currently supports bilevel
-programming.
+This package defines modeling techniques and solvers for representing
+optimization problems with adversarial behavior.  PAO currently supports
+bilevel programming.
 
-Importing PAO initializes the Pyomo environment and then registers
+Importing pao initializes the Pyomo environment and then registers
 the pao plugins.  We assume that a user will never import symbols from
 pao directly:
 
