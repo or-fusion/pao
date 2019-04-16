@@ -8,17 +8,20 @@
 #  This software is distributed under the 3-clause BSD License.
 #  ___________________________________________________________________________
 
+"""
+pao.bilevel.plugins.lcp
+"""
+
 import six
 import logging
 
-from pyomo.core.base import Block, VarList, ConstraintList, Objective, Var, Constraint, maximize, ComponentUID, Set, TransformationFactory
+from pyomo.core import Block, VarList, ConstraintList, Objective,\
+                       Var, Constraint, maximize, ComponentUID, Set,\
+                       TransformationFactory
 from pyomo.repn import generate_standard_repn
 from pyomo.mpec import ComplementarityList, complements
-from pao.bilevel.plugins.transform import Base_BilevelTransformation
-from pao.bilevel.components import SubModel
-
-
-logger = logging.getLogger('pao')
+from .transform import BaseBilevelTransformation
+from ..components import SubModel
 
 
 def create_submodel_kkt_block(instance, submodel, deterministic, fixed_upper_vars):
@@ -268,7 +271,7 @@ def create_submodel_kkt_block(instance, submodel, deterministic, fixed_upper_var
 
 
 @TransformationFactory.register('pao.bilevel.linear_mpec', doc="Generate a linear MPEC from the optimality conditions of the submodel")
-class LinearComplementarity_BilevelTransformation(Base_BilevelTransformation):
+class LinearComplementarity_BilevelTransformation(BaseBilevelTransformation):
 
     def _apply_to(self, instance, **kwds):
         deterministic = kwds.pop('deterministic', False)

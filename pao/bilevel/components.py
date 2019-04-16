@@ -2,21 +2,34 @@
 #
 #  Pyomo: Python Optimization Modeling Objects
 #  Copyright 2017 National Technology and Engineering Solutions of Sandia, LLC
-#  Under the terms of Contract DE-NA0003525 with National Technology and 
-#  Engineering Solutions of Sandia, LLC, the U.S. Government retains certain 
+#  Under the terms of Contract DE-NA0003525 with National Technology and
+#  Engineering Solutions of Sandia, LLC, the U.S. Government retains certain
 #  rights in this software.
 #  This software is distributed under the 3-clause BSD License.
 #  ___________________________________________________________________________
 
-__all__ = ['SubModel']
+"""
+pao.bilevel.components
 
-from pyomo.core.base.plugin import ModelComponentFactory
-from pyomo.core.base.component import Component
+This module defines Pyomo components used to declare bilevel programs.
+"""
+
+__all__ = ("SubModel",)
+
+#pylint: disable-msg=too-many-ancestors
+
 from pyomo.core.base.block import SimpleBlock
+from pyomo.core import ModelComponentFactory
+from pyomo.core import Component
+#from pyomo.core import SimpleBlock
 
 
 @ModelComponentFactory.register("A submodel in a bilevel program")
 class SubModel(SimpleBlock):
+    """
+    This model component defines a sub-model in a bilevel
+    program.
+    """
 
     def __init__(self, *args, **kwargs):
         """Constructor"""
@@ -43,4 +56,3 @@ class SubModel(SimpleBlock):
             self._var = [_var]
         else:
             self._var = _var
-

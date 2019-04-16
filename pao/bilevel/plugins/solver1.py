@@ -13,7 +13,7 @@ import pyutilib.misc
 from pyomo.core import TransformationFactory, Var, ComponentUID, Block, Objective, Set
 import pyomo.opt
 import pyomo.common
-from pao.bilevel.components import SubModel
+from ..components import SubModel
 
 
 @pyomo.opt.SolverFactory.register('pao.bilevel.ld',

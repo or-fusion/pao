@@ -2,29 +2,39 @@
 #
 #  Pyomo: Python Optimization Modeling Objects
 #  Copyright 2017 National Technology and Engineering Solutions of Sandia, LLC
-#  Under the terms of Contract DE-NA0003525 with National Technology and 
-#  Engineering Solutions of Sandia, LLC, the U.S. Government retains certain 
+#  Under the terms of Contract DE-NA0003525 with National Technology and
+#  Engineering Solutions of Sandia, LLC, the U.S. Government retains certain
 #  rights in this software.
 #  This software is distributed under the 3-clause BSD License.
 #  ___________________________________________________________________________
 
-from pyomo.core.base import Transformation, Var, ComponentUID
-from pao.bilevel import SubModel
+"""
+pao.bilevel.plugins.transform
+
+Definition of a base class for bilevel transformation.
+"""
+
+from pyomo.core import Transformation, Var, ComponentUID
+from ..components import SubModel
 
 
-class Base_BilevelTransformation(Transformation):
+class BaseBilevelTransformation(Transformation):
+    """
+    Base class defining methods commonly used to transform
+    bilevel programs.
+    """
 
     def _preprocess(self, tname, instance, sub=None):
-        #
-        # Iterate over the model collecting variable data,
-        # until the submodel is found.
-        #
+        """
+        Iterate over the model collecting variable data,
+        until the submodel is found.
+        """
         var = {}
         submodel = None
         for (name, data) in instance.component_map(active=True).items():
-            if isinstance(data,Var):
+            if isinstance(data, Var):
                 var[name] = data
-            elif isinstance(data,SubModel):
+            elif isinstance(data, SubModel):
                 if sub is None or sub == name:
                     sub = name
                     submodel = data
@@ -42,14 +52,12 @@ class Base_BilevelTransformation(Transformation):
             for i in submodel._fixed:
                 name = i.name
                 fixed.append(name)
-                #if not name in var:
-                #    var[name] = i
             for v in var:
                 if not v in fixed:
-                    unfixed.append((v,getattr(submodel._parent(),v).is_indexed()))
+                    unfixed.append((v, getattr(submodel._parent(), v).is_indexed()))
         elif submodel._var:
             fixed = []
-            unfixed = [(v.name,v.is_indexed()) for v in submodel._var]
+            unfixed = [(v.name, v.is_indexed()) for v in submodel._var]
             unfixed_names = [v.name for v in submodel._var]
             for v in var:
                 if not v in unfixed_names:
@@ -57,14 +65,10 @@ class Base_BilevelTransformation(Transformation):
         else:
             raise RuntimeError("Must specify 'fixed' or 'unfixed' options")
         #
-        self._submodel           = sub
-        self._upper_vars         = var
-        self._fixed_upper_vars   = fixed
+        self._submodel = sub
+        self._upper_vars = var
+        self._fixed_upper_vars = fixed
         self._unfixed_upper_vars = unfixed
-        #print("HERE")
-        #print(self._upper_vars)
-        #print(self._fixed_upper_vars)
-        #print(self._unfixed_upper_vars)
         instance._transformation_data[tname].fixed = [ComponentUID(var[v]) for v in fixed]
         return submodel
 
@@ -89,7 +93,7 @@ class Base_BilevelTransformation(Transformation):
         modified.
         """
         cache = []
-        for i,vardata in var.items():
+        for i, vardata in var.items():
             if not vardata.fixed:
                 vardata.fix()
                 cache.append(i)
@@ -101,4 +105,3 @@ class Base_BilevelTransformation(Transformation):
         """
         for i in cache:
             var[i].unfix()
-
