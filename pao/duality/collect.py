@@ -16,7 +16,7 @@ collects information that is used to compute a linear dual of a given
 block.
 """
 
-__all__ = ('collect_dual_representation')
+__all__ = ("collect_dual_representation",)
 
 #pylint: disable-msg=invalid-name
 #pylint: disable-msg=too-many-locals
