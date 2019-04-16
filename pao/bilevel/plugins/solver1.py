@@ -8,21 +8,30 @@
 #  This software is distributed under the 3-clause BSD License.
 #  ___________________________________________________________________________
 
+"""
+pao.bilevel.plugins.solver1
+
+Declare the ld solver.
+"""
+
 import time
 import pyutilib.misc
 from pyomo.core import TransformationFactory, Var, ComponentUID, Block, Objective, Set
 import pyomo.opt
 import pyomo.common
-from ..components import SubModel
 
 
 @pyomo.opt.SolverFactory.register('pao.bilevel.ld',
-                        doc='Solver for bilevel problems using linear duality')
-class BILEVEL_Solver1(pyomo.opt.OptSolver):
+                                  doc='Solver for bilevel problems using linear duality')
+class BilevelSolver1(pyomo.opt.OptSolver):
+    """
+    A solver that optimizes a bilevel program
+    with a continuous subproblem.
+    """
 
     def __init__(self, **kwds):
         kwds['type'] = 'pao.bilevel.ld'
-        pyomo.opt.OptSolver.__init__(self,**kwds)
+        pyomo.opt.OptSolver.__init__(self, **kwds)
         self._metasolver = True
 
     def _presolve(self, *args, **kwds):
@@ -39,7 +48,7 @@ class BILEVEL_Solver1(pyomo.opt.OptSolver):
         #
         # Verify whether the objective is linear
         #
-        nonlinear=False
+        nonlinear = False
         for odata in self._instance.component_objects(Objective, active=True):
             nonlinear = odata.expr.polynomial_degree() != 1
             # Stop after the first objective
@@ -51,7 +60,7 @@ class BILEVEL_Solver1(pyomo.opt.OptSolver):
             gdp_xfrm = TransformationFactory("gdp.bilinear")
             gdp_xfrm.apply_to(self._instance)
             mip_xfrm = TransformationFactory("gdp.bigm")
-            mip_xfrm.apply_to(self._instance, bigM=self.options.get('bigM',100000))
+            mip_xfrm.apply_to(self._instance, bigM=self.options.get('bigM', 100000))
         #
         # Solve with a specified solver
         #
@@ -59,9 +68,11 @@ class BILEVEL_Solver1(pyomo.opt.OptSolver):
         if not self.options.solver:     #pragma:nocover
             solver = 'glpk'
 
-        # use the with block here so that deactivation of the
+        #
+        # Use the with block here so that deactivation of the
         # solver plugin always occurs thereby avoiding memory
         # leaks caused by plugins!
+        #
         with pyomo.opt.SolverFactory(solver) as opt:
             self.results = []
             #
@@ -75,21 +86,12 @@ class BILEVEL_Solver1(pyomo.opt.OptSolver):
             self.results.append(opt.solve(self._instance,
                                           tee=self._tee,
                                           timelimit=self._timelimit))
-            #print("POST-SOLVE - BEGIN")
-            #self._instance.write("tmp.lp", io_options={"symbolic_solver_labels":True})
-            #self._instance.pprint()
-            #self._instance.display()
-            #print("POST-SOLVE - END")
             #
             # If the problem was bilinear, then reactivate the original data
             #
             if nonlinear:
                 i = 0
                 for v in self._instance.bilinear_data_.vlist.itervalues():
-                    #print(v)
-                    #print(v.name)
-                    #print(type(v))
-                    #print(v.value)
                     if abs(v.value) <= 1e-7:
                         self._instance.bilinear_data_.vlist_boolean[i] = 0
                     else:
@@ -104,7 +106,7 @@ class BILEVEL_Solver1(pyomo.opt.OptSolver):
             unfixed_cuids = set()
             # Copy variable values and fix them
             for vuid in tdata.fixed:
-                for index_, data_ in vuid.find_component_on(self._instance).iteritems():
+                for data_ in vuid.find_component_on(self._instance).values():
                     if not data_.fixed:
                         data_.value = self._instance.find_component(data_).value
                         data_.fixed = True
@@ -113,16 +115,18 @@ class BILEVEL_Solver1(pyomo.opt.OptSolver):
             for name_ in tdata.submodel:
                 submodel = getattr(self._instance, name_)
                 submodel.activate()
-                for (name, data) in submodel.component_map(active=False).items():
-                    if not isinstance(data,Var) and not isinstance(data,Set):
+                for data in submodel.component_map(active=False).values():
+                    if not isinstance(data, Var) and not isinstance(data, Set):
                         data.activate()
                 dual_submodel = getattr(self._instance, name_+'_dual')
                 dual_submodel.deactivate()
                 pyomo.common.PyomoAPIFactory('pyomo.repn.compute_standard_repn')({}, model=submodel)
                 self._instance.reclassify_component_type(name_, Block)
-                # use the with block here so that deactivation of the
+                #
+                # Use the with block here so that deactivation of the
                 # solver plugin always occurs thereby avoiding memory
                 # leaks caused by plugins!
+                #
                 with pyomo.opt.SolverFactory(solver) as opt_inner:
                     #
                     # **NOTE: It would be better to override _presolve on the
@@ -132,11 +136,12 @@ class BILEVEL_Solver1(pyomo.opt.OptSolver):
                     #         io_options are getting relayed to the subsolver
                     #         here).
                     #
-                    results = opt_inner.solve(self._instance, tee=self._tee, timelimit=self._timelimit)
-                                                        #select=None)
+                    results = opt_inner.solve(self._instance,
+                                              tee=self._tee,
+                                              timelimit=self._timelimit)
             # Unfix variables
             for vuid in tdata.fixed:
-                for index_, data_ in vuid.find_component_on(self._instance).iteritems():
+                for data_ in vuid.find_component_on(self._instance).values():
                     if ComponentUID(data_) in unfixed_cuids:
                         data_.fixed = False
             #
@@ -150,15 +155,16 @@ class BILEVEL_Solver1(pyomo.opt.OptSolver):
             # Reactivate top level objective
             # and reclassify the submodel
             #
-            for oname, odata in self._instance.component_map(Objective).items():
+            for odata in self._instance.component_map(Objective).values():
                 odata.activate()
-            # TODO: rework the Block logic to allow for searching SubModel objects for variables, etc.
-            #data_.parent_component().parent_block().reclassify_component_type(name_, SubModel)
+            #
+            # TODO: rework the Block logic to allow for searching 
+            # SubModel objects for variables, etc.
             #
             # Return the sub-solver return condition value and log
             #
-            return pyutilib.misc.Bunch(rc=getattr(opt,'_rc', None),
-                                       log=getattr(opt,'_log',None))
+            return pyutilib.misc.Bunch(rc=getattr(opt, '_rc', None),
+                                       log=getattr(opt, '_log', None))
 
     def _postsolve(self):
         #
@@ -180,14 +186,12 @@ class BILEVEL_Solver1(pyomo.opt.OptSolver):
         #
         solv = results.solver
         solv.name = self.options.subsolver
-        #solv.status = self._glpk_get_solver_status()
-        #solv.memory_used = "%d bytes, (%d KiB)" % (peak_mem, peak_mem/1024)
         solv.wallclock_time = self.wall_time
         cpu_ = []
         for res in self.results:
             if not getattr(res.solver, 'cpu_time', None) is None:
-                cpu_.append( res.solver.cpu_time )
-        if len(cpu_) > 0:
+                cpu_.append(res.solver.cpu_time)
+        if cpu_:
             solv.cpu_time = sum(cpu_)
         #
         # TODO: detect infeasibilities, etc
@@ -200,8 +204,10 @@ class BILEVEL_Solver1(pyomo.opt.OptSolver):
         prob.number_of_constraints = self._instance.statistics.number_of_constraints
         prob.number_of_variables = self._instance.statistics.number_of_variables
         prob.number_of_binary_variables = self._instance.statistics.number_of_binary_variables
-        prob.number_of_integer_variables = self._instance.statistics.number_of_integer_variables
-        prob.number_of_continuous_variables = self._instance.statistics.number_of_continuous_variables
+        prob.number_of_integer_variables =\
+            self._instance.statistics.number_of_integer_variables
+        prob.number_of_continuous_variables =\
+            self._instance.statistics.number_of_continuous_variables
         prob.number_of_objectives = self._instance.statistics.number_of_objectives
         #
         # SOLUTION(S)

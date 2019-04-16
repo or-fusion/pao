@@ -2,8 +2,8 @@
 #
 #  Pyomo: Python Optimization Modeling Objects
 #  Copyright 2017 National Technology and Engineering Solutions of Sandia, LLC
-#  Under the terms of Contract DE-NA0003525 with National Technology and 
-#  Engineering Solutions of Sandia, LLC, the U.S. Government retains certain 
+#  Under the terms of Contract DE-NA0003525 with National Technology and
+#  Engineering Solutions of Sandia, LLC, the U.S. Government retains certain
 #  rights in this software.
 #  This software is distributed under the 3-clause BSD License.
 #  ___________________________________________________________________________
@@ -13,7 +13,6 @@ pao.bilevel.plugins.lcp
 """
 
 import six
-import logging
 
 from pyomo.core import Block, VarList, ConstraintList, Objective,\
                        Var, Constraint, maximize, ComponentUID, Set,\
@@ -21,7 +20,6 @@ from pyomo.core import Block, VarList, ConstraintList, Objective,\
 from pyomo.repn import generate_standard_repn
 from pyomo.mpec import ComplementarityList, complements
 from .transform import BaseBilevelTransformation
-from ..components import SubModel
 
 
 def create_submodel_kkt_block(instance, submodel, deterministic, fixed_upper_vars):
@@ -104,7 +102,7 @@ def create_submodel_kkt_block(instance, submodel, deterministic, fixed_upper_var
                 # Add the linear term
                 #
                 id_ = id(var[1])
-                d2[id_] = d2.get(id_,0) + d_sense * o_terms.quadratic_coefs[i] * var[0]
+                d2[id_] = d2.get(id_, 0) + d_sense * o_terms.quadratic_coefs[i] * var[0]
                 if not id_ in sids_set:
                     sids_set.add(id_)
                     sids_list.append(id_)
@@ -113,12 +111,13 @@ def create_submodel_kkt_block(instance, submodel, deterministic, fixed_upper_var
                 # Add the linear term
                 #
                 id_ = id(var[0])
-                d2[id_] = d2.get(id_,0) + d_sense * o_terms.quadratic_coefs[i] * var[1]
+                d2[id_] = d2.get(id_, 0) + d_sense * o_terms.quadratic_coefs[i] * var[1]
                 if not id_ in sids_set:
                     sids_set.add(id_)
                     sids_list.append(id_)
             else:
-                raise RuntimeError("Cannot apply this transformation to a problem with quadratic terms where both variables are in the lower level.")
+                raise RuntimeError("Cannot apply this transformation to a problem with \
+quadratic terms where both variables are in the lower level.")
         #
         # Stop after the first objective
         #
@@ -143,7 +142,7 @@ def create_submodel_kkt_block(instance, submodel, deterministic, fixed_upper_var
                 # Add the complementarity slackness condition for a lower bound
                 #
                 v = block.v.add()
-                block.c3.add( complements(vcomponent[ndx] >= lb, v >= 0) )
+                block.c3.add(complements(vcomponent[ndx] >= lb, v >= 0))
             else:
                 v = None
             if not ub is None:
@@ -152,7 +151,7 @@ def create_submodel_kkt_block(instance, submodel, deterministic, fixed_upper_var
                 #
                 w = block.v.add()
                 vtmp[id(vcomponent[ndx])] = w
-                block.c3.add( complements(vcomponent[ndx] <= ub, w >= 0) )
+                block.c3.add(complements(vcomponent[ndx] <= ub, w >= 0))
             else:
                 w = None
             if not (v is None and w is None):
@@ -161,7 +160,7 @@ def create_submodel_kkt_block(instance, submodel, deterministic, fixed_upper_var
                 # were created.
                 #
                 id_ = id(vcomponent[ndx])
-                vtmp[id_] = (v,w)
+                vtmp[id_] = (v, w)
                 if not id_ in sids_set:
                     sids_set.add(id_)
                     sids_list.append(id_)
@@ -173,14 +172,14 @@ def create_submodel_kkt_block(instance, submodel, deterministic, fixed_upper_var
         if cdata.equality:
             # Don't add a complementary slackness condition for an equality constraint
             u = block.u.add()
-            utmp[id(cdata)] = (None,u)
+            utmp[id(cdata)] = (None, u)
         else:
             if not cdata.lower is None:
                 #
                 # Add the complementarity slackness condition for a greater-than inequality
                 #
                 u = block.u.add()
-                block.c2.add( complements(- cdata.body <= - cdata.lower, u >= 0) )
+                block.c2.add(complements(- cdata.body <= - cdata.lower, u >= 0))
             else:
                 u = None
             if not cdata.upper is None:
@@ -188,11 +187,11 @@ def create_submodel_kkt_block(instance, submodel, deterministic, fixed_upper_var
                 # Add the complementarity slackness condition for a less-than inequality
                 #
                 w = block.u.add()
-                block.c2.add( complements(cdata.body <= cdata.upper, w >= 0) )
+                block.c2.add(complements(cdata.body <= cdata.upper, w >= 0))
             else:
                 w = None
             if not (u is None and w is None):
-                utmp[id(cdata)] = (u,w)
+                utmp[id(cdata)] = (u, w)
         #
         # Store the coefficients for the constraint variables that are not fixed
         #
@@ -204,7 +203,7 @@ def create_submodel_kkt_block(instance, submodel, deterministic, fixed_upper_var
             if var.parent_component().local_name in fixed_upper_vars:
                 continue
             id_ = id(var)
-            B2.setdefault(id_,{}).setdefault(id(cdata),c_terms.linear_coefs[i])
+            B2.setdefault(id_, {}).setdefault(id(cdata), c_terms.linear_coefs[i])
             if not id_ in sids_set:
                 sids_set.add(id_)
                 sids_list.append(id_)
@@ -219,7 +218,8 @@ def create_submodel_kkt_block(instance, submodel, deterministic, fixed_upper_var
                 if id_ in B2:
                     B2[id_][id(cdata)] = c_terms.quadratic_coefs[i] * var[0]
                 else:
-                    B2.setdefault(id_,{}).setdefault(id(cdata),c_terms.quadratic_coefs[i] * var[0])
+                    B2.setdefault(id_, {}).setdefault(id(cdata),
+                                                      c_terms.quadratic_coefs[i] * var[0])
                 if not id_ in sids_set:
                     sids_set.add(id_)
                     sids_list.append(id_)
@@ -228,18 +228,20 @@ def create_submodel_kkt_block(instance, submodel, deterministic, fixed_upper_var
                 if id_ in B2:
                     B2[id_][id(cdata)] = c_terms.quadratic_coefs[i] * var[1]
                 else:
-                    B2.setdefault(id_,{}).setdefault(id(cdata),c_terms.quadratic_coefs[i] * var[1])
+                    B2.setdefault(id_, {}).setdefault(id(cdata),
+                                                      c_terms.quadratic_coefs[i] * var[1])
                 if not id_ in sids_set:
                     sids_set.add(id_)
                     sids_list.append(id_)
             else:
-                raise RuntimeError("Cannot apply this transformation to a problem with quadratic terms where both variables are in the lower level.")
+                raise RuntimeError("Cannot apply this transformation to a problem with \
+quadratic terms where both variables are in the lower level.")
     #
     # Generate stationarity equations
     #
     tmp__ = (None, None)
     for vid in sids_list:
-        exp = d2.get(vid,0)
+        exp = d2.get(vid, 0)
         #
         lb_dual, ub_dual = vtmp.get(vid, tmp__)
         if vid in vtmp:
@@ -248,10 +250,11 @@ def create_submodel_kkt_block(instance, submodel, deterministic, fixed_upper_var
             if not ub_dual is None:
                 exp += ub_dual             # dual for variable upper bound
         #
-        B2_ = B2.get(vid,{})
+        B2_ = B2.get(vid, {})
         utmp_keys = list(utmp.keys())
         if deterministic:
-            utmp_keys.sort(key=lambda x:utmp[x][0].local_name if utmp[x][1] is None else utmp[x][1].local_name)
+            utmp_keys.sort(key=lambda x: utmp[x][0].local_name\
+                           if utmp[x][1] is None else utmp[x][1].local_name)
         for uid in utmp_keys:
             if uid in B2_:
                 lb_dual, ub_dual = utmp[uid]
@@ -262,39 +265,44 @@ def create_submodel_kkt_block(instance, submodel, deterministic, fixed_upper_var
         if type(exp) in six.integer_types or type(exp) is float:
             # TODO: Annotate the model as unbounded
             raise IOError("Unbounded variable without side constraints")
-        else:
-            block.c1.add( exp == 0 )
+        block.c1.add(exp == 0)
     #
     # Return block
     #
     return block
 
 
-@TransformationFactory.register('pao.bilevel.linear_mpec', doc="Generate a linear MPEC from the optimality conditions of the submodel")
-class LinearComplementarity_BilevelTransformation(BaseBilevelTransformation):
+@TransformationFactory.register('pao.bilevel.linear_mpec',
+                                doc="Generate a linear MPEC from the optimality conditions \
+of the submodel")
+class LinearComplementarityBilevelTransformation(BaseBilevelTransformation):
+    """
+    This transformation creates a block using a SubModel object,
+    which contains constraints describing the optimality conditions for that
+    submodel.
+    """
 
-    def _apply_to(self, instance, **kwds):
+    def _apply_to(self, model, **kwds):
         deterministic = kwds.pop('deterministic', False)
         submodel_name = kwds.pop('submodel', None)
         #
         # Process options
         #
-        submodel = self._preprocess('pao.bilevel.linear_mpec', instance, sub=submodel_name)
-        instance.reclassify_component_type(submodel, Block)
+        submodel = self._preprocess('pao.bilevel.linear_mpec', model, sub=submodel_name)
+        model.reclassify_component_type(submodel, Block)
         #
         # Create a block with optimality conditions
         #
-        setattr(instance, self._submodel+'_kkt', create_submodel_kkt_block(instance, submodel, deterministic, self._fixed_upper_vars))
-        instance._transformation_data['pao.bilevel.linear_mpec'].submodel_cuid = ComponentUID(submodel)
-        instance._transformation_data['pao.bilevel.linear_mpec'].block_cuid = ComponentUID(getattr(instance,self._submodel+'_kkt'))
-        #-------------------------------------------------------------------------------
+        setattr(model, self._submodel+'_kkt',
+                create_submodel_kkt_block(model, submodel, deterministic,
+                                          self._fixed_upper_vars))
+        model._transformation_data['pao.bilevel.linear_mpec'].submodel_cuid =\
+            ComponentUID(submodel)
+        model._transformation_data['pao.bilevel.linear_mpec'].block_cuid =\
+            ComponentUID(getattr(model, self._submodel+'_kkt'))
         #
         # Disable the original submodel and
         #
-        #instance.reclassify_component_type(submodel, SubModel)
-        #submodel.deactivate()
-        # TODO: Cache the list of components that were deactivated
-        for (name, data) in submodel.component_map(active=True).items():
-            if not isinstance(data,Var) and not isinstance(data,Set):
+        for data in submodel.component_map(active=True).values():
+            if not isinstance(data, Var) and not isinstance(data, Set):
                 data.deactivate()
-

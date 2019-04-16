@@ -2,11 +2,17 @@
 #
 #  Pyomo: Python Optimization Modeling Objects
 #  Copyright 2017 National Technology and Engineering Solutions of Sandia, LLC
-#  Under the terms of Contract DE-NA0003525 with National Technology and 
-#  Engineering Solutions of Sandia, LLC, the U.S. Government retains certain 
+#  Under the terms of Contract DE-NA0003525 with National Technology and
+#  Engineering Solutions of Sandia, LLC, the U.S. Government retains certain
 #  rights in this software.
 #  This software is distributed under the 3-clause BSD License.
 #  ___________________________________________________________________________
+
+"""
+pao.bilevel.plugins.solver4
+
+Declare the pao.bilevel.bqp solver.
+"""
 
 import time
 import pyutilib.misc
@@ -16,12 +22,16 @@ from pyomo.core import TransformationFactory, Var, Set
 
 
 @pyomo.opt.SolverFactory.register('pao.bilevel.bqp',
-                        doc='Global solver for bilevel quadratic problems')
-class BILEVEL_Solver4(pyomo.opt.OptSolver):
+                                  doc='Global solver for bilevel quadratic problems')
+class BilevelSolver4(pyomo.opt.OptSolver):
+    """
+    A solver that performs global optimization of bilevel
+    quadratic programs.
+    """
 
     def __init__(self, **kwds):
         kwds['type'] = 'pao.bilevel.bqp'
-        pyomo.opt.OptSolver.__init__(self,**kwds)
+        pyomo.opt.OptSolver.__init__(self, **kwds)
         self._metasolver = True
 
     def _presolve(self, *args, **kwds):
@@ -42,26 +52,25 @@ class BILEVEL_Solver4(pyomo.opt.OptSolver):
         xfrm = TransformationFactory('mpec.simple_disjunction')
         xfrm.apply_to(self._instance)
         xfrm = TransformationFactory('gdp.bigm')
-        xfrm.apply_to(self._instance, bigM=self.options.get('bigM',self._bigM))
-        #
-        ##self._instance.pprint()
+        xfrm.apply_to(self._instance, bigM=self.options.get('bigM', self._bigM))
 
         xfrm = TransformationFactory('gdp.bilinear')
         xfrm.apply_to(self._instance)
         xfrm = TransformationFactory('gdp.bigm')
-        #xfrm.apply_to(self._instance, bigM=self.options.get('bigM',self._bigM))
+        #xfrm.apply_to(self._instance, bigM=self.options.get('bigM', self._bigM))
         xfrm.apply_to(self._instance, bigM=8888)
 
-        ##self._instance.pprint()
         #
         # Solve with a specified solver
         #
         solver = self.options.solver
         if not solver:
             solver = 'glpk'
-        # use the with block here so that deactivation of the
+        #
+        # Use the with block here so that deactivation of the
         # solver plugin always occurs thereby avoiding memory
         # leaks caused by plugins!
+        #
         with pyomo.opt.SolverFactory(solver) as opt:
             #
             self.results = []
@@ -77,31 +86,30 @@ class BILEVEL_Solver4(pyomo.opt.OptSolver):
                                           tee=self._tee,
                                           timelimit=self._timelimit,
                                           symbolic_solver_labels=False,
-                                          keepfiles=False
-                                          ))
+                                          keepfiles=False))
         #
         stop_time = time.time()
         self.wall_time = stop_time - start_time
-        #self._instance.pprint()
-        #self._instance.display()
         #
         # Deactivate the block that contains the optimality conditions,
         # and reactivate SubModel
         #
-        submodel = self._instance._transformation_data['pao.bilevel.linear_mpec'].submodel_cuid.find_component(self._instance)
-        for (name, data) in submodel.component_map(active=False).items():
-            if not isinstance(data,Var) and not isinstance(data,Set):
+        submodel = self._instance._transformation_data['pao.bilevel.linear_mpec'].\
+            submodel_cuid.find_component(self._instance)
+        for data in submodel.component_map(active=False).values():
+            if not isinstance(data, Var) and not isinstance(data, Set):
                 data.activate()
         #
         # TODO: delete this subblock
         # TODO: Remove bilinear and bigM blocks
         #
-        self._instance._transformation_data['pao.bilevel.linear_mpec'].block_cuid.find_component(self._instance).deactivate()
+        self._instance._transformation_data['pao.bilevel.linear_mpec'].block_cuid.\
+            find_component(self._instance).deactivate()
         #
         # Return the sub-solver return condition value and log
         #
-        return pyutilib.misc.Bunch(rc=getattr(opt,'_rc', None),
-                                   log=getattr(opt,'_log',None))
+        return pyutilib.misc.Bunch(rc=getattr(opt, '_rc', None),
+                                   log=getattr(opt, '_log', None))
 
     def _postsolve(self):
         #
@@ -113,14 +121,12 @@ class BILEVEL_Solver4(pyomo.opt.OptSolver):
         #
         solv = results.solver
         solv.name = self.options.subsolver
-        #solv.status = self._glpk_get_solver_status()
-        #solv.memory_used = "%d bytes, (%d KiB)" % (peak_mem, peak_mem/1024)
         solv.wallclock_time = self.wall_time
         cpu_ = []
         for res in self.results:
             if not getattr(res.solver, 'cpu_time', None) is None:
-                cpu_.append( res.solver.cpu_time )
-        if len(cpu_) > 0:
+                cpu_.append(res.solver.cpu_time)
+        if cpu_:
             solv.cpu_time = sum(cpu_)
         #
         # TODO: detect infeasibilities, etc
@@ -134,8 +140,10 @@ class BILEVEL_Solver4(pyomo.opt.OptSolver):
         prob.number_of_constraints = self._instance.statistics.number_of_constraints
         prob.number_of_variables = self._instance.statistics.number_of_variables
         prob.number_of_binary_variables = self._instance.statistics.number_of_binary_variables
-        prob.number_of_integer_variables = self._instance.statistics.number_of_integer_variables
-        prob.number_of_continuous_variables = self._instance.statistics.number_of_continuous_variables
+        prob.number_of_integer_variables =\
+            self._instance.statistics.number_of_integer_variables
+        prob.number_of_continuous_variables =\
+            self._instance.statistics.number_of_continuous_variables
         prob.number_of_objectives = self._instance.statistics.number_of_objectives
         #
         ##from pyomo.core import maximize
@@ -152,4 +160,3 @@ class BILEVEL_Solver4(pyomo.opt.OptSolver):
         #
         self._instance = None
         return results
-

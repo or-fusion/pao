@@ -8,7 +8,14 @@
 #  This software is distributed under the 3-clause BSD License.
 #  ___________________________________________________________________________
 
+"""
+pao.bilevel.plugins.solver3
+
+Declare the blp_local solver.
+"""
+
 import time
+
 import pyutilib.misc
 import pyomo.opt
 import pyomo.common
@@ -16,12 +23,16 @@ from pyomo.core import TransformationFactory, Var, Set
 
 
 @pyomo.opt.SolverFactory.register('pao.bilevel.blp_local',
-                    doc='Local solver for continuous bilevel linear problems')
-class BILEVEL_Solver3(pyomo.opt.OptSolver):
+                                  doc='Local solver for continuous bilevel linear problems')
+class BilevelSolver3(pyomo.opt.OptSolver):
+    """
+    A solver that performs local optimization of bilevel programs with
+    a general continuous subproblem.
+    """
 
     def __init__(self, **kwds):
         kwds['type'] = 'pao.bilevel.blp_local'
-        pyomo.opt.OptSolver.__init__(self,**kwds)
+        pyomo.opt.OptSolver.__init__(self, **kwds)
         self._metasolver = True
 
     def _presolve(self, *args, **kwds):
@@ -36,7 +47,7 @@ class BILEVEL_Solver3(pyomo.opt.OptSolver):
         xfrm = TransformationFactory('pao.bilevel.linear_mpec')
         xfrm.apply_to(self._instance)
         xfrm = TransformationFactory('mpec.simple_nonlinear')
-        xfrm.apply_to(self._instance, mpec_bound=self.options.get('mpec_bound',1e-7))
+        xfrm.apply_to(self._instance, mpec_bound=self.options.get('mpec_bound', 1e-7))
         #
         # Solve with a specified solver
         #
@@ -44,9 +55,11 @@ class BILEVEL_Solver3(pyomo.opt.OptSolver):
         if not self.options.solver:
             solver = 'glpk'
 
-        # use the with block here so that deactivation of the
+        #
+        # Use the with block here so that deactivation of the
         # solver plugin always occurs thereby avoiding memory
         # leaks caused by plugins!
+        #
         with pyomo.opt.SolverFactory(solver) as opt:
             #
             self.results = []
@@ -72,16 +85,19 @@ class BILEVEL_Solver3(pyomo.opt.OptSolver):
         # Deactivate the block that contains the optimality conditions,
         # and reactivate SubModel
         #
-        submodel = self._instance._transformation_data['pao.bilevel.linear_mpec'].submodel_cuid.find_component(self._instance)
-        for (name, data) in submodel.component_map(active=False).items():
-            if not isinstance(data,Var) and not isinstance(data,Set):
+        submodel = self._instance._transformation_data['pao.bilevel.linear_mpec'].\
+            submodel_cuid.find_component(self._instance)
+        for data in submodel.component_map(active=False).values():
+            if not isinstance(data, Var) and not isinstance(data, Set):
                 data.activate()
         # TODO: delete this subblock
-        self._instance._transformation_data['pao.bilevel.linear_mpec'].block_cuid.find_component(self._instance).deactivate()
+        self._instance._transformation_data['pao.bilevel.linear_mpec'].block_cuid.\
+            find_component(self._instance).deactivate()
         #
         # Return the sub-solver return condition value and log
         #
-        return pyutilib.misc.Bunch(rc=getattr(opt,'_rc', None), log=getattr(opt,'_log',None))
+        return pyutilib.misc.Bunch(rc=getattr(opt, '_rc', None),
+                                   log=getattr(opt, '_log', None))
 
     def _postsolve(self):
         #
@@ -93,14 +109,12 @@ class BILEVEL_Solver3(pyomo.opt.OptSolver):
         #
         solv = results.solver
         solv.name = self.options.subsolver
-        #solv.status = self._glpk_get_solver_status()
-        #solv.memory_used = "%d bytes, (%d KiB)" % (peak_mem, peak_mem/1024)
         solv.wallclock_time = self.wall_time
         cpu_ = []
         for res in self.results:
             if not getattr(res.solver, 'cpu_time', None) is None:
-                cpu_.append( res.solver.cpu_time )
-        if len(cpu_) > 0:
+                cpu_.append(res.solver.cpu_time)
+        if cpu_:
             solv.cpu_time = sum(cpu_)
         #
         # TODO: detect infeasibilities, etc
@@ -114,11 +128,13 @@ class BILEVEL_Solver3(pyomo.opt.OptSolver):
         prob.number_of_constraints = self._instance.statistics.number_of_constraints
         prob.number_of_variables = self._instance.statistics.number_of_variables
         prob.number_of_binary_variables = self._instance.statistics.number_of_binary_variables
-        prob.number_of_integer_variables = self._instance.statistics.number_of_integer_variables
-        prob.number_of_continuous_variables = self._instance.statistics.number_of_continuous_variables
+        prob.number_of_integer_variables =\
+            self._instance.statistics.number_of_integer_variables
+        prob.number_of_continuous_variables =\
+            self._instance.statistics.number_of_continuous_variables
         prob.number_of_objectives = self._instance.statistics.number_of_objectives
         #
-        from pyomo.core import maximize
+        #from pyomo.core import maximize
         ##if self._instance.sense == maximize:
             ##prob.sense = pyomo.opt.ProblemSense.maximize
         ##else:
