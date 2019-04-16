@@ -18,5 +18,8 @@ bilevel
 
 . Do we need an indexed SubModel class?
 
+pao.bilevel.plugins.dual
+
+. Should we cache information about the deactivated components?
 
 miscellaneous
