@@ -12,11 +12,6 @@
 # Test transformations for linear duality
 #
 
-#import os
-#from os.path import abspath, dirname, normpath, join
-#currdir = dirname(abspath(__file__))
-#exdir = currdir
-
 import pyutilib.th as unittest
 from pyomo.environ import *
 import pao
