@@ -17,9 +17,16 @@ This would further slow down the dualization process
 bilevel
 
 . Do we need an indexed SubModel class?
+. What is the semantics of transformations for problems with multiple submodels?
+. Should we re-add the 'var' constructor argument for SubModel?  What are the semantics
+of this argument when variables in the submodel are not defined in the containing model?
 
 pao.bilevel.plugins.dual
 
 . Should we cache information about the deactivated components?
+
+. Should we add error checking to confirm the following?
+  1. This block is linear
+  2. All of the variables in expressions are continuous (or fixed)
 
 miscellaneous
