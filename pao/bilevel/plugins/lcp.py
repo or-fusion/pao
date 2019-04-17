@@ -37,6 +37,7 @@ def create_submodel_kkt_block(instance, submodel, deterministic, fixed_upper_var
 
     NOTE THE VARIABLE BOUNDS!
     """
+    fixed_vars = {id(v) for v in fixed_upper_vars}
     #
     # Populate the block with the linear constraints.
     # Note that we don't simply clone the current block.
@@ -74,7 +75,7 @@ def create_submodel_kkt_block(instance, submodel, deterministic, fixed_upper_var
         # Linear terms
         #
         for i, var in enumerate(o_terms.linear_vars):
-            if var.parent_component().local_name in fixed_upper_vars:
+            if id(var) in fixed_vars:
                 #
                 # Skip fixed upper variables
                 #
@@ -92,8 +93,8 @@ def create_submodel_kkt_block(instance, submodel, deterministic, fixed_upper_var
         # Quadratic terms
         #
         for i, var in enumerate(o_terms.quadratic_vars):
-            if var[0].parent_component().local_name in fixed_upper_vars:
-                if var[1].parent_component().local_name in fixed_upper_vars:
+            if id(var[0]) in fixed_vars:
+                if id(var[1]) in fixed_vars:
                     #
                     # Skip fixed upper variables
                     #
@@ -106,7 +107,7 @@ def create_submodel_kkt_block(instance, submodel, deterministic, fixed_upper_var
                 if not id_ in sids_set:
                     sids_set.add(id_)
                     sids_list.append(id_)
-            elif var[1].parent_component().local_name in fixed_upper_vars:
+            elif id(var[1]) in fixed_vars:
                 #
                 # Add the linear term
                 #
@@ -127,12 +128,12 @@ quadratic terms where both variables are in the lower level.")
     # and complementarity slackness conditions for y bound constraints
     #
     for vcomponent in instance.component_objects(Var, active=True):
-        if vcomponent.local_name in fixed_upper_vars:
-            #
-            # Skip fixed upper variables
-            #
-            continue
         for ndx in vcomponent:
+            if id(vcomponent[ndx]) in fixed_vars:
+                #
+                # Skip fixed upper variables
+                #
+                continue
             #
             # For each index, get the bounds for the variable
             #
@@ -200,7 +201,7 @@ quadratic terms where both variables are in the lower level.")
         # Linear terms
         #
         for i, var in enumerate(c_terms.linear_vars):
-            if var.parent_component().local_name in fixed_upper_vars:
+            if id(var) in fixed_vars:
                 continue
             id_ = id(var)
             B2.setdefault(id_, {}).setdefault(id(cdata), c_terms.linear_coefs[i])
@@ -211,8 +212,8 @@ quadratic terms where both variables are in the lower level.")
         # Quadratic terms
         #
         for i, var in enumerate(c_terms.quadratic_vars):
-            if var[0].parent_component().local_name in fixed_upper_vars:
-                if var[1].parent_component().local_name in fixed_upper_vars:
+            if id(var[0]) in fixed_vars:
+                if id(var[1]) in fixed_vars:
                     continue
                 id_ = id(var[1])
                 if id_ in B2:
@@ -223,7 +224,7 @@ quadratic terms where both variables are in the lower level.")
                 if not id_ in sids_set:
                     sids_set.add(id_)
                     sids_list.append(id_)
-            elif var[1].parent_component().local_name in fixed_upper_vars:
+            elif id(var[1]) in fixed_vars:
                 id_ = id(var[0])
                 if id_ in B2:
                     B2[id_][id(cdata)] = c_terms.quadratic_coefs[i] * var[1]
@@ -295,7 +296,7 @@ class LinearComplementarityBilevelTransformation(BaseBilevelTransformation):
         #
         setattr(model, self._submodel+'_kkt',
                 create_submodel_kkt_block(model, submodel, deterministic,
-                                          self._fixed_upper_vars))
+                                          self._fixed_vardata))
         model._transformation_data['pao.bilevel.linear_mpec'].submodel_cuid =\
             ComponentUID(submodel)
         model._transformation_data['pao.bilevel.linear_mpec'].block_cuid =\
