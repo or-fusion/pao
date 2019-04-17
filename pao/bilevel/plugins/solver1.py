@@ -22,11 +22,13 @@ import pyomo.common
 
 
 @pyomo.opt.SolverFactory.register('pao.bilevel.ld',
-                                  doc='Solver for bilevel problems using linear duality')
+                                  doc=\
+'Solver for bilevel interdiction problems using linear duality')
 class BilevelSolver1(pyomo.opt.OptSolver):
     """
-    A solver that optimizes a bilevel program
-    with a continuous subproblem.
+    A solver that optimizes a bilevel program interdiction problem, where
+    (1) the upper objective is the opposite of the lower objective, and
+    (2) the lower problem is linear and continuous.
     """
 
     def __init__(self, **kwds):
@@ -35,6 +37,10 @@ class BilevelSolver1(pyomo.opt.OptSolver):
         self._metasolver = True
 
     def _presolve(self, *args, **kwds):
+        # TODO: Override _presolve to ensure that we are passing
+        #   all options to the solver (e.g., the io_options)
+        self.resolve_subproblem = kwds.pop('resolve_subproblem', True)      # TODO: Change default to False
+        self.keep_primal_subproblem = kwds.pop('keep_primal_subproblem', False)
         self._instance = args[0]
         pyomo.opt.OptSolver._presolve(self, *args, **kwds)
 
@@ -44,7 +50,7 @@ class BilevelSolver1(pyomo.opt.OptSolver):
         # Cache the instance
         #
         xfrm = TransformationFactory('pao.bilevel.linear_dual')
-        xfrm.apply_to(self._instance)
+        xfrm.apply_to(self._instance, keep_primal_subproblem=self.keep_primal_subproblem)
         #
         # Verify whether the objective is linear
         #
@@ -67,21 +73,10 @@ class BilevelSolver1(pyomo.opt.OptSolver):
         solver = self.options.solver
         if not self.options.solver:     #pragma:nocover
             solver = 'glpk'
-
-        #
-        # Use the with block here so that deactivation of the
-        # solver plugin always occurs thereby avoiding memory
-        # leaks caused by plugins!
         #
         with pyomo.opt.SolverFactory(solver) as opt:
             self.results = []
             #
-            # **NOTE: It would be better to override _presolve on the
-            #         base class of this solver as you might be
-            #         missing a number of keywords that were passed
-            #         into the solve method (e.g., none of the
-            #         io_options are getting relayed to the subsolver
-            #         here).
             #
             self.results.append(opt.solve(self._instance,
                                           tee=self._tee,
@@ -99,54 +94,56 @@ class BilevelSolver1(pyomo.opt.OptSolver):
                     i = i + 1
                 #
                 self._instance.bilinear_data_.deactivate()
-            #
-            # Transform the result back into the original model
-            #
-            tdata = self._instance._transformation_data['pao.bilevel.linear_dual']
-            unfixed_cuids = set()
-            # Copy variable values and fix them
-            for vuid in tdata.fixed:
-                for data_ in vuid.find_component_on(self._instance).values():
-                    if not data_.fixed:
-                        data_.value = self._instance.find_component(data_).value
-                        data_.fixed = True
-                        unfixed_cuids.add(ComponentUID(data_))
-            # Reclassify the SubModel components and resolve
-            for name_ in tdata.submodel:
-                submodel = getattr(self._instance, name_)
-                submodel.activate()
-                for data in submodel.component_map(active=False).values():
-                    if not isinstance(data, Var) and not isinstance(data, Set):
-                        data.activate()
-                dual_submodel = getattr(self._instance, name_+'_dual')
-                dual_submodel.deactivate()
-                pyomo.common.PyomoAPIFactory('pyomo.repn.compute_standard_repn')({}, model=submodel)
-                self._instance.reclassify_component_type(name_, Block)
+            if self.resolve_subproblem:
                 #
-                # Use the with block here so that deactivation of the
-                # solver plugin always occurs thereby avoiding memory
-                # leaks caused by plugins!
+                # Transform the result back into the original model
                 #
-                with pyomo.opt.SolverFactory(solver) as opt_inner:
+                tdata = self._instance._transformation_data['pao.bilevel.linear_dual']
+                unfixed_cuids = set()
+                # Copy variable values and fix them
+                for vuid in tdata.fixed:
+                    for data_ in vuid.find_component_on(self._instance).values():
+                        if not data_.fixed:
+                            data_.value = self._instance.find_component(data_).value
+                            data_.fixed = True
+                            unfixed_cuids.add(ComponentUID(data_))
+                # Reclassify the SubModel components and resolve
+                for name_ in tdata.submodel:
+                    submodel = getattr(self._instance, name_)
+                    submodel.activate()
+                    for data in submodel.component_map(active=False).values():
+                        if not isinstance(data, Var) and not isinstance(data, Set):
+                            data.activate()
+                    dual_submodel = getattr(self._instance, name_+'_dual')
+                    dual_submodel.deactivate()
+                    pyomo.common.PyomoAPIFactory('pyomo.repn.compute_standard_repn')({}, model=submodel)
+                    self._instance.reclassify_component_type(name_, Block)
                     #
-                    # **NOTE: It would be better to override _presolve on the
-                    #         base class of this solver as you might be
-                    #         missing a number of keywords that were passed
-                    #         into the solve method (e.g., none of the
-                    #         io_options are getting relayed to the subsolver
-                    #         here).
+                    # Use the with block here so that deactivation of the
+                    # solver plugin always occurs thereby avoiding memory
+                    # leaks caused by plugins!
                     #
-                    results = opt_inner.solve(self._instance,
-                                              tee=self._tee,
-                                              timelimit=self._timelimit)
-            # Unfix variables
-            for vuid in tdata.fixed:
-                for data_ in vuid.find_component_on(self._instance).values():
-                    if ComponentUID(data_) in unfixed_cuids:
-                        data_.fixed = False
+                    with pyomo.opt.SolverFactory(solver) as opt_inner:
+                        #
+                        # **NOTE: It would be better to override _presolve on the
+                        #         base class of this solver as you might be
+                        #         missing a number of keywords that were passed
+                        #         into the solve method (e.g., none of the
+                        #         io_options are getting relayed to the subsolver
+                        #         here).
+                        #
+                        results = opt_inner.solve(self._instance,
+                                                  tee=self._tee,
+                                                  timelimit=self._timelimit)
+                        self.results.append(results)
+
+                # Unfix variables
+                for vuid in tdata.fixed:
+                    for data_ in vuid.find_component_on(self._instance).values():
+                        if ComponentUID(data_) in unfixed_cuids:
+                            data_.fixed = False
             #
             self._instance.solutions.select(0, ignore_fixed_vars=True)
-            self.results.append(results)
             #
             stop_time = time.time()
             self.wall_time = stop_time - start_time
@@ -157,9 +154,6 @@ class BilevelSolver1(pyomo.opt.OptSolver):
             #
             for odata in self._instance.component_map(Objective).values():
                 odata.activate()
-            #
-            # TODO: rework the Block logic to allow for searching 
-            # SubModel objects for variables, etc.
             #
             # Return the sub-solver return condition value and log
             #
