@@ -47,61 +47,29 @@ class BaseBilevelTransformation(Transformation):
         # Fix variables
         #
         if submodel._fixed:
-            fixed = []
-            unfixed = []
-            for i in submodel._fixed:
-                name = i.name
-                fixed.append(name)
-            for v in var:
-                if not v in fixed:
-                    unfixed.append((v, getattr(submodel._parent(), v).is_indexed()))
-        elif submodel._var:
-            fixed = []
-            unfixed = [(v.name, v.is_indexed()) for v in submodel._var]
-            unfixed_names = [v.name for v in submodel._var]
-            for v in var:
-                if not v in unfixed_names:
-                    fixed.append(v)
+            self._fixed_vardata = [vardata for v in submodel._fixed for vardata in v.values()]
         else:
             raise RuntimeError("Must specify 'fixed' or 'unfixed' options")
         #
         self._submodel = sub
-        self._upper_vars = var
-        self._fixed_upper_vars = fixed
-        self._unfixed_upper_vars = unfixed
-        instance._transformation_data[tname].fixed = [ComponentUID(var[v]) for v in fixed]
+        instance._transformation_data[tname].fixed = [ComponentUID(v) for v in self._fixed_vardata]
+        self._fixed_ids = set()
         return submodel
 
     def _fix_all(self):
         """
         Fix the upper variables
         """
-        self._fixed_cache = {}
-        for v in self._fixed_upper_vars:
-            self._fixed_cache[v] = self._fix(self._upper_vars[v])
+        for vardata in self._fixed_vardata:
+            if not vardata.fixed:
+                self._fixed_ids.add(id(vardata))
+                vardata.fixed = True
 
     def _unfix_all(self):
         """
         Unfix the upper variables
         """
-        for v in self._fixed_upper_vars:
-            self._unfix(self._upper_vars[v], self._fixed_cache[v])
-
-    def _fix(self, var):
-        """
-        Fix the upper level variables, tracking the variables that were
-        modified.
-        """
-        cache = []
-        for i, vardata in var.items():
-            if not vardata.fixed:
-                vardata.fix()
-                cache.append(i)
-        return cache
-
-    def _unfix(self, var, cache):
-        """
-        Unfix the upper level variables.
-        """
-        for i in cache:
-            var[i].unfix()
+        for vardata in self._fixed_vardata:
+            if id(vardata) in self._fixed_ids:
+                vardata.fixed = False
+                self._fixed_ids.remove(id(vardata))
