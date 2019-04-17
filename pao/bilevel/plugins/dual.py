@@ -34,7 +34,7 @@ class LinearDualBilevelTransformation(BaseBilevelTransformation):
         # Generate the dual
         #
         transform = TransformationFactory('pao.duality.linear_dual')
-        dual = transform.create_using(submodel, unfixed=self._unfixed_upper_vars)
+        dual = transform.create_using(submodel, fixed=self._fixed_vardata)
         setattr(model, self._submodel+'_dual', dual)
         model.reclassify_component_type(self._submodel+'_dual', Block)
         #
