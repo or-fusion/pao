@@ -20,6 +20,9 @@ bilevel
 . What is the semantics of transformations for problems with multiple submodels?
 . Should we re-add the 'var' constructor argument for SubModel?  What are the semantics
 of this argument when variables in the submodel are not defined in the containing model?
+. Update solvers to ensure that all relevant options are passed to the
+subsolver
+. Revisit transformation logic.  Is this the standard approach we want to follow?
 
 pao.bilevel.plugins.dual
 
@@ -28,5 +31,12 @@ pao.bilevel.plugins.dual
 . Should we add error checking to confirm the following?
   1. This block is linear
   2. All of the variables in expressions are continuous (or fixed)
+
+pao.bilevel.plugins.solver1
+
+. There are really three ways we might want to setup problems:
+  1. Dualize the subproblem, solve and update upper-level variables
+  2. Dualize the subproblem, solve and update upper-level variables, fix upper-level variables, and resolve for the lower-level variables
+  3. Dualize the subproblem but keep the primal subproblem constraints, solve and update upper- and lower-level variables for the primal problem, deactivate the dual subproblem
 
 miscellaneous
