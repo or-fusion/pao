@@ -35,6 +35,7 @@ except ImportError:
 
 solvers = pyomo.opt.check_available_solvers('cplex', 'glpk')
 
+
 class CommonTests:
 
     solve = True
@@ -51,7 +52,6 @@ class CommonTests:
         else:
             args = ['convert']
         if 'preprocess' in kwds:
-            #args.append('--solver=glpk')
             pp = kwds['preprocess']
             if pp == 'linear_dual':
                 args.append('--transform=pao.bilevel.linear_dual')
@@ -117,12 +117,14 @@ class CommonTests:
         self.run_bilevel( join(exdir,'t1.py'))
         self.check( 't1', 'linear_dual' )
 
-    def test_t1a(self):
+    def Xtest_t1a(self):
+        # Test using SubModel(var=...)
         self.problem='test_t1a'
         self.run_bilevel( join(exdir,'t1a.py'))
         self.check( 't1', 'linear_dual' )
 
-    def test_t1b(self):
+    def Xtest_t1b(self):
+        # Test using SubModel(var=...)
         self.problem='test_t1b'
         self.run_bilevel( join(exdir,'t1b.py'))
         self.check( 't1b', 'linear_dual' )
