@@ -18,10 +18,7 @@ __all__ = ("SubModel",)
 
 #pylint: disable-msg=too-many-ancestors
 
-from pyomo.core.base.block import SimpleBlock
-from pyomo.core import ModelComponentFactory
-from pyomo.core import Component
-#from pyomo.core import SimpleBlock
+from pyomo.core import SimpleBlock, ModelComponentFactory, Component
 
 
 @ModelComponentFactory.register("A submodel in a bilevel program")
@@ -38,7 +35,7 @@ class SubModel(SimpleBlock):
         #
         _rule = kwargs.pop('rule', None)
         _fixed = kwargs.pop('fixed', None)
-        _var = kwargs.pop('var', None)
+        #_var = kwargs.pop('var', None)
         #
         # Initialize the SimpleBlock
         #
@@ -52,7 +49,7 @@ class SubModel(SimpleBlock):
             self._fixed = [_fixed]
         else:
             self._fixed = _fixed
-        if isinstance(_var, Component):
-            self._var = [_var]
-        else:
-            self._var = _var
+        #if isinstance(_var, Component):
+        #    self._var = [_var]
+        #else:
+        #    self._var = _var
