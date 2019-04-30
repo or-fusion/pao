@@ -1,0 +1,559 @@
+
+\lstset{language=Python}
+\definecolor{light-gray}{gray}{0.9}
+\lstset{backgroundcolor=\color{light-gray}}
+\lstset{aboveskip=1em,belowskip=1em,showspaces=false,showstringspaces=false}
+
+
+\SANDsection{Introduction}
+
+Mathematical Programs with Equilibrium Constraint (MPEC) problems
+arise in a large number of applications in engineering and economic
+systems~\cite{FerPan97,LouPanRal96,OutKocZow98}.  An MPEC is an
+optimization problem that includes equilibrium contraints in the
+form of complementarity conditions.  Equilibrium constraints naturally
+arise as the solution to an optimization subproblem (e.g. for bilevel
+programs), variational inequalities, and
+complementarity problems~\cite{HarPan90}.
+
+Since MPEC problems frequently arise in practice, many algebraic
+modeling languages (AML) have integrated capabilities for expressing
+complementarity conditions~\cite{Mun00}, including AMLs like\linebreak
+AIMMS~\citep{AIMMS}, AMPL~\citep{AMPL,FouGay03}, GAMS~\citep{GAMS},
+MATLAB~\cite{MATLAB} and YALMIP~\cite{Lof04}.  AMLs are high-level
+programming languages for describing
+and solving mathematical problems, particularly optimization-related
+problems~\citep{Kal04}.  AMLs provide a mechanism for defining
+variables and generating constraints with a concise mathematical
+representation, which is essential for large-scale, real-world
+problems that involve thousands or millions of constraints and
+variables.
+
+In this paper, we describe new functionality in Pyomo 4.1 for expressing and
+optimizing MPEC models in the Pyomo modeling environment.  Pyomo is an
+open-source software package that supports
+the definition and solution of optimization applications using the
+Python language~\cite{pyomotrac,pyomoweb,HarWatWoo11,HarLaiWatWoo12}.  Python is a powerful 
+programming language that has a clear, readable syntax and
+intuitive object orientation.  Pyomo uses an object-oriented approach
+for defining models that contain decision variables, objectives,
+and constraints.  MPEC models can be easily expressed with Pyomo
+modeling components for complementarity conditions.  Further, Pyomo's
+object-oriented design naturally supports the ability to automate
+the reformulation of MPEC models into other forms (e.g. disjunctive
+programs).  We describe Pyomo meta-solvers that transform MPECs as
+MIP or NLP problems, which are then optimized with standard solvers.  Further,
+we describe interfaces to specialized mixed complementarity problem
+solvers, which
+solve MPEC problems expressed without an optimization objective.
+
+The remainder of this paper is organized as follows.
+Section~\ref{sec:design} describes how Pyomo supports modeling of
+equilibrium constraints as mixed-complementarity conditions.
+Section~\ref{sec:transformations} describes transformation capabilities
+that automate the reformulation of MPEC models.  Section~\ref{sec:solvers}
+describes meta-solvers in Pyomo that leverage these transformations
+to support global and local optimization of MPEC problems.
+Section~\ref{sec:discussion}
+describes future work that is planned for Pyomo.
+
+
+
+\SANDsection{Modeling Equilibrium Conditions}
+\label{sec:design}
+
+\subsection{Complementarity Conditions}
+
+\citet{FerFouGay99} note that there are a few fundamental forms
+that account for a wide range of complementarity conditions that
+arise in practice.  Consider a variable $x$ and function $g(x)$.  The classical form of 
+complementarity condition can be expressed as
+\[
+x \geq 0  \;\bot\;  g(x) \geq 0, 
+\]
+which expresses the complementarity restriction that at least one of these 
+must hold with equality.
+When the variable $x$ is bounded such that $x \in [l, u]$, then 
+a \textit{mixed complementarity condition} can be expressed as
+\[
+l \leq x \leq u  \;\bot\;  g(x),
+\]
+which expresses the complementarity restriction that at least one of the following
+must hold:
+\[
+\begin{array}{llll}
+& x = l & \text{and} & g(x) \geq 0,\\
+& x = u & \text{and} & g(x) \leq 0,\\
+\text{or} & l < x < u & \text{and} & g(x) = 0.
+\end{array}
+\]
+
+These forms can be generalized by substituting a function $f(x)$ for the variable $x$.  Thus,
+a \textit{generalized mixed complementarity condition} can be expressed as
+\[
+l \leq f(x) \leq u  \;\bot\;  g(x),
+\]
+which expresses the complementarity restriction that at least one of the following
+must hold:
+\[
+\begin{array}{llll}
+& f(x) = l & \text{and} & g(x) \geq 0,\\
+& f(x) = u & \text{and} & g(x) \leq 0,\\
+\text{or} & l < f(x) < u & \text{and} & g(x) = 0.
+\end{array}
+\]
+For completeness, note that the complementarity condition
+\[
+f(x)  \;\bot\;  g(x) = 0
+\]
+is a special case where the function $f(x)$ is unbounded.
+
+
+\subsection{Complementarity Expressions}
+
+The design of complementarity conditions in Pyomo relies on the
+specification of Pyomo constraint expressions.  A Pyomo constraint
+expression defines an equality, a simple inequality, or a pair of
+inequalities.  For example:
+\[
+\begin{array}{l}
+{expr}_1 = {expr}_2\\
+{expr}_1 <= {expr}_2\\
+{const}_1 <= {expr}_2 <= {const}_2
+\end{array}
+\]
+where ${const}_i$ are constant arithmetic expressions that may only
+contain variables that are fixed, and ${expr}_i$ are arithmetic expressions
+that contain unfixed variables.
+
+A complementarity condition is defined with a pair of constraint expressions 
+\[
+{l}_1 <= {expr}_1 <= {u}_1 \;\;\bot\;\; {l}_2 <= {expr}_2 <= {u}_2,
+\]
+where exactly two of the constant bounds $l_1$, $u_1$, $l_2$ and
+$u_2$ are finite.  The non-finite bounds values are omitted in
+practice, so this condition directly describes a classical or mixed
+complementarity condition.
+Additionally, a complementarity condition can be expressed with a simple inequality:
+\[
+{l}_1 <= {expr}_1 <= {u}_1 \;\;\bot\;\; {expr}_2 <= {expr}_3.
+\]
+This complementarity condition is implicitly transformed to a form with constant bounds:
+\[
+{l}_1 <= {expr}_1 <= {u}_1 \;\;\bot\;\; {expr}_2 - {expr}_3 <= 0.
+\]
+
+
+\subsection{Modeling Mixed-Complementarity Conditions}
+
+Pyomo employs an object-oriented strategy for representing models.
+A Pyomo model object contains modeling components that define
+standard elements of algebraic models (e.g. parameters, sets,
+variables, constraints, and objectives).  This allows Pyomo to
+automatically manage the naming of AML components, and multiple
+Pyomo models can be simultaneously defined.
+
+Additionally, Pyomo's modeling capabilities can be extended by
+simply defining new modeling components.  Pyomo's \texttt{pyomo.mpec}
+package defines the \texttt{Complementarity} component that is used
+to declare complementarity conditions.
+
+For example, consider the \texttt{ralph1} problem in MacMPEC~\cite{MacMPEC}:
+\[
+\begin{array}{ll}
+\min & 2 x - y\\
+     & 0 \leq y \;\bot\; y \geq x\\
+     & x,y \geq 0
+\end{array}
+\]
+
+\if 0
+The following script defines a Pyomo model for \texttt{ralph1}:
+\listing{examples/ralph1_strip.py}{}{1}{14}
+The first lines in this script import Pyomo packages:
+\listing{examples/ralph1.py}{imports}{4}{5}
+The first line imports \code{pyomo.environ} to initialize Pyomo's environment, and it
+imports the core modeling components from Pyomo.  The 
+second line imports modeling components for complementarity
+conditions.
+The subsequent lines in this script create a model, declare variables
+\code{x} and \code{y}, declare an objective \code{f1}, and
+declare a complementarity condition \code{compl}.  
+\fi
+
+The complementarity condition is declared with the \code{Complementarity}
+component.  In the simplest case, this Python class takes a keyword
+argument \code{expr} that contains the value of the \code{complements}
+function.  This function accepts two Pyomo constraint expressions
+that are used to declare a complementarity condition.
+
+\if 0
+Pyomo also supports indexed components, where a set of components
+are initialized over an index set using a construction rule.
+Thus, the \texttt{Complementarity} component can be declared
+with an index set.  For example, consider the following model, \code{indexed}:
+\[
+\begin{array}{lll}
+\min & \sum_{i=1}^n i (x_i - 1)^2 &\\
+     & 0 \leq x_i \;\bot\; 0 \leq x_{i+1} & \;\; i=1,\ldots,n-1
+\end{array}
+\]
+The following script defines a Pyomo model for \code{indexed} with $n=5$:
+\listing{examples/ex1a.py}{}{1}{16}
+The complementarity conditions are defined with a single
+\code{Complementarity} component that is indexed over the set $1,
+\ldots, n-1$ and initialized with a construction rule \code{compl\_}.
+This rule is a function that accepts a model instance and an index,
+and returns the $i$-th complementarity
+condition.
+
+The declared set of indexes may be a superset of the indices that define
+complementarity conditions.
+For example, if the construction rule returns \code{Complementarity.Skip}, then the corresponding
+index is skipped.  For example:
+\listing{examples/ex1d.py}{}{1}{18}
+
+This example can also be expressed with the 
+\code{ComplementarityList} component:
+\listing{examples/ex1b.py}{}{1}{18}
+This component defines a list of complementarity conditions.  The list index can be 
+used in Pyomo, but this component simplifies the declaration of models for which 
+the index values are not important.  The \code{ComplementarityList} 
+component can also be defined with a rule that iteratively returns complementarity conditions:
+\listing{examples/ex1c.py}{}{1}{19}
+%The value \code{ComplementarityList.End} is used to denote the end
+%of the list.
+
+Similarly, the construction rule may be a list expression that
+generates a sequence of complementarity conditions:
+\listing{examples/ex1e.py}{}{1}{15}
+\fi
+
+\SANDsection{MPEC Transformations}
+\label{sec:transformations}
+
+Pyomo's object-oriented design supports the structured transformation
+of models.  Pyomo can iterate through model components as well as
+nested model blocks.  Thus, model components can be easily transformed
+locally, and global data can be collected to support global
+transformations.  Further, Pyomo components and blocks can be
+activated and deactivated, which facilitates \textit{in place}
+transformations that do not require the creation of a separate
+copy of the original model.
+
+\if 0
+Pyomo's \texttt{pyomo.mpec} package defines several model transformations
+that can be easily applied.  For example, if \code{model} defines
+an MPEC model (as in our previous examples), then the following
+example illustrates how to apply a model transformation:
+\listing{examples/ex2.py}{transform}{19}{19}
+In this case, the \code{mpec.simple\_nonlinear} transformation is applied.
+The following sections describe the transformations currently
+supported in \code{pyomo.mpec}.
+\fi
+
+\subsection{Standard Form}
+
+In Pyomo, a complementarity condition is expressed as a pair of
+constraint expressions
+\[
+{l}_1 <= {expr}_1 <= {u}_1 \;\;\bot\;\; {l}_2 <= {expr}_2 <= {u}_2,
+\]
+where exactly two of the constant bounds $l_1$, $u_1$, $l_2$ and
+$u_2$ are finite.  The non-finite bounds are typically omitted, but
+the value \code{None} can be used to express infinite bounds.
+Additionally, each constraint expression can be expressed with a
+simple inequality of the form
+\[
+{expr}_1 <= {expr}_2.
+\]
+
+The \code{mpec.simple\_nonlinear} transformation reformulates each
+complementarity condition in a model into a standard form:
+\[
+{l}_1 <= expr <= {u}_1 \;\;\bot\;\; {l}_2 <= var <= {u}_2,
+\]
+where exactly two of the constant bounds $l_1$, $u_1$, $l_2$ and
+$u_2$ are finite, and either $l_2$ is zero or both $l_2$ or $u_2$ are finite.
+
+Note that this transformation creates new variables and constraints
+as part of this transformation.  For example, the complementarity
+condition
+\[
+1 \leq x + y \;\;\bot\;\; 1 \leq 2x - y,
+\]
+get re-expressed as the following:
+\[
+\begin{array}{l}
+1 \leq x + y\\
+v = 2x - y - 1\\
+v \in \mathbb{R}, v \ge 0
+\end{array}
+\]
+
+For each complementary condition object, the new variable and
+constraints are added as additional components within the
+complementarity object.  Thus, the overall structure of the MPEC model
+is not changed by this transformation.
+
+\subsection{Simple Nonlinear}
+
+The \code{mpec.simple\_nonlinear} transformation begins by applying
+the \code{mpec.standard\_form} transformation.  Subsequently, a
+nonlinear constraint is created that defines the complementarity
+condition.  This is a simple nonlinear transformation adapted from
+\citet{FerDirMee05}, which can be described by three different
+cases:
+\begin{itemize}
+
+\item If $l_1$ is finite, then the following constraint is defined:
+\[
+    (expr - l_1) * v \leq \epsilon
+\]
+
+\item If $u_1$ is finite, then the following constraint is defined:
+\[
+    (u_1 - expr) * v \leq \epsilon
+\]
+
+\item If $l_2$ and $u_2$ are both finite, then the following constraints are defined:
+\[
+\begin{array}{l}
+(var - l_2) * expr \leq \epsilon\\
+(var - u_2) * expr \leq \epsilon\\
+\end{array}
+\]
+
+\end{itemize}
+Each of these cases ensure that the complementarity condition is
+met when $\epsilon$ is zero.  For example, in the first case, we
+know that $0 \leq v$ and $0 \leq expr - l_1$.  When $\epsilon$ is
+zero, this constraint ensures that either $v$ is zero or $expr -
+l_1$ is zero.
+
+This transformation uses the parameter \code{mpec\_bound},
+which defines the value for $\epsilon$ for every complementarity
+condition.  This allows for the specification of a relaxed nonlinear
+problem, which may be easier to optimize with some nonlinear
+programming solvers.
+The default value of \code{mpec\_bound} is zero.
+
+
+\subsection{Simple Disjunction}
+
+The \code{mpec.simple\_disjunction}
+transformation expresses a complementarity condition as a disjunctive
+program.  
+We are given a complementarity condition defined with a pair of constraint expressions 
+\[
+{l}_1 <= {expr}_1 <= {u}_1 \;\;\bot\;\; {l}_2 <= {expr}_2 <= {u}_2,
+\]
+where exactly two of the constant bounds $l_1$, $u_1$, $l_2$ and
+$u_2$ are finite.  Without loss of generality, we assume that either $l_1$ or $u_1$ is finite.
+
+This transformation can be described by
+three different cases:
+\begin{itemize}
+
+\item If the first constraint is an equality, then the complementarity condition is trivially replaced by that equality constraint.
+
+\item If both bounds on the first constraint are finite but different, then the disjunction has the form:
+\[
+\left[\begin{array}{c}
+Y_1\\
+l_1 = {expr}_1\\
+{expr}_2 \geq 0
+\end{array}\right]
+\bigvee
+\left[\begin{array}{c}
+Y_2\\
+{expr}_1 = u_1\\
+{expr}_2 \leq 0
+\end{array}\right]
+\bigvee
+\left[\begin{array}{c}
+Y_3\\
+l_1 \leq {expr}_1 \leq u_1\\
+{expr}_2 = 0
+\end{array}\right]
+\]\[
+% You need a logic constraint so that only one of the disjuncts is
+% selected.  I don't like this notation (and would rather express the
+% XOR between the disjuncts, but this is the notation that Ignacio has
+% consistently used.
+Y_1 \veebar Y_2 \veebar Y_3 = True
+\]
+% WEH: This seems redundant
+%\[
+%Y_1 \land Y_2 \land Y_3 = False
+%\]\[
+% I am being pedantic here: you need to set the domain of the logical
+% indicator variables.
+\[
+Y_1, Y_2, Y_3 \in \{True, False\}
+\]
+
+\item Otherwise, each constraint is a simple inequality.  The complementarity condition is reformulated as
+\[
+0 <= \overline{expr}_1  \;\;\bot\;\; 0 <= \overline{expr}_2,
+\]
+and the disjunction has the form:
+\[
+\left[\begin{array}{c}
+Y\\
+0 = \overline{expr}_1\\
+0 \leq \overline{expr}_2
+\end{array}\right]
+\bigvee
+\left[\begin{array}{c}
+\lnot Y\\
+0 \leq \overline{expr}_1\\
+0 = \overline{expr}_2
+\end{array}\right]
+\]\[
+Y \in \{ True, False \}
+\]
+
+\end{itemize}
+
+This transformation makes use of modeling components and transformations
+from Pyomo's \code{pyomo.gdp} package~\cite{PyomoGDP}.  The
+transformation expresses each of the disjunctive terms explicitly using
+\code{Disjunct} components and the \emph{select exactly one} logical
+condition using the \code{Disjunction} component.  The transformation
+adds the \code{Disjunct} and \code{Disjunction} components within the
+objects that represent the complementarity conditions.  It then recasts
+the modified complementarity components into simple \code{Block}
+components.  This localizes all changes to the model to the individual
+complementarity components.  Subsequent transformation of the
+disjunctive expressions to algebraic constraints can be effected through
+either Big-M (\code{gdp.bigm}) or Convex Hull (\code{gdp.chull})
+transformations.
+
+
+
+\subsection{AMPL Solver Interface}
+
+Solvers like PATH~\cite{FerMun98} have been tailored to work with
+the AMPL Solver Library (ASL).  AMPL uses \code{nl} files to
+communicate with solvers, which read \code{nl} files with the ASL.
+Pyomo can also create \code{nl} files, and the \code{mpec.nl}
+transformation processes \code{Complementarity} components into a
+canonical form that is suitable for this format~\cite{FerFouGay99}.
+
+
+\SANDsection{Solver Interfaces and Meta-Solvers}
+\label{sec:solvers}
+
+Pyomo supports interfaces to third-party solvers as well as meta-solvers that 
+apply transformations and third-party solvers, perhaps in an iterative manner.
+The \code{pyomo.mpec} package includes an interface to the \code{PATH} solver, as well as several 
+meta-solvers.  These are described in this section, and examples are provided that 
+employ the \code{pyomo} command-line interface.
+
+
+\subsection{Nonlinear Reformulations}
+
+The \code{mpec.simple\_nonlinear} transformation provides a generic
+way for transforming an MPEC into a nonlinear program.  When the
+MPEC only has continuous decision variables, the resulting model
+can be optimized by a wide range of solvers.
+
+\if 0
+For example, the \code{pyomo} command-line interface allows the
+user to specify a nonlinear solver and a model transformation that
+is applied to a model:
+\listing{examples/nlp1.sh}{pyomo}{4}{4}
+This example illustrates the use of the \code{ipopt} interior-point
+solver with the\linebreak \code{mpec.simple\_nonlinear} transformation.  
+When a transformation is used directly like this, the results
+that are returned to the user include decision variables for the transformed
+model.  Pyomo does not have general capabilites for mapping a
+solution back into the space from the original model.  In this
+example, the results object includes values for the $x$ variables
+as well as the variables $v$ introduced when applying the transformation
+to the standard form (see above).
+
+Pyomo includes a meta-solver, \code{mpec\_nlp} that applies the
+nonlinear transformation, performs optimization, and then returns
+results for the original decision variables.  For example, \code{mpec\_nlp} 
+executes the same logic as the previous \code{pyomo} example:
+\listing{examples/nlp2.sh}{pyomo}{4}{4}
+Additionally, this meta-solver can also manipulate the $\epsilon$
+values in the model, starting with larger values and iteratively
+tightening them to generate a more accurate model.
+\listing{examples/nlp3.sh}{pyomo}{4}{5}
+This approach may be useful when using a nonlinear solver that has difficulty
+optimizing with equality constraints.
+\fi
+
+
+\subsection{Disjunctive Reformulations}
+
+The \code{mpec.simple\_disjunction} transformation provides a generic
+way for transforming an MPEC into a disjunctive program.  The
+\code{mpec\_minlp} solver applies this transformation to create a
+nonlinear disjunctive program, and then further reformulates the
+disjunctive model using a ``Big-M'' transformation that is provided
+by the \code{pyomo.gdp} package.  The resulting transformation is
+similar the reformulation of bilevel models described by~\citet{ForMcC81}.
+If the original model was nonlinear, then the resulting model is a
+mixed-integer nonlinear program (MINLP).  Pyomo includes interfaces
+to solvers that use the AMPL Solver Library (ASL), so \code{mpec\_minlp} can 
+optimize nonlinear MPECs with a solver like Couenne~\cite{COUENNE}.
+
+\if 0
+If the original model was a linear MPEC, then the resulting model
+is a mixed-integer linear program that can be globally optimized
+(e.g. see~\citet{HuMitPanBenKun08,Jud11}).  For example, the
+\code{pyomo} command can be used to execute the \code{mpec\_minlp}
+solver using a specified MIP solver:
+\listing{examples/mip1.sh}{pyomo}{4}{4}
+Note that Pyomo includes interfaces to a variety of commonly used
+MIP solvers, including CPLEX, Gurobi, CBC, and GLPK.
+\fi
+
+
+\subsection{PATH and the ASL Solver Interface}
+
+Pyomo's solver interface for the AMPL Solver Library (ASL) applies
+the \code{mpec.nl} transformation, writes an AMPL \code{.nl} file, executes
+an ASL solver, and then loads the solution into the original model.
+Pyomo provides a custom interface to the PATH solver~\cite{FerMun98},
+which simply allows the solver to be specified as \code{path} while
+the solver executable is named \code{pathamp}.
+
+\if 0
+The \code{pyomo} command can execute the PATH solver by simply specifying the 
+\code{path} solver name.  For example, consider the \code{munson1} problem 
+from MCPLIB:
+\listing{examples/munson1.py}{}{1}{23}
+%\pagebreak
+This problem can be solved with the following command:
+\listing{examples/path1.sh}{pyomo}{4}{4}
+\fi
+
+
+
+\SANDsection{Discussion}
+\label{sec:discussion}
+
+Pyomo supports the ability to model complementarity conditions in a manner that is
+similar to other AMLs.  For example, Pyomo's \code{pyomo.data}
+package~\cite{pyomo.data} includes Pyomo formulations for many of
+the \mbox{MacMPEC}~\cite{MacMPEC} and MCPLIB~\cite{MCPLIB} models, which were originally formulated in GAMS and AMPL.  However,
+Pyomo does not currently support related modeling capabilities for
+equilibrium models, variational inequalities and embedded models,
+which are supported by the GAMS extended mathematical programming
+framework~\cite{FerDirJagMee09}.
+
+The tranformations and meta-solvers currently included in Pyomo
+illustrate how Pyomo's MPEC modeling capability can be leveraged.
+We expect these capabilities to mature and expand in response to
+application needs.  For example, the \code{mpec.simple\_nonlinear}
+transformation could be expanded to support reformulations that
+are well-suited for sequential quadratic programming solvers~\cite{Ley06}.
+Similarly, current meta-solvers could be extended to directly
+support the communication of suffix information from the solver
+back to the original model.
+
