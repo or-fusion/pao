@@ -181,13 +181,48 @@ The following subsections describe ideas for expressing and solving multi-level 
 goal of defining some alternatives that the PAO developers can discuss while refining the 
 problem representations in PAO.
 
-\subsection{TODO}
+\subsection{Using Set Notation}
 
-TODO: Discuss a new modeling idea here.
+IDEA: Declare the SubModel using arguments that define the lower-level variables whose
+optimal value constrains the upper-level variables.
 
-\subsection{TODO}
+\begin{qlisting}
+model = ConcreteModel()
 
-TODO: Discuss a new modeling idea here.
+model.x = Var(bounds=(1,2))
+model.v = Var(bounds=(1,2))
+model.y = Var(bounds=(1,2))
+
+model.o = Objective(expr=model.x + model.v + model.y)
+model.c = Constraint(expr=model.x + model.v >= 1.5)
+
+model.sub = SubModel(fixed=[model.x, model.v], y=model.y)
+
+# NOTE - model.sub.y is implicitly defined
+model.sub.w = Var(bounds=(-1,1))
+
+model.sub.o = Objective(expr=model.x + model.sub.w, sense=maximize)
+model.sub.c = Constraint(expr=model.sub.y + model.sub.w <= 2.5)
+\end{qlisting}
+
+\noindent PROS
+\begin{itemize}
+\item More explicit than pyomo.bilevel
+\end{itemize}
+CONS
+\begin{itemize}
+\item Users may not appreciate this difference and use model.y instead of model.sub.y.  Can we robustly catch errors when that happens?
+\item May not be able to capture complex relationships between upper- and lower-level variables
+\item May not be useful for defining pessimistic relationships.
+\end{itemize}
+
+
+\subsection{Using Set Notation}
+
+IDEA:  What if the SubModel declaration defined a set, which can be explicitly used to
+define a constraint (similar to~(\ref{eqn:bilevel})?
+
+TODO ...
 
 
 
