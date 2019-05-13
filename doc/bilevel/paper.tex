@@ -5,6 +5,11 @@
 \lstset{aboveskip=1em,belowskip=1em,showspaces=false,showstringspaces=false}
 
 
+\if 0
+
+% WEH - For now, let's omit this introduction since it needs to be 
+%       reworked anyway.
+
 \SANDsection{Introduction}
 
 % TODO: More references here
@@ -71,9 +76,11 @@ programs and meta-solvers in Pyomo that leverage these transformations
 to support global and local optimization of bilevel programs.
 Section~\ref{sec:discussion} discusses Pyomo's ability to model multilevel problems, and possible extensions for non-cooperative bilevel programs.
 
+\fi
 
-\SANDsection{Motivating Problems}
-\label{sec:problems}
+
+\SANDsection{Expressing Multilevel Programs}
+\label{sec:modeling}
 
 In multilevel optimization problems, a subset of decision variables
 at each level is constrained to take values associated with an
@@ -82,7 +89,7 @@ For example, a general formulation for bilevel programs is
 \begin{equation}
 \label{eqn:bilevel}
 \begin{array}{ll}
-\min_{x \in X, y}   & F(x,y)\\
+\min_{x \in X, y \in Y}   & F(x,y)\\
 \st                 & G(x,y) \leq 0\\
                     & y \in P(x)
 \end{array}
@@ -105,6 +112,87 @@ this formulation has been called \textit{optimistic} or
 variables minimized the upper-level objective.  Most research on
 bilevel programming has considered this problem, since this formulation
 has an optimal solution under reasonable assumptions.
+
+\textbf{TODO: Describe pessimistic problems here.}
+
+Many authors use a more compact form to express (\ref{eqn:bilevel}):
+\begin{equation}
+\label{eqn:bilevel-compact}
+\begin{array}{lll}
+\min_{x \in X, y \in Y}   & F(x,y) & \\
+\st                       & G(x,y) \leq 0 & \\
+                          & \min_{y \in Y}    & f(x,y)\\
+                          &                   & g(x,y) \leq 0
+\end{array}
+\end{equation}
+This notation defines an implied constraint by not explicitly referencing the solution to the lower-level problem.
+
+The \code{pyomo.bilevel} package uses the \code{SubModel} component to declare a block that defines a lower-level problem. 
+For example, consider:
+\begin{qlisting}
+model = ConcreteModel()
+model.x = Var(bounds=(1,2))
+model.v = Var(bounds=(1,2))
+model.sub = SubModel()
+model.sub.y = Var(bounds=(1,2))
+model.sub.w = Var(bounds=(-1,1))
+
+model.o = Objective(expr=model.x + model.sub.y + model.v)
+model.c = Constraint(expr=model.x + model.v >= 1.5)
+model.sub.o = Objective(expr=model.x+model.sub.w, sense=maximize)
+model.sub.c = Constraint(expr=model.sub.y + model.sub.w <= 2.5)
+\end{qlisting}
+This Pyomo model defines four variables, \code{x}, \code{v}, \code{sub.y} and \code{sub.w}.
+Variables \code{x} and \code{v} are declared in the upper-level
+problem, and \code{v} only appears in the upper-level problem.
+Variables \code{sub.y} and \code{sub.w} are declared in the submodel.
+However, note that the \code{sub.y} variable appears in the upper-level
+problem, while the \code{sub.w} variable only appears in the
+lower-level problem.
+
+While this syntax mimics the structure of (\ref{eqn:bilevel-compact}), it adds additional abstractions that make it difficult to interpret:
+\begin{itemize}
+
+\item It can be difficult to easily discern which are the upper and lower level variables.  In general, Pyomo does not place strong restrictions on the location of variable declarations relative to the location where those variables are used in expressions.  Thus, while a hierarchical block structure suggests nested model representations, this is not strongly enforced when objective and constraint expressions are generated.\\
+\mbox{}\\
+IDEA: Enforce a stronger semantics on PAO block representations for bilevel programs.\\
+IDEA: Use model annotations to denote upper- and lower- level variables.\\
+
+\item This syntax does not indicate how the solution of the lower level relates to constraints in the upper level problem.  Specifically, there is no explicit indication how solutions to the lower level problem relate to variables in the upper-level problem.  In simple applications, where there is a direct correspondence of variables (using the same names), this simple syntax may be sufficient.  But in more complex applications the variables need not have the same naming in the upper- and lower-level problems.  Thus, PAO needs a mechanism to associate these variables.
+
+\end{itemize}
+
+There are also practical issues that reflect the needs of users with
+respect to the solution of bilevel programs.  Generally, it is assumed
+that the solution of~(\ref{eqn:bilevel}) consists of the optimal upper-
+and lower-level variables.  However in practice a user may only need
+the optimal upper-level variables.  If true, this may allow for a
+faster response.  Additionally, there's another solution response that
+may be of interest to analysts, where solution consists of the optimal
+upper-level variables along with other diagnostic information related
+to the solution of the lower-level problem.  For example, in some cases
+the dual of the lower-level problem can be used, so the solution to the
+problem could include the dual lower-level variables.  Note that these
+considerations also generalize to multi-level problems, where a user may
+wish to specify the requirements for a solution value (e.g. needing only
+the first- and second-level variables in a tri-level problem).
+
+The following subsections describe ideas for expressing and solving multi-level programs, with the
+goal of defining some alternatives that the PAO developers can discuss while refining the 
+problem representations in PAO.
+
+\subsection{TODO}
+
+TODO: Discuss a new modeling idea here.
+
+\subsection{TODO}
+
+TODO: Discuss a new modeling idea here.
+
+
+
+\SANDsection{Special Cases}
+\label{sec:problems}
 
 The following subsections describe specializations of
 Equation~(\ref{eqn:bilevel}) that will be explored in greater detail
