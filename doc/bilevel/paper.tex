@@ -98,7 +98,7 @@ where
 \[
 \begin{array}{llll}
 P(x) & = & \argmin_{y \in Y}    & f(x,y)\\
- & &                            & g(x,y) \leq 0
+ & &                            & g(x,y) \leq 0.
 \end{array}
 \]
 $P(x)$ defines a \textit{lower-level problem}, which may have multiple solutions.
@@ -113,7 +113,25 @@ variables minimized the upper-level objective.  Most research on
 bilevel programming has considered this problem, since this formulation
 has an optimal solution under reasonable assumptions.
 
-\textbf{TODO: Describe pessimistic problems here.}
+Alternatively, a \textit{pessimistic} bilevel problem is when \eqref{eqn:bilevel} is expressed as 
+
+\begin{equation}
+\label{eqn:bilevel_pess}
+\begin{array}{ll}
+\min_{x \in X, y \in Y}   & F(x,y)\\
+\st                 & G(x,y) \leq 0\\
+                    & \forall y \in P(x)
+\end{array}
+\end{equation}
+where 
+\[
+\begin{array}{llll}
+P(x) & = & \argmin_{y \in Y}    & f(x,y)\\
+ & &                            & g(x,y) \leq 0.
+\end{array}
+\]
+This formulation ensures that the selection value for $y$ will in fact maximize $F(x,y)$; in other words, the upper-level problem must be feasible for all values $y$ including the least favorable outcome of the lower-level problem $P(x)$. Unless otherwise stated, the canonical bilevel problem in the subsequent examples will be derived from the \textit{optimistic} approach presented in \eqref{eqn:bilevel}.
+
 
 Many authors use a more compact form to express (\ref{eqn:bilevel}):
 \begin{equation}
