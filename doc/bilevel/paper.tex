@@ -145,8 +145,29 @@ Many authors use a more compact form to express (\ref{eqn:bilevel}):
 \end{equation}
 This notation defines an implied constraint by not explicitly referencing the solution to the lower-level problem.
 
-The \code{pyomo.bilevel} package uses the \code{SubModel} component to declare a block that defines a lower-level problem. 
-For example, consider:
+\subsection{Introduction to \code{pao}}
+
+The Python package \code{pao} is a bilevel mathematical programming library that has dependencies on \code{pyomo} for syntactical representation of bilevel problems. Similar to \code{pyomo} mathematical problems, \code{pao} problems can be optimized with solvers that are written either in Python or in compiled, low-level languages.
+
+The \code{pao} package uses the \code{SubModel} component in \code{pyomo} to declare a block that defines a lower-level problem. 
+For example, consider the bilevel problem:
+\begin{equation}
+\label{eqn:bilevel_ex1}
+\begin{array}{ll}
+\min_{v \in [1,2], x \in [1,2]}   & v + x + y\\
+\st                 & x + v \geq 1.5\\
+                    & y \in P(v,x)
+\end{array}
+\end{equation}
+where 
+\[
+\begin{array}{llll}
+P(v,x) & = & \argmin_{w \in [-1,1], y \in [1,2]}    & x + w\\
+ & &                            &  y + w \leq 2.5
+\end{array}
+\]
+which can be represented in \code{pao} as:
+
 \begin{qlisting}
 model = ConcreteModel()
 model.x = Var(bounds=(1,2))
@@ -155,7 +176,7 @@ model.sub = SubModel()
 model.sub.y = Var(bounds=(1,2))
 model.sub.w = Var(bounds=(-1,1))
 
-model.o = Objective(expr=model.x + model.sub.y + model.v)
+model.o = Objective(expr=model.x + model.sub.y + model.v, sense=minimize)
 model.c = Constraint(expr=model.x + model.v >= 1.5)
 model.sub.o = Objective(expr=model.x+model.sub.w, sense=maximize)
 model.sub.c = Constraint(expr=model.sub.y + model.sub.w <= 2.5)
@@ -168,7 +189,7 @@ However, note that the \code{sub.y} variable appears in the upper-level
 problem, while the \code{sub.w} variable only appears in the
 lower-level problem.
 
-While this syntax mimics the structure of (\ref{eqn:bilevel-compact}), it adds additional abstractions that make it difficult to interpret:
+While this syntax mimics the abstract structure of \eqref{eqn:bilevel-compact} -- as represented directly in \eqref{eqn:bilevel_ex1} --  it adds additional abstractions that make it difficult to interpret:
 \begin{itemize}
 
 \item It can be difficult to easily discern which are the upper and lower level variables.  In general, Pyomo does not place strong restrictions on the location of variable declarations relative to the location where those variables are used in expressions.  Thus, while a hierarchical block structure suggests nested model representations, this is not strongly enforced when objective and constraint expressions are generated.\\
