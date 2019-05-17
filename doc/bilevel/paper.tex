@@ -1,4 +1,3 @@
-
 \lstset{language=Python}
 \definecolor{light-gray}{gray}{0.9}
 \lstset{backgroundcolor=\color{light-gray}}
@@ -181,10 +180,10 @@ model.c = Constraint(expr=model.x + model.v >= 1.5)
 model.sub.o = Objective(expr=model.x+model.sub.w, sense=maximize)
 model.sub.c = Constraint(expr=model.sub.y + model.sub.w <= 2.5)
 \end{qlisting}
-This Pyomo model defines four variables, \code{x}, \code{v}, \code{sub.y} and \code{sub.w}.
-Variables \code{x} and \code{v} are declared in the upper-level
+This Pyomo model defines four variables,  \code{v}, \code{x}, \code{sub.w} and \code{sub.y}.
+Variables \code{v}  and \code{x} are declared in the upper-level
 problem, and \code{v} only appears in the upper-level problem.
-Variables \code{sub.y} and \code{sub.w} are declared in the submodel.
+Variables \code{sub.w} and \code{sub.y} are declared in the submodel.
 However, note that the \code{sub.y} variable appears in the upper-level
 problem, while the \code{sub.w} variable only appears in the
 lower-level problem.
@@ -243,6 +242,7 @@ model.sub.w = Var(bounds=(-1,1))
 model.sub.o = Objective(expr=model.x + model.sub.w, sense=maximize)
 model.sub.c = Constraint(expr=model.sub.y + model.sub.w <= 2.5)
 \end{qlisting}
+QUESTION: Is the last line correct here???\\
 
 \noindent PROS
 \begin{itemize}
@@ -264,6 +264,57 @@ define a constraint (similar to~(\ref{eqn:bilevel})?
 TODO ...
 
 
+\subsection{Using New Pyomo Notation}
+
+For example, consider the bilevel problem:
+\begin{equation}
+\label{eqn:bilevel_ex1}
+\begin{array}{ll}
+\min_{v \in [1,2], x \in [1,2]}   & v + x + y\\
+\st                 & v + x\geq 1.5\\
+                    & y \in P(v,x)
+\end{array}
+\end{equation}
+where 
+\[
+\begin{array}{llll}
+P(v,x) & = & \argmin_{w \in [-1,1], y \in [1,2]}    & x + w\\
+ & &                            &  y + w \leq 2.5
+\end{array}
+\]
+which can be represented in \code{pao} pseudo-code as:
+
+\begin{qlisting}
+from pyomo.environ import *
+import pyomo.kernel as pmo
+from pao.bilevel import *
+model = ConcreteModel()
+model.x = Var(bounds=(1,2))
+model.v = Var(bounds=(1,2))
+model.y = Var(bounds=(1,2))
+model.w = Var(bounds=(-1,1))
+model.upper = SubModel(vars=[model.x,model.v])
+model.lower = SubModel(vars = [model.y,model.w], parent = upper, 
+		type = optimistic, argmin = model.y)
+
+model.upper = Objective(expr=model.x + model.y + model.v, sense=minimize)
+
+model.o = Objective(expr=model.x + model.y + model.v, sense=minimize)
+model.c = Constraint(expr=model.x + model.v >= 1.5)
+model.lower.o = Objective(expr=model.x+model.w, sense=maximize)
+model.lower.c = Constraint(expr=model.y + model.w <= 2.5)
+\end{qlisting}
+
+\noindent PROS
+\begin{itemize}
+\item Requiring that each level of the problem be defined in a SubModel() block, which enables each submodel to be solved independently
+\item The user must specify important aspects about that level of the problem when instantiating the SubModel()
+\end{itemize}
+CONS
+\begin{itemize}
+\item Implicitly fixes the vars not specified in the vars argument to the SubModel() to their current value
+\item Variables have to be defined prior to instantiating the submodel; the user may want to define these on the SubModel() block
+\end{itemize}
 
 \SANDsection{Special Cases}
 \label{sec:problems}
