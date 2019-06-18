@@ -112,26 +112,6 @@ variables minimized the upper-level objective.  Most research on
 bilevel programming has considered this problem, since this formulation
 has an optimal solution under reasonable assumptions.
 
-Alternatively, a \textit{pessimistic} bilevel problem is when \eqref{eqn:bilevel} is expressed as 
-
-\begin{equation}
-\label{eqn:bilevel_pess}
-\begin{array}{ll}
-\min_{x \in X, y \in Y}   & F(x,y)\\
-\st                 & G(x,y) \leq 0\\
-                    & \forall y \in P(x)
-\end{array}
-\end{equation}
-where 
-\[
-\begin{array}{llll}
-P(x) & = & \argmin_{y \in Y}    & f(x,y)\\
- & &                            & g(x,y) \leq 0.
-\end{array}
-\]
-This formulation ensures that the selection value for $y$ will in fact maximize $F(x,y)$; in other words, the upper-level problem must be feasible for all values $y$ including the least favorable outcome of the lower-level problem $P(x)$. Unless otherwise stated, the canonical bilevel problem in the subsequent examples will be derived from the \textit{optimistic} approach presented in \eqref{eqn:bilevel}.
-
-
 Many authors use a more compact form to express (\ref{eqn:bilevel}):
 \begin{equation}
 \label{eqn:bilevel-compact}
@@ -143,6 +123,40 @@ Many authors use a more compact form to express (\ref{eqn:bilevel}):
 \end{array}
 \end{equation}
 This notation defines an implied constraint by not explicitly referencing the solution to the lower-level problem.
+
+Alternatively, a \textit{pessimistic} bilevel problem is when \eqref{eqn:bilevel} is expressed as 
+
+\begin{equation}
+\label{eqn:bilevel_pess}
+\begin{array}{lll}
+\min_{x \in X}   & F(x)\\
+\st                 & G(x,y) \leq 0 &\forall y \in P(x)
+\end{array}
+\end{equation}
+where 
+\[
+\begin{array}{llll}
+P(x) & = & \argmin_{y \in Y}    & f(x,y)\\
+ & &                            & g(x,y) \leq 0.
+\end{array}
+\]
+This formulation ensures that the upper-level problem is feasible for all values $y$ including the least favorable outcome of the lower-level problem $P(x)$. 
+It is common to see the pessimistic problem written as
+\begin{equation}
+\label{eqn:bilevel_pess_minmax}
+\min_{x \in X}\max_{y \in P(x)} H(x,y).
+\end{equation}
+Though formulation (\ref{eqn:bilevel_pess_minmax}) makes clear the selected value for $y$ will in fact maximize $H(x,y)$, note that it is actually less general than (\ref{eqn:bilevel_pess}) since we can rewrite it in the form of (\ref{eqn:bilevel_pess}), as
+\[
+\begin{array}{lll}
+\min_{x, \tau} &\tau \\
+\st & \tau \geq H(x, y) & \forall y \in P(x) \\
+& x \in X,
+\end{array}
+\]
+but it is not always possible to tranform problems in the form of (\ref{eqn:bilevel_pess_minmax}) to (\ref{eqn:bilevel_pess}) without definting functions $H(x,y)$ and $f(x,y)$ on the extended real line \cite{WiesemannTKR2013}.
+Unless otherwise stated, the canonical bilevel problem in the subsequent examples will be derived from the \textit{optimistic} approach presented in \eqref{eqn:bilevel}.
+
 
 \subsection{Introduction to \code{pao}}
 
