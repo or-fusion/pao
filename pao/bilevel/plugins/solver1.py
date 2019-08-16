@@ -37,10 +37,12 @@ class BilevelSolver1(pyomo.opt.OptSolver):
         self._metasolver = True
 
     def _presolve(self, *args, **kwds):
+        print("HERE")
+        print(kwds)
         # TODO: Override _presolve to ensure that we are passing
         #   all options to the solver (e.g., the io_options)
-        self.resolve_subproblem = kwds.pop('resolve_subproblem', True)      # TODO: Change default to False
-        self.keep_primal_subproblem = kwds.pop('keep_primal_subproblem', False)
+        self.resolve_subproblem = kwds.pop('resolve_subproblem', False)      # TODO: Change default to False
+        self.use_dual_objective = kwds.pop('use_dual_objective', True)
         self._instance = args[0]
         pyomo.opt.OptSolver._presolve(self, *args, **kwds)
 
@@ -50,7 +52,7 @@ class BilevelSolver1(pyomo.opt.OptSolver):
         # Cache the instance
         #
         xfrm = TransformationFactory('pao.bilevel.linear_dual')
-        xfrm.apply_to(self._instance, keep_primal_subproblem=self.keep_primal_subproblem)
+        xfrm.apply_to(self._instance, use_dual_objective=self.use_dual_objective)
         #
         # Verify whether the objective is linear
         #
@@ -67,6 +69,7 @@ class BilevelSolver1(pyomo.opt.OptSolver):
             gdp_xfrm.apply_to(self._instance)
             mip_xfrm = TransformationFactory("gdp.bigm")
             mip_xfrm.apply_to(self._instance, bigM=self.options.get('bigM', 100000))
+        self._instance.pprint()
         #
         # Solve with a specified solver
         #
