@@ -30,4 +30,5 @@ jobs:
         pip install --quiet git+https://github.com/Pyomo/pyomo
         python setup.py develop
         pip install nose
+    - name: Run tests
         nosetests -v .
