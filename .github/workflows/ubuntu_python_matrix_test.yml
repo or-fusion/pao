@@ -10,7 +10,7 @@ jobs:
     name: py${{ matrix.python-version }}
     runs-on: ubuntu-18.04
     strategy:
-      max-parallel: 5
+      max-parallel: 3
       matrix:
         python-version: [3.6, 3.7, 3.8]
 
