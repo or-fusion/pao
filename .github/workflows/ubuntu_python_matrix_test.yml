@@ -1,0 +1,28 @@
+name: continuous-integration/github/pr/linux
+
+on:
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  pyomo-linux-tests:
+    name: py${{ matrix.python-version }}
+    runs-on: ubuntu-18.04
+    strategy:
+      max-parallel: 5
+      matrix:
+        python-version: [3.6, 3.7, 3.8]
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v1
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install --quiet git+https://github.com/Pyomo/pyomo
+        pip install --quiet git+https://github.com/PyUtilib/pyutilib
+        python setup.py develop
