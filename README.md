@@ -4,6 +4,8 @@ A Python Package for Adversarial Optimization
 
 # Notes
 
+* WARNING:  This project is being migrated to GitHub (see https://github.com/pyomocommunity/PAO)
+
 * This package contains Python software for adversarial optimization that
 is not application-specific.  The goal of this package is to support
 cross-cutting capabilities that can be leveraged by multiple projects.
