@@ -12,7 +12,7 @@ Pyomo is available under the BSD License, see the LICENSE.txt file.
 
 #### PyPI [![PyPI version](https://img.shields.io/pypi/v/pyomo.svg?maxAge=3600)](https://pypi.org/project/pao/) [![PyPI downloads](https://img.shields.io/pypi/dm/pyomo.svg?maxAge=21600)](https://pypistats.org/packages/pao)
 
-    pip install pao
+    pip install pyomocommunity_pao
     
 ### Testing
 
