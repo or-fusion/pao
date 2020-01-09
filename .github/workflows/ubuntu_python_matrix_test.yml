@@ -31,4 +31,5 @@ jobs:
         python setup.py develop
         pip install nose
     - name: Run tests
+      run: |
         nosetests -v .
