@@ -72,7 +72,7 @@ class CommonTests(object):
                 opt = SolverFactory( kwds.get('solver', 'glpk') )
                 results = opt.solve(new_instance)
                 new_instance.solutions.store_to(results)
-                with open('result.yml', 'r') as ofile:
+                with open('result.yml', 'w') as ofile:
                     results.write(ostream=ofile, format='json')
             elif kwds.get('format', 'lp') == 'lp':
                 #
@@ -82,14 +82,13 @@ class CommonTests(object):
                 io_options['symbolic_solver_labels'] = True
                 io_options['file_determinism'] = 2
                 new_instance.name = 'Test'
-                with open(self.problem+"_result.lp", 'r') as ofile:
-                    new_instance.write(ostream=ofile, io_options=io_options)
+                new_instance.write(self.problem+"_result.lp", io_options=io_options)
             else:
                 #
                 # This is a hack.  When we cannot write a valid LP file, we still
                 # write with the LP suffix to simplify the testing logic.
                 #
-                with open(self.problem+"_result.lp", 'r'):
+                with open(self.problem+"_result.lp", 'w') as ofile:
                     new_instance.pprint(ostream=ofile)
 
         except:

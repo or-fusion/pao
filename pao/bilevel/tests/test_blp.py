@@ -131,7 +131,7 @@ class Reformulate(unittest.TestCase, CommonTests):
         instance = module.pyomo_create_model(None, None)
         xfrm = TransformationFactory('pao.bilevel.linear_mpec')
         xfrm.apply_to(instance, deterministic=True)
-        with open(join(currdir, self.problem+'_linear_mpec.out'), 'r') as ofile:
+        with open(join(currdir, self.problem+'_linear_mpec.out'), 'w') as ofile:
             instance.pprint(ostream=ofile)
 
     def referenceFile(self, problem, solver):
