@@ -1,7 +1,7 @@
-name: continuous-integration/github/pr/linux
+name: pyomo-checks/pypi
 
 on:
-  pull_request:
+  push:
     branches:
       - master
 
@@ -40,8 +40,8 @@ jobs:
         conda env list
         conda activate test
         python -m pip install --upgrade pip
-        pip install --quiet git+https://github.com/PyUtilib/pyutilib
-        pip install --quiet git+https://github.com/Pyomo/pyomo
+        pip install --quiet pyutilib
+        pip install --quiet pyomo
         python setup.py develop
         pip install nose
         pip install pyyaml
