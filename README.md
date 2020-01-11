@@ -1,5 +1,7 @@
 *DRAFT DOCUMENTATION*
 
+[![Actions Status](https://github.com/pyomocommunity/pao/workflows/continuous-integration/github/pr/linux/badge.svg)](https://github.com/pyomocommunity/pao/actions)
+
 # PAO Overview
 
 PAO is a Python-based package for Adversarial Optimization.  PAO extends the modeling concepts in [Pyomo](https://github.com/Pyomo/pyomo) to enable the expression and solution of multi-level optimization problems. The goal of this package is to provide a general modeling and analysis capability, and application exemplars serve to illustrate PAO's general capabilities.
