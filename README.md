@@ -1,6 +1,6 @@
 *DRAFT DOCUMENTATION*
 
-[![Actions Status](https://github.com/pyomocommunity/pao/workflows/ubuntu_python_matrix_test/badge.svg)](https://github.com/pyomocommunity/pao/actions)
+[![Actions Status](https://github.com/pyomocommunity/pao/workflows/continuous-integration/github/pr/linux/badge.svg)](https://github.com/pyomocommunity/pao/actions)
 
 # PAO Overview
 
