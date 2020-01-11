@@ -18,6 +18,16 @@ jobs:
         python-version: [3.6, 3.7, 3.8]
 
     steps:
+    - uses: goanpeca/setup-miniconda@v1
+        with:
+          auto-update-conda: true
+          python-version: ${{ matrix.python-version }}
+    - name: Conda info
+      shell: bash -l {0}
+      run: conda info
+    - name: Conda list
+      shell: pwsh
+      run: conda list
     - uses: actions/checkout@v1
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v1
@@ -30,6 +40,7 @@ jobs:
         pip install --quiet git+https://github.com/Pyomo/pyomo
         python setup.py develop
         pip install nose
+        conda install -c conda-forge glpk ipopt
     - name: Run tests
       run: |
         nosetests -v .
