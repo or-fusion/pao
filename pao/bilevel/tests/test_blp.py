@@ -123,15 +123,16 @@ class Reformulate(unittest.TestCase, CommonTests):
         import pao
 
     def tearDown(self):
-        if os.path.exists(os.path.join(currdir,'result.yml')):
-            os.remove(os.path.join(currdir,'result.yml'))
+        if os.path.exists(os.path.join(currdir, 'result.yml')):
+            os.remove(os.path.join(currdir, 'result.yml'))
 
     def run_bilevel(self,  *args, **kwds):
         module = pyutilib.misc.import_file(args[0])
         instance = module.pyomo_create_model(None, None)
         xfrm = TransformationFactory('pao.bilevel.linear_mpec')
         xfrm.apply_to(instance, deterministic=True)
-        instance.pprint(filename=join(currdir,self.problem+'_linear_mpec.out'))
+        with open(join(currdir, self.problem+'_linear_mpec.out'), 'w') as ofile:
+            instance.pprint(ostream=ofile)
 
     def referenceFile(self, problem, solver):
         return join(currdir, 'test_'+problem+"_linear_mpec.txt")

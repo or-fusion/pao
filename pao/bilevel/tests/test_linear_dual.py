@@ -46,7 +46,7 @@ class CommonTests:
             if 'solver' in kwds:
                 _solver = kwds.get('solver','glpk')
                 args.append('--solver=pao.bilevel.ld')
-                args.append('--solver-options="solver=%s user_dual_objective=True"' % _solver)
+                args.append('--solver-options="solver=%s"' % _solver)
             args.append('--save-results=result.yml')
             args.append('--results-format=yaml')
         else:

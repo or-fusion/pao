@@ -79,5 +79,5 @@ setup(name='pao',
       packages=packages,
       keywords=['optimization'],
       install_requires=requires,
-      python_requires='>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*',
+      python_requires='>=3.6',
       )

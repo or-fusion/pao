@@ -1,6 +1,9 @@
 name: continuous-integration/github/pr/linux
 
 on:
+  push:
+    branches:
+      - master
   pull_request:
     branches:
       - master
@@ -8,9 +11,9 @@ on:
 jobs:
   pyomo-linux-tests:
     name: py${{ matrix.python-version }}
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     strategy:
-      max-parallel: 5
+      max-parallel: 3
       matrix:
         python-version: [3.6, 3.7, 3.8]
 
@@ -23,6 +26,10 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install --quiet git+https://github.com/Pyomo/pyomo
         pip install --quiet git+https://github.com/PyUtilib/pyutilib
+        pip install --quiet git+https://github.com/Pyomo/pyomo
         python setup.py develop
+        pip install nose
+    - name: Run tests
+      run: |
+        nosetests -v .

@@ -69,11 +69,12 @@ class CommonTests(object):
                 #
                 # Solve the problem
                 #
-                opt = SolverFactory( kwds.get('solver','glpk') )
+                opt = SolverFactory( kwds.get('solver', 'glpk') )
                 results = opt.solve(new_instance)
                 new_instance.solutions.store_to(results)
-                results.write(filename='result.yml', format='json')
-            elif kwds.get('format','lp') == 'lp':
+                with open('result.yml', 'w') as ofile:
+                    results.write(ostream=ofile, format='json')
+            elif kwds.get('format', 'lp') == 'lp':
                 #
                 # Write the file
                 #
@@ -81,13 +82,14 @@ class CommonTests(object):
                 io_options['symbolic_solver_labels'] = True
                 io_options['file_determinism'] = 2
                 new_instance.name = 'Test'
-                new_instance.write(filename=self.problem+"_result.lp", io_options=io_options)
+                new_instance.write(self.problem+"_result.lp", io_options=io_options)
             else:
                 #
                 # This is a hack.  When we cannot write a valid LP file, we still
                 # write with the LP suffix to simplify the testing logic.
                 #
-                new_instance.pprint(filename=self.problem+"_result.lp")
+                with open(self.problem+"_result.lp", 'w') as ofile:
+                    new_instance.pprint(ostream=ofile)
 
         except:
             print("Failed to construct and transform the model")
