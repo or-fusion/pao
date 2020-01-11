@@ -24,7 +24,7 @@ class LinearDualBilevelTransformation(BaseBilevelTransformation):
     This is suitable for interdiction problems, where the upper and lower
     problems have opposite objectives.
 
-    The user_dual_objective can be used to simplify the final problem 
+    The use_dual_objective can be used to simplify the final problem 
     representation sligthly, in the case where there are no constraints in the 
     upper-level problem.
     """
