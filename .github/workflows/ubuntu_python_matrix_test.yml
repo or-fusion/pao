@@ -36,6 +36,8 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
+        conda env list
+        conda activate test
         python -m pip install --upgrade pip
         pip install --quiet git+https://github.com/PyUtilib/pyutilib
         pip install --quiet git+https://github.com/Pyomo/pyomo
