@@ -40,8 +40,8 @@ jobs:
         conda env list
         conda activate test
         python -m pip install --upgrade pip
-        conda install pyutilib
-        conda install pyomo
+        conda install -c conda-forge pyutilib
+        conda install -c conda-forge pyomo
         python setup.py develop
         pip install nose
         pip install pyyaml
