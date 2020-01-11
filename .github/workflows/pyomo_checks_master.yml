@@ -1,7 +1,7 @@
-name: continuous-integration/github/pr/linux
+name: pyomo-checks/master
 
 on:
-  pull_request:
+  push:
     branches:
       - master
 
