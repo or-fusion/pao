@@ -1,6 +1,9 @@
 *DRAFT DOCUMENTATION*
 
 [![Actions Status](https://github.com/pyomocommunity/pao/workflows/continuous-integration/github/pr/linux/badge.svg)](https://github.com/pyomocommunity/pao/actions)
+[![Pyomo Checks - Master](https://github.com/pyomocommunity/pao/workflows/pyomo-checks/master/badge.svg)](https://github.com/pyomocommunity/pao/actions)
+[![Pyomo Checks - PyPI](https://github.com/pyomocommunity/pao/workflows/pyomo-checks/pypi/badge.svg)](https://github.com/pyomocommunity/pao/actions)
+[![Pyomo Checks - Conda](https://github.com/pyomocommunity/pao/workflows/pyomo-checks/conda/badge.svg)](https://github.com/pyomocommunity/pao/actions)
 
 # PAO Overview
 
