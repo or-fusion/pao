@@ -1,6 +1,8 @@
 *DRAFT DOCUMENTATION*
 
 [![Actions Status](https://github.com/pyomocommunity/pao/workflows/continuous-integration/github/pr/linux/badge.svg)](https://github.com/pyomocommunity/pao/actions)
+[![codecov](https://codecov.io/gh/pyomocommunity/pao/branch/master/graph/badge.svg)](https://codecov.io/gh/pyomocommunity/pao)
+[![Documentation Status](https://readthedocs.org/projects/pao/badge/?version=latest)](http://pao.readthedocs.org/en/latest/)
 
 [![Pyomo Checks - Master](https://github.com/pyomocommunity/pao/workflows/pyomo-checks/master/badge.svg)](https://github.com/pyomocommunity/pao/actions)
 [![Pyomo Checks - PyPI](https://github.com/pyomocommunity/pao/workflows/pyomo-checks/pypi/badge.svg)](https://github.com/pyomocommunity/pao/actions)
