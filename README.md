@@ -1,9 +1,17 @@
 *DRAFT DOCUMENTATION*
 
 [![Actions Status](https://github.com/pyomocommunity/pao/workflows/continuous-integration/github/pr/linux/badge.svg)](https://github.com/pyomocommunity/pao/actions)
+[![codecov](https://codecov.io/gh/pyomocommunity/pao/branch/master/graph/badge.svg)](https://codecov.io/gh/pyomocommunity/pao)
+[![Documentation Status](https://readthedocs.org/projects/pao/badge/?version=latest)](http://pao.readthedocs.org/en/latest/)
+
 [![Pyomo Checks - Master](https://github.com/pyomocommunity/pao/workflows/pyomo-checks/master/badge.svg)](https://github.com/pyomocommunity/pao/actions)
 [![Pyomo Checks - PyPI](https://github.com/pyomocommunity/pao/workflows/pyomo-checks/pypi/badge.svg)](https://github.com/pyomocommunity/pao/actions)
 [![Pyomo Checks - Conda](https://github.com/pyomocommunity/pao/workflows/pyomo-checks/conda/badge.svg)](https://github.com/pyomocommunity/pao/actions)
+
+[![GitHub contributors](https://img.shields.io/github/contributors/pyomocommunity/pao.svg)](https://github.com/pyomocommunity/pao/graphs/contributors)
+[![Merged PRs](https://img.shields.io/github/issues-pr-closed-raw/pyomocommunity/pao.svg?label=merged+PRs)](https://github.com/pyomocommunity/pao/pulls?q=is:pr+is:merged)
+[![Issue stats](http://isitmaintained.com/badge/resolution/pyomocommunity/pao.svg)](http://isitmaintained.com/project/pyomocommunity/pao)
+[![Project Status: Active - The project has reached a stable, usable state and is being actively developed.](http://www.repostatus.org/badges/latest/active.svg)](http://www.repostatus.org/#active)
 
 # PAO Overview
 
