@@ -44,9 +44,17 @@ jobs:
         pip install --quiet git+https://github.com/Pyomo/pyomo
         python setup.py develop
         pip install nose
+        pip install coverage
+        pip install codecov
         pip install pyyaml
         conda install -c conda-forge glpk ipopt
     - name: Run tests
       shell: bash -l {0}
       run: |
-        nosetests -v .
+        nosetests --with-xunit --with-coverage --cover-xml .
+        coverage report -m
+    - name: Send coverage data to codecov
+      shell: bash -l {0}
+      run: |
+        export CODECOV_TOKEN="a045cd48-34f2-47ea-a819-ed1ec4e41f36"
+        codecov

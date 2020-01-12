@@ -4,7 +4,7 @@
 [![codecov](https://codecov.io/gh/pyomocommunity/pao/branch/master/graph/badge.svg)](https://codecov.io/gh/pyomocommunity/pao)
 [![Documentation Status](https://readthedocs.org/projects/pao/badge/?version=latest)](http://pao.readthedocs.org/en/latest/)
 
-[![Pyomo Checks - Master](https://github.com/pyomocommunity/pao/workflows/pyomo-checks/master/badge.svg)](https://github.com/pyomocommunity/pao/actions)
+[![Pyomo Checks - GitHub Master](https://github.com/pyomocommunity/pao/workflows/pyomo-checks/master/badge.svg)](https://github.com/pyomocommunity/pao/actions)
 [![Pyomo Checks - PyPI](https://github.com/pyomocommunity/pao/workflows/pyomo-checks/pypi/badge.svg)](https://github.com/pyomocommunity/pao/actions)
 [![Pyomo Checks - Conda](https://github.com/pyomocommunity/pao/workflows/pyomo-checks/conda/badge.svg)](https://github.com/pyomocommunity/pao/actions)
 
@@ -23,15 +23,15 @@ Pyomo is available under the BSD License, see the LICENSE.txt file.
 
 ### Installation
 
-#### PyPI [![PyPI version](https://img.shields.io/pypi/v/pyomo.svg?maxAge=3600)](https://pypi.org/project/pao/) [![PyPI downloads](https://img.shields.io/pypi/dm/pyomo.svg?maxAge=21600)](https://pypistats.org/packages/pao)
+#### PyPI [![PyPI version](https://img.shields.io/pypi/v/pao.svg?maxAge=3600)](https://pypi.org/project/pao/) [![PyPI downloads](https://img.shields.io/pypi/dm/pao.svg?maxAge=21600)](https://pypistats.org/packages/pao)
 
-    pip install pyomocommunity_pao
+    pip install pao
     
 ### Testing
 
 Pyomo is currently tested with the following Python implementations:
 
-* CPython: 3.8
+* CPython: 3.6, 3.7, 3.8
 
 Testing 
 
