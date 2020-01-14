@@ -28,6 +28,8 @@ class BaseBilevelTransformation(Transformation):
         """
         Iterate over the model collecting variable data,
         until the submodel is found.
+        NOTE: Need to update to handle multiple (e.g., lower-level scenarios, or multiple followers)
+        and/or nested sub-models (e.g., tri-level, N-level)
         """
         var = {}
         submodel = None
@@ -73,3 +75,4 @@ class BaseBilevelTransformation(Transformation):
             if id(vardata) in self._fixed_ids:
                 vardata.fixed = False
                 self._fixed_ids.remove(id(vardata))
+

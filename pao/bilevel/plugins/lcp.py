@@ -52,8 +52,8 @@ def create_submodel_kkt_block(instance, submodel, deterministic, fixed_upper_var
     sids_list = []
     #
     block = Block(concrete=True)
-    block.u = VarList()
-    block.v = VarList()
+    block.u = VarList() # Note: Dual variables associated to bounds in primal problem
+    block.v = VarList() # Note: Dual variables associated to constraints in primal problem
     block.c1 = ConstraintList()
     block.c2 = ComplementarityList()
     block.c3 = ComplementarityList()
@@ -270,6 +270,9 @@ quadratic terms where both variables are in the lower level.")
     #
     # Return block
     #
+    # NOTE: Here we are deriving complementarity constraints instead of complementary constraints.
+    # We may want to have all dual and primal feasibility constraints, in addition to the complementary.
+    # The complementarity declaration as is appears to enforce primal feasibility only (?)
     return block
 
 
@@ -290,12 +293,12 @@ class LinearComplementarityBilevelTransformation(BaseBilevelTransformation):
         # Process options
         #
         submodel = self._preprocess('pao.bilevel.linear_mpec', model, sub=submodel_name)
-        model.reclassify_component_type(submodel, Block)
+        model.reclassify_component_type(submodel, Block) # NOTE: This is not documented in Pyomo ReadTheDocs -- changes type from SubModel to Block
         #
         # Create a block with optimality conditions
         #
         setattr(model, self._submodel+'_kkt',
-                create_submodel_kkt_block(model, submodel, deterministic,
+                create_submodel_kkt_block(model, submodel, deterministic, # NOTE: May cause errors -- the submodel here is of type SubModel and not of type Block
                                           self._fixed_vardata))
         model._transformation_data['pao.bilevel.linear_mpec'].submodel_cuid =\
             ComponentUID(submodel)
@@ -307,3 +310,4 @@ class LinearComplementarityBilevelTransformation(BaseBilevelTransformation):
         for data in submodel.component_map(active=True).values():
             if not isinstance(data, Var) and not isinstance(data, Set):
                 data.deactivate()
+
