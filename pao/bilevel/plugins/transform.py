@@ -14,22 +14,52 @@ pao.bilevel.plugins.transform
 Definition of a base class for bilevel transformation.
 """
 
-from pyomo.core import Transformation, Var, ComponentUID
+from pyomo.core import Transformation, Var, ComponentUID, Block
 from ..components import SubModel
+import logging
 
+logger = logging.getLogger(__name__)
 
 class BaseBilevelTransformation(Transformation):
     """
     Base class defining methods commonly used to transform
     bilevel programs.
     """
+    _fixed_vardata = dict()
+    _fixed_ids = set()
+    _submodel = dict()
+
+    @property
+    def fixed_vardata(self):
+        return self._fixed_vardata
+
+    @fixed_vardata.setter
+    def fixed_vardata(self,key,val):
+        self._fixed_vardata[key] = val
+
+    @property
+    def submodel(self):
+        return self._submodel
+
+    @submodel.setter
+    def submodel(self,key,val):
+        self._submodel[key] = val
+
+    def _nest_level(self,block,level=2):
+
+        if block.parent_block() == block.root_block():
+            return level
+        else:
+            level += 1
+            self._nest_level(block.parent_block(),level)
 
     def _preprocess(self, tname, instance, sub=None):
         """
         Iterate over the model collecting variable data,
         until the submodel is found.
-        NOTE: Need to update to handle multiple (e.g., lower-level scenarios, or multiple followers)
-        and/or nested sub-models (e.g., tri-level, N-level)
+
+        Returns
+
         """
         var = {}
         submodel = None
@@ -38,25 +68,22 @@ class BaseBilevelTransformation(Transformation):
                 var[name] = data
             elif isinstance(data, SubModel):
                 if sub is None or sub == name:
-                    sub = name
                     submodel = data
-                    break
-        if submodel is None:
-            raise RuntimeError("Missing submodel: "+str(sub))
-        #
-        instance._transformation_data[tname].submodel = [name]
-        #
-        # Fix variables
-        #
-        if submodel._fixed:
-            self._fixed_vardata = [vardata for v in submodel._fixed for vardata in v.values()]
-        else:
-            raise RuntimeError("Must specify 'fixed' or 'unfixed' options")
-        #
-        self._submodel = sub
-        instance._transformation_data[tname].fixed = [ComponentUID(v) for v in self._fixed_vardata]
-        self._fixed_ids = set()
-        return submodel
+                    if submodel is None:
+                        e = "Missing submodel: "+str(sub)
+                        logger.error(e)
+                        raise RuntimeError(e)
+                    instance._transformation_data[tname].submodel = [name]
+                    nest_level = self._nest_level(submodel)
+                    if submodel._fixed:
+                        self.fixed_vardata[(name,nest_level)] = [vardata for v in submodel._fixed for vardata in v.values()]
+                        instance._transformation_data[tname].fixed = [ComponentUID(v) for v in self.fixed_vardata[(name,nest_level)]]
+                        self.submodel[(name,nest_level)] = submodel
+                    else:
+                        e = "Must specify 'fixed' or 'unfixed' options"
+                        logger.error(e)
+                        raise RuntimeError(e)
+        return
 
     def _fix_all(self):
         """

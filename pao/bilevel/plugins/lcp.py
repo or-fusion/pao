@@ -292,22 +292,24 @@ class LinearComplementarityBilevelTransformation(BaseBilevelTransformation):
         #
         # Process options
         #
-        submodel = self._preprocess('pao.bilevel.linear_mpec', model, sub=submodel_name)
-        model.reclassify_component_type(submodel, Block) # NOTE: This is not documented in Pyomo ReadTheDocs -- changes type from SubModel to Block
-        #
-        # Create a block with optimality conditions
-        #
-        setattr(model, self._submodel+'_kkt',
-                create_submodel_kkt_block(model, submodel, deterministic, # NOTE: May cause errors -- the submodel here is of type SubModel and not of type Block
-                                          self._fixed_vardata))
-        model._transformation_data['pao.bilevel.linear_mpec'].submodel_cuid =\
-            ComponentUID(submodel)
-        model._transformation_data['pao.bilevel.linear_mpec'].block_cuid =\
-            ComponentUID(getattr(model, self._submodel+'_kkt'))
-        #
-        # Disable the original submodel and
-        #
-        for data in submodel.component_map(active=True).values():
-            if not isinstance(data, Var) and not isinstance(data, Set):
-                data.deactivate()
+        self._preprocess('pao.bilevel.linear_mpec', model, sub=submodel_name)
+        for (key1,key2), sub in self.submodel.items():
+            model.reclassify_component_type(sub, Block)
+
+            #
+            # Create a block with optimality conditions
+            #
+            setattr(model, str(key1)+'_kkt',
+                    create_submodel_kkt_block(model, sub, deterministic,
+                                              self.fixed_vardata[(key1,key2)]))
+            model._transformation_data['pao.bilevel.linear_mpec'].submodel_cuid =\
+                ComponentUID(sub)
+            model._transformation_data['pao.bilevel.linear_mpec'].block_cuid =\
+                ComponentUID(getattr(model, str(key1)+'_kkt'))
+            #
+            # Disable the original submodel and
+            #
+            for data in sub.component_map(active=True).values():
+                if not isinstance(data, Var) and not isinstance(data, Set):
+                    data.deactivate()
 
