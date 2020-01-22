@@ -20,7 +20,9 @@ from pyomo.core import Block, VarList, ConstraintList, Objective,\
 from pyomo.repn import generate_standard_repn
 from pyomo.mpec import ComplementarityList, complements
 from .transform import BaseBilevelTransformation
+import logging
 
+logger = logging.getLogger(__name__)
 
 def create_submodel_kkt_block(instance, submodel, deterministic, fixed_upper_vars):
     """
@@ -267,12 +269,6 @@ quadratic terms where both variables are in the lower level.")
             # TODO: Annotate the model as unbounded
             raise IOError("Unbounded variable without side constraints")
         block.c1.add(exp == 0)
-    #
-    # Return block
-    #
-    # NOTE: Here we are deriving complementarity constraints instead of complementary constraints.
-    # We may want to have all dual and primal feasibility constraints, in addition to the complementary.
-    # The complementarity declaration as is appears to enforce primal feasibility only (?)
     return block
 
 
@@ -292,7 +288,7 @@ class LinearComplementarityBilevelTransformation(BaseBilevelTransformation):
         #
         # Process options
         #
-        self._preprocess('pao.bilevel.linear_mpec', model, sub=submodel_name)
+        self._preprocess('pao.bilevel.linear_mpec', model)
         for (key1,key2), sub in self.submodel.items():
             model.reclassify_component_type(sub, Block)
 

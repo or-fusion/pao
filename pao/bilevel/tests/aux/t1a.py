@@ -11,7 +11,7 @@
 from pyomo.environ import *
 from pao.bilevel import *
 
-def pyomo_create_model(options, model_options):
+def pyomo_create_model():
 
     model = ConcreteModel()
     model.z = Var(within=NonPositiveReals)
@@ -22,7 +22,7 @@ def pyomo_create_model(options, model_options):
 
     # Create a submodel
     # The argument indicates the lower-level decision variables
-    model.sub = SubModel(fixed=model.z)
+    model.sub = SubModel(var=[model.x1,model.x2,model.x3])
     model.sub.o = Objective(expr=model.o.expr, sense=minimize)
     model.sub.c1 = Constraint(expr=4*model.x1 + 2*model.x2 + model.x3 >= 5)
     model.sub.c2 = Constraint(expr=model.x1 + model.x2 >= 3)

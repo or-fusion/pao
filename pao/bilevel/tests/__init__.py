@@ -10,3 +10,5 @@
 #
 # pao.bilevel tests
 #
+
+import pao.bilevel.tests.aux

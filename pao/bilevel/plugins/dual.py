@@ -15,7 +15,9 @@ pao.bilevel.plugins.dual
 from pyomo.core import Objective, Block, Var, Set, Constraint
 from pyomo.core import TransformationFactory
 from .transform import BaseBilevelTransformation
+import logging
 
+logger = logging.getLogger(__name__)
 
 @TransformationFactory.register('pao.bilevel.linear_dual', doc="Dualize a SubModel block")
 class LinearDualBilevelTransformation(BaseBilevelTransformation):

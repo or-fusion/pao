@@ -53,10 +53,10 @@ class BaseBilevelTransformation(Transformation):
             level += 1
             self._nest_level(block.parent_block(),level)
 
-    def _preprocess(self, tname, instance, sub=None):
+    def _preprocess(self, tname, instance):
         """
         Iterate over the model collecting variable data,
-        until the submodel is found.
+        until all submodels are found.
 
         Returns
 
@@ -67,22 +67,21 @@ class BaseBilevelTransformation(Transformation):
             if isinstance(data, Var):
                 var[name] = data
             elif isinstance(data, SubModel):
-                if sub is None or sub == name:
-                    submodel = data
-                    if submodel is None:
-                        e = "Missing submodel: "+str(sub)
-                        logger.error(e)
-                        raise RuntimeError(e)
-                    instance._transformation_data[tname].submodel = [name]
-                    nest_level = self._nest_level(submodel)
-                    if submodel._fixed:
-                        self.fixed_vardata[(name,nest_level)] = [vardata for v in submodel._fixed for vardata in v.values()]
-                        instance._transformation_data[tname].fixed = [ComponentUID(v) for v in self.fixed_vardata[(name,nest_level)]]
-                        self.submodel[(name,nest_level)] = submodel
-                    else:
-                        e = "Must specify 'fixed' or 'unfixed' options"
-                        logger.error(e)
-                        raise RuntimeError(e)
+                submodel = data
+                if submodel is None:
+                    e = "Missing submodel: "+str(sub)
+                    logger.error(e)
+                    raise RuntimeError(e)
+                instance._transformation_data[tname].submodel = [name]
+                nest_level = self._nest_level(submodel)
+                if submodel._fixed:
+                    self.fixed_vardata[(name,nest_level)] = [vardata for v in submodel._fixed for vardata in v.values()]
+                    instance._transformation_data[tname].fixed = [ComponentUID(v) for v in self.fixed_vardata[(name,nest_level)]]
+                    self.submodel[(name,nest_level)] = submodel
+                else:
+                    e = "Must specify 'fixed' or 'unfixed' options"
+                    logger.error(e)
+                    raise RuntimeError(e)
         return
 
     def _fix_all(self):
