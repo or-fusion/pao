@@ -37,58 +37,60 @@ class LinearDualBilevelTransformation(BaseBilevelTransformation):
         #
         # Process options
         #
-        submodel = self._preprocess('pao.bilevel.linear_dual', model, sub=submodel_name)
+        self._preprocess('pao.bilevel.linear_dual', model)
         self._fix_all()
-        #
-        # Generate the dual block
-        #
-        transform = TransformationFactory('pao.duality.linear_dual')
-        dual = transform.create_using(submodel, fixed=self._fixed_vardata)
-        #
-        # Figure out which objective is being used
-        #
-        if use_dual_objective:
+
+        for (key1,key2), sub in self.submodel.items():
             #
-            # Deactivate the upper-level objective
+            # Generate the dual block
             #
-            # TODO: Warn if there are multiple objectives?
+            transform = TransformationFactory('pao.duality.linear_dual')
+            dual = transform.create_using(sub, fixed=self._fixed_vardata)
             #
-            for odata in submodel._parent().component_map(Objective, active=True).values():
-                odata.deactivate()
-        else:
+            # Figure out which objective is being used
             #
-            # Add a constraint that maps the dual objective to the primal objective
+            if use_dual_objective:
+                #
+                # Deactivate the upper-level objective
+                #
+                # TODO: Warn if there are multiple objectives?
+                #
+                for odata in sub._parent().component_map(Objective, active=True).values():
+                    odata.deactivate()
+            else:
+                #
+                # Add a constraint that maps the dual objective to the primal objective
+                #
+                # NOTE: It might be numerically more stable to replace the upper
+                # objective with a variable, and then set the dual equal to that variable.
+                # But that transformation would not be limited to the submodel.  If that's
+                # an issue for a user, they can make that change, and see the benefit.
+                #
+                dual_obj = None
+                for odata in dual.component_objects(Objective, active=True):
+                    dual_obj = odata
+                    dual_obj.deactivate()
+                    break
+                primal_obj = None
+                for odata in sub.component_objects(Objective, active=True):
+                    primal_obj = odata
+                    break
+                dual.equiv_objs = Constraint(expr=dual_obj.expr == primal_obj.expr)
             #
-            # NOTE: It might be numerically more stable to replace the upper 
-            # objective with a variable, and then set the dual equal to that variable.
-            # But that transformation would not be limited to the submodel.  If that's
-            # an issue for a user, they can make that change, and see the benefit.
+            # Add the dual block
             #
-            dual_obj = None
-            for odata in dual.component_objects(Objective, active=True):
-                dual_obj = odata
-                dual_obj.deactivate()
-                break
-            primal_obj = None
-            for odata in submodel.component_objects(Objective, active=True):
-                primal_obj = odata
-                break
-            dual.equiv_objs = Constraint(expr=dual_obj.expr == primal_obj.expr)
-        #
-        # Add the dual block
-        #
-        setattr(model, self._submodel+'_dual', dual)
-        model.reclassify_component_type(self._submodel+'_dual', Block)
-        #
-        # Unfix the upper variables
-        #
-        self._unfix_all()
-        #
-        # Disable the original submodel
-        #
-        # Q: Are the last steps redundant?  Will we recurse into deactivated blocks?
-        #
-        submodel.deactivate()
-        for data in submodel.component_map(active=True).values():
-            if not isinstance(data, Var) and not isinstance(data, Set):
-                data.deactivate()
+            setattr(model, key1+'_dual', dual)
+            model.reclassify_component_type(key1+'_dual', Block)
+            #
+            # Unfix the upper variables
+            #
+            self._unfix_all()
+            #
+            # Disable the original submodel
+            #
+            # Q: Are the last steps redundant?  Will we recurse into deactivated blocks?
+            #
+            sub.deactivate()
+            for data in sub.component_map(active=True).values():
+                if not isinstance(data, Var) and not isinstance(data, Set):
+                    data.deactivate()

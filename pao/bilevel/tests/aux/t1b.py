@@ -20,7 +20,7 @@ def pyomo_create_model():
 
     # Create a submodel
     # The argument indicates the lower-level decision variables
-    model.sub = SubModel(var=model.x)
+    model.sub = SubModel(fixed=model.z)
     model.sub.o = Objective(expr=model.o.expr, sense=minimize)
     model.sub.c1 = Constraint(expr=4*model.x[1] + 2*model.x[2] + model.x[3] >= 5)
     model.sub.c2 = Constraint(expr=model.x[1] + model.x[2] >= 3)

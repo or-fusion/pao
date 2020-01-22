@@ -37,7 +37,6 @@ class BilevelSolver1(pyomo.opt.OptSolver):
         self._metasolver = True
 
     def _presolve(self, *args, **kwds):
-        print(kwds)
         # TODO: Override _presolve to ensure that we are passing
         #   all options to the solver (e.g., the io_options)
         self.resolve_subproblem = kwds.pop('resolve_subproblem', True)      # TODO: Change default to False

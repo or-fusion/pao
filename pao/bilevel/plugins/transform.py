@@ -69,15 +69,15 @@ class BaseBilevelTransformation(Transformation):
             elif isinstance(data, SubModel):
                 submodel = data
                 if submodel is None:
-                    e = "Missing submodel: "+str(sub)
+                    e = "Missing submodel: "+str(name)
                     logger.error(e)
                     raise RuntimeError(e)
                 instance._transformation_data[tname].submodel = [name]
                 nest_level = self._nest_level(submodel)
                 if submodel._fixed:
-                    self.fixed_vardata[(name,nest_level)] = [vardata for v in submodel._fixed for vardata in v.values()]
-                    instance._transformation_data[tname].fixed = [ComponentUID(v) for v in self.fixed_vardata[(name,nest_level)]]
-                    self.submodel[(name,nest_level)] = submodel
+                    self._fixed_vardata[(name,nest_level)] = [vardata for v in submodel._fixed for vardata in v.values()]
+                    instance._transformation_data[tname].fixed = [ComponentUID(v) for v in self._fixed_vardata[(name,nest_level)]]
+                    self._submodel[(name,nest_level)] = submodel
                 else:
                     e = "Must specify 'fixed' or 'unfixed' options"
                     logger.error(e)
@@ -89,17 +89,19 @@ class BaseBilevelTransformation(Transformation):
         """
         Fix the upper variables
         """
-        for vardata in self._fixed_vardata:
-            if not vardata.fixed:
-                self._fixed_ids.add(id(vardata))
-                vardata.fixed = True
+        for (key1,key2),vardata in self._fixed_vardata.items():
+            for v in vardata:
+                if not v.fixed:
+                    self._fixed_ids.add(id(v))
+                    v.fixed = True
 
     def _unfix_all(self):
         """
         Unfix the upper variables
         """
-        for vardata in self._fixed_vardata:
-            if id(vardata) in self._fixed_ids:
-                vardata.fixed = False
-                self._fixed_ids.remove(id(vardata))
+        for (key1,key2),vardata in self._fixed_vardata.items():
+            for v in vardata:
+                if id(v) in self._fixed_ids:
+                    v.fixed = False
+                    self._fixed_ids.remove(id(v))
 

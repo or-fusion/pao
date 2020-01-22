@@ -12,24 +12,17 @@
 # Test transformations for bilevel linear programs
 #
 
-import os
 from os.path import abspath, dirname, join
 import math
-#import unittest
 from parameterized import parameterized
 import pyutilib.th as unittest
-import pyutilib.misc
 
 import pyomo.opt
-import pyomo.scripting.pyomo_main as pyomo_main
-from pyomo.scripting.util import cleanup
 from pyomo.environ import *
 import itertools
 from pyomo.core import Objective
 from pao.bilevel.components import SubModel
 
-
-from six import iteritems
 
 try:
     import yaml
@@ -38,8 +31,11 @@ except ImportError:
     yaml_available=False
 
 # only runs with no error when solvers = ['ipopt'] and pao_solvers = ['pao.bilevel.blp_local']
-solvers = pyomo.opt.check_available_solvers('cplex','glpk','gurobi','ipopt')
-pao_solvers = ['pao.bilevel.ld','pao.bilevel.blp_global','pao.bilevel.blp_local','pao.bilevel.bqp']
+#solvers = pyomo.opt.check_available_solvers('cplex','glpk','gurobi','ipopt')
+solvers = ['ipopt']
+pao_solvers = ['pao.bilevel.blp_local']#,'pao.bilevel.blp_global']
+solvers2 = pyomo.opt.check_available_solvers('cplex','glpk','gurobi','ipopt')
+pao_solvers2 = ['pao.bilevel.ld']
 
 current_dir = dirname(abspath(__file__))
 aux_dir = join(dirname(abspath(__file__)),'aux')
@@ -54,9 +50,14 @@ solution_model_names = ['bard511']
 solution_models = [join(current_dir, 'aux', '{}.py'.format(i)) for i in solution_model_names]
 solutions = [join(current_dir, 'aux','solution','{}.txt'.format(i)) for i in solution_model_names]
 
+solution_model_names2 = ['t5','t1','t1b']
+solution_models2 = [join(current_dir, 'aux', '{}.py'.format(i)) for i in solution_model_names2]
+solutions2 = [join(current_dir, 'aux','solution','{}.txt'.format(i)) for i in solution_model_names2]
+
 # cartesian product of lists for a full coverage unittest run
 cartesian_solutions = [elem for elem in itertools.product(*[solvers,pao_solvers,zip(solution_model_names,solution_models,solutions)])]
-
+cartesian_solutions2 = [elem for elem in itertools.product(*[solvers2,pao_solvers2,zip(solution_model_names2,solution_models2,solutions2)])]
+cartesian_solutions = cartesian_solutions + cartesian_solutions2
 
 class TestBilevelReformulate(unittest.TestCase):
     """
@@ -138,8 +139,7 @@ class TestBilevelSolve(unittest.TestCase):
         solver.options.solver = numerical_solver
         results = solver.solve(instance)
 
-        try:
-            self.assertTrue(results.solver.termination_condition == pyomo.opt.TerminationCondition.optimal)
+        self.assertTrue(results.solver.termination_condition == pyomo.opt.TerminationCondition.optimal)
 
         test_objective = self.getObjectiveInstance(instance)
         solution_objective = self.getObjectiveSolution(solution, test_objective.keys())
