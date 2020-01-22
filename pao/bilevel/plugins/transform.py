@@ -46,7 +46,10 @@ class BaseBilevelTransformation(Transformation):
         self._submodel[key] = val
 
     def _nest_level(self,block,level=2):
+        """
+        Determines depth level of block in model hierarchy
 
+        """
         if block.parent_block() == block.root_block():
             return level
         else:
@@ -58,11 +61,8 @@ class BaseBilevelTransformation(Transformation):
         Iterate over the model collecting variable data,
         until all submodels are found.
 
-        Returns
-
         """
         var = {}
-        submodel = None
         for (name, data) in instance.component_map(active=True).items():
             if isinstance(data, Var):
                 var[name] = data
@@ -82,6 +82,7 @@ class BaseBilevelTransformation(Transformation):
                     e = "Must specify 'fixed' or 'unfixed' options"
                     logger.error(e)
                     raise RuntimeError(e)
+                self._preprocess(tname,submodel)
         return
 
     def _fix_all(self):
