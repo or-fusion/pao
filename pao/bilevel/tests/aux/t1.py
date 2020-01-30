@@ -11,7 +11,7 @@
 from pyomo.environ import *
 from pao.bilevel import *
 
-def pyomo_create_model(options, model_options):
+def pyomo_create_model():
 
     model = ConcreteModel()
     model.z = Var(within=NonPositiveReals)
@@ -30,3 +30,6 @@ def pyomo_create_model(options, model_options):
 
     return model
 
+
+if __name__ == "__main__":
+    pyomo_create_model()

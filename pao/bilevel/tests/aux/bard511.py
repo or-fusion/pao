@@ -16,7 +16,7 @@
 from pyomo.environ import *
 from pao.bilevel import *
 
-def pyomo_create_model(options, model_options):
+def pyomo_create_model():
     M = ConcreteModel()
     M.x = Var(bounds=(0,None))
     M.y = Var(bounds=(0,None))

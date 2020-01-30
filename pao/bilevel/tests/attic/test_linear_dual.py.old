@@ -33,7 +33,9 @@ try:
 except ImportError:
     yaml_available=False
 
-solvers = pyomo.opt.check_available_solvers('cplex', 'glpk')
+solvers = pyomo.opt.check_available_solvers('cplex', 'glpk','gurobi')
+
+
 
 
 class CommonTests:
@@ -191,6 +193,15 @@ class Solve_CPLEX(Solver, CommonTests):
 
     def run_bilevel(self,  *args, **kwds):
         kwds['solver'] = 'cplex'
+        CommonTests.run_bilevel(self, *args, **kwds)
+
+
+@unittest.skipIf(not yaml_available, "YAML is not available")
+@unittest.skipIf(not 'gurobi' in solvers, "The 'gurobi' executable is not available")
+class Solve_CPLEX(Solver, CommonTests):
+
+    def run_bilevel(self,  *args, **kwds):
+        kwds['solver'] = 'gurobi'
         CommonTests.run_bilevel(self, *args, **kwds)
 
 

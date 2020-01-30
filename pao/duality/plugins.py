@@ -18,8 +18,10 @@ This module defines the transformation plugin for linear dualization.
 #pylint: disable-msg=too-many-locals
 #pylint: disable-msg=too-many-branches
 
-import logging
 from six import iteritems
+import logging
+
+logger = logging.getLogger(__name__)
 
 from pyomo.core import (Transformation,
                         TransformationFactory,
