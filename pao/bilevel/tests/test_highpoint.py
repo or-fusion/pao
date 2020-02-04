@@ -14,6 +14,7 @@
 
 from pyomo.core import Block
 import math
+import pyomo.opt
 from os.path import abspath, dirname, join
 from parameterized import parameterized
 import pyutilib.th as unittest
@@ -34,7 +35,7 @@ reformulation_model_names = ['besancon27']
 reformulation_models = [join(current_dir, 'aux', '{}.py'.format(i)) for i in reformulation_model_names]
 reformulations = [join(current_dir, 'aux','reformulation','{}.txt'.format(i)) for i in reformulation_model_names]
 
-solvers = ['gurobi']
+solvers = pyomo.opt.check_available_solvers('cplex','glpk','gurobi','ipopt')
 
 # models for bilevel solution tests
 solution_model_names = ['besancon27']
