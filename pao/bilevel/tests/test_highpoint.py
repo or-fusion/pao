@@ -12,16 +12,13 @@
 # Test transformations for bilevel linear programs
 #
 
-from os.path import abspath, dirname, join
+from pyomo.core import Block
 import math
+from os.path import abspath, dirname, join
 from parameterized import parameterized
 import pyutilib.th as unittest
-
-import pyomo.opt
-from pyomo.environ import *
 import itertools
-from pyomo.core import Objective
-from pao.bilevel.components import SubModel
+from pyomo.environ import *
 
 try:
     import yaml
@@ -29,38 +26,26 @@ try:
 except ImportError:
     yaml_available=False
 
-# only runs with no error when solvers = ['ipopt'] and pao_solvers = ['pao.bilevel.blp_local']
-#solvers = pyomo.opt.check_available_solvers('cplex','glpk','gurobi','ipopt')
-solvers = ['ipopt']
-pao_solvers = ['pao.bilevel.blp_local']#,'pao.bilevel.blp_global']
-solvers2 = pyomo.opt.check_available_solvers('cplex','glpk','gurobi','ipopt')
-pao_solvers2 = ['pao.bilevel.ld']
-
 current_dir = dirname(abspath(__file__))
 aux_dir = join(dirname(abspath(__file__)),'aux')
 
-# models for bilevel reformulation tests
-reformulation_model_names = ['bqp_example1','bqp_example2']
+# models for bilevel highpoint relaxation tests
+reformulation_model_names = ['besancon27']
 reformulation_models = [join(current_dir, 'aux', '{}.py'.format(i)) for i in reformulation_model_names]
 reformulations = [join(current_dir, 'aux','reformulation','{}.txt'.format(i)) for i in reformulation_model_names]
 
+solvers = ['gurobi']
+
 # models for bilevel solution tests
-solution_model_names = ['bard511']
+solution_model_names = ['besancon27']
 solution_models = [join(current_dir, 'aux', '{}.py'.format(i)) for i in solution_model_names]
 solutions = [join(current_dir, 'aux','solution','{}.txt'.format(i)) for i in solution_model_names]
 
-solution_model_names2 = ['t5','t1','t1b']
-solution_models2 = [join(current_dir, 'aux', '{}.py'.format(i)) for i in solution_model_names2]
-solutions2 = [join(current_dir, 'aux','solution','{}.txt'.format(i)) for i in solution_model_names2]
+cartesian_solutions = [elem for elem in itertools.product(*[solvers,zip(solution_model_names,solution_models,solutions)])]
 
-# cartesian product of lists for a full coverage unittest run
-cartesian_solutions = [elem for elem in itertools.product(*[solvers,pao_solvers,zip(solution_model_names,solution_models,solutions)])]
-cartesian_solutions2 = [elem for elem in itertools.product(*[solvers2,pao_solvers2,zip(solution_model_names2,solution_models2,solutions2)])]
-cartesian_solutions = cartesian_solutions + cartesian_solutions2
-
-class TestBilevelReformulate(unittest.TestCase):
+class TestBilevelHighpoint(unittest.TestCase):
     """
-    Testing for bilevel reformulations that use the pao.bilevel.linear_mpec transformation
+    Testing for bilevel highpoint relaxation that use the pao.bilevel.highpoint transformation
 
     """
     show_output = True
@@ -90,17 +75,17 @@ class TestBilevelReformulate(unittest.TestCase):
         namespace = SourceFileLoader(name,model).load_module()
         instance = namespace.pyomo_create_model()
 
-        xfrm = TransformationFactory('pao.bilevel.linear_mpec')
+        xfrm = TransformationFactory('pao.bilevel.highpoint')
         xfrm.apply_to(instance, deterministic=True)
 
-        with open(join(aux_dir, name + '_linear_mpec.out'), 'w') as ofile:
+        with open(join(aux_dir, name + '_highpoint.out'), 'w') as ofile:
             instance.pprint(ostream=ofile)
 
-        self.assertFileEqualsBaseline(join(aux_dir, name + '_linear_mpec.out'),
+        self.assertFileEqualsBaseline(join(aux_dir, name + '_highpoint.out'),
                                       reformulation, tolerance=1e-5)
 
 
-class TestBilevelSolve(unittest.TestCase):
+class TestHighpointSolve(unittest.TestCase):
     """
     Testing for bilevel solutions that use the runtime parameters specified in cartesian_solutions list
 
@@ -117,8 +102,8 @@ class TestBilevelSolve(unittest.TestCase):
     def tearDown(self): pass
 
     @parameterized.expand(cartesian_solutions)
-    def test_solution(self, numerical_solver, pao_solver, solution_zip):
-        """ Tests bilevel solution and checks whether the derivation is equivalent
+    def test_solution(self, numerical_solver, solution_zip):
+        """ Tests highpoint relaxation solution and checks whether the derivation is equivalent
         to the known solution in the solution/*.txt file by checking for optimality and
         then comparing the value of the objective in the upper-level and all lower-levels
 
@@ -134,9 +119,15 @@ class TestBilevelSolve(unittest.TestCase):
         namespace = SourceFileLoader(name,model).load_module()
         instance = namespace.pyomo_create_model()
 
-        solver = SolverFactory(pao_solver)
-        solver.options.solver = numerical_solver
-        results = solver.solve(instance)
+        xfrm = TransformationFactory('pao.bilevel.highpoint')
+        xfrm.apply_to(instance, deterministic=True)
+
+        solver = SolverFactory(numerical_solver)
+        for c in instance.component_objects(Block, descend_into=False):
+            if '_hp' in c.name:
+                c.activate()
+                results = solver.solve(c, tee=True, keepfiles=True)
+                c.deactivate()
 
         self.assertTrue(results.solver.termination_condition == pyomo.opt.TerminationCondition.optimal)
 
@@ -195,12 +186,7 @@ class TestBilevelSolve(unittest.TestCase):
                 if not root_name is None:
                     name = ("%s.%s" % (root_name, name))
                 ans[name] = value(data)
-            if isinstance(data, SubModel):
-                root_name = name
-                self.getObjectiveInstance(data, root_name, ans)
         return ans
-
-
 
 if __name__ == "__main__":
     unittest.main()

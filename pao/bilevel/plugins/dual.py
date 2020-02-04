@@ -40,7 +40,7 @@ class LinearDualBilevelTransformation(BaseBilevelTransformation):
         self._preprocess('pao.bilevel.linear_dual', model)
         self._fix_all()
 
-        for (key1,key2), sub in self.submodel.items():
+        for key, sub in self.submodel.items():
             #
             # Generate the dual block
             #
@@ -79,8 +79,8 @@ class LinearDualBilevelTransformation(BaseBilevelTransformation):
             #
             # Add the dual block
             #
-            setattr(model, key1+'_dual', dual)
-            model.reclassify_component_type(key1+'_dual', Block)
+            setattr(model, key +'_dual', dual)
+            model.reclassify_component_type(key +'_dual', Block)
             #
             # Unfix the upper variables
             #

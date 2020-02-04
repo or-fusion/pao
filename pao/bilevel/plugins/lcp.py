@@ -285,27 +285,38 @@ class LinearComplementarityBilevelTransformation(BaseBilevelTransformation):
     def _apply_to(self, model, **kwds):
         deterministic = kwds.pop('deterministic', False)
         submodel_name = kwds.pop('submodel', None)
+
         #
         # Process options
         #
         self._preprocess('pao.bilevel.linear_mpec', model)
-        for (key1,key2), sub in self.submodel.items():
-            model.reclassify_component_type(sub, Block)
 
+        def _sub_transformation(model, sub, key):
+            model.reclassify_component_type(sub, Block)
             #
             # Create a block with optimality conditions
             #
-            setattr(model, str(key1)+'_kkt',
+            setattr(model, key +'_kkt',
                     create_submodel_kkt_block(model, sub, deterministic,
-                                              self.fixed_vardata[(key1,key2)]))
+                                              self.fixed_vardata[key]))
             model._transformation_data['pao.bilevel.linear_mpec'].submodel_cuid =\
                 ComponentUID(sub)
             model._transformation_data['pao.bilevel.linear_mpec'].block_cuid =\
-                ComponentUID(getattr(model, str(key1)+'_kkt'))
+                ComponentUID(getattr(model, key +'_kkt'))
             #
             # Disable the original submodel and
             #
             for data in sub.component_map(active=True).values():
                 if not isinstance(data, Var) and not isinstance(data, Set):
                     data.deactivate()
+
+        if not submodel_name is None:
+            lookup = {value: key for key, value in self.submodel}
+            sub = getattr(model,submodel_name)
+            if sub:
+                _sub_transformation(model, sub, lookup[sub])
+            return
+
+        for key, sub in self.submodel.items():
+            _sub_transformation(model, sub, key)
 
