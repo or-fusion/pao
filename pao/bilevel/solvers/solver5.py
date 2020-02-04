@@ -31,7 +31,7 @@ from pyomo.core import TransformationFactory, Var, Set
 
 @pyomo.opt.SolverFactory.register('pao.bilevel.norvep',
                                   doc='Solver for near-optimal vertex enumeration procedure')
-class BilevelSolver4(pyomo.opt.OptSolver):
+class BilevelSolver5(pyomo.opt.OptSolver):
     """
     A solver that performs global optimization of bilevel
     quadratic programs.
@@ -47,6 +47,8 @@ class BilevelSolver4(pyomo.opt.OptSolver):
         # pyomo.opt.OptSolver._presolve(self, *args, **kwds)
 
     def _apply_solver(self): pass
+
+
 
         # construct the high-point problem (LL feasible, no LL objective)
         # s0 <- solve the high-point

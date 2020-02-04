@@ -22,6 +22,7 @@ def load():
     """
     import pao.bilevel.plugins.dual
     import pao.bilevel.plugins.lcp
+    import pao.bilevel.plugins.highpoint
     import pao.bilevel.solvers.solver1
     import pao.bilevel.solvers.solver2
     import pao.bilevel.solvers.solver3
