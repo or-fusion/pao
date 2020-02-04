@@ -43,7 +43,6 @@ jobs:
         pip install --quiet git+https://github.com/PyUtilib/pyutilib
         pip install --quiet git+https://github.com/Pyomo/pyomo
         python setup.py develop
-        pip install parameterized
         pip install nose
         pip install pyyaml
         conda install -c conda-forge glpk ipopt

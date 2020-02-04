@@ -43,7 +43,6 @@ jobs:
         pip install --quiet pyutilib
         pip install --quiet pyomo
         python setup.py develop
-        pip install parameterized
         pip install nose
         pip install pyyaml
         conda install -c conda-forge glpk ipopt
