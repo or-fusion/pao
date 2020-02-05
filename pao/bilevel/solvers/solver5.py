@@ -26,8 +26,21 @@ import time
 import pyutilib.misc
 import pyomo.opt
 import pyomo.common
-from pyomo.core import TransformationFactory, Var, Set
+from pyomo.core import TransformationFactory, Var, Set, Block
+from .solver3 import BilevelSolver3
 
+safe_termination_conditions = [
+    TerminationCondition.maxTimeLimit,
+    TerminationCondition.maxIterations,
+    TerminationCondition.minFunctionValue,
+    TerminationCondition.minStepLength,
+    TerminationCondition.globallyOptimal,
+    TerminationCondition.locallyOptimal,
+    TerminationCondition.feasible,
+    TerminationCondition.optimal,
+    TerminationCondition.maxEvaluations,
+    TerminationCondition.other,
+]
 
 @pyomo.opt.SolverFactory.register('pao.bilevel.norvep',
                                   doc='Solver for near-optimal vertex enumeration procedure')
@@ -42,20 +55,48 @@ class BilevelSolver5(pyomo.opt.OptSolver):
         pyomo.opt.OptSolver.__init__(self, **kwds)
         self._metasolver = True
 
-    def _presolve(self, *args, **kwds): pass
-        # self._instance = args[0]
-        # pyomo.opt.OptSolver._presolve(self, *args, **kwds)
+    def _presolve(self, *args, **kwds):
+        self._instance = args[0]
+        pyomo.opt.OptSolver._presolve(self, *args, **kwds)
 
-    def _apply_solver(self): pass
+    def _apply_solver(self):
+        start_time = time.time()
 
-
+        def _check_termination_condition(results):
+            # do we want to be more restrictive of termination conditions?
+            # do we want to have different behavior for sub-optimal termination?
+            if results.solver.termination_condition not in safe_termination_conditions:
+                raise Exception('Problem encountered during solve, termination_condition {}'.format(
+                    results.solver.termination_condition))
 
         # construct the high-point problem (LL feasible, no LL objective)
         # s0 <- solve the high-point
         # if s0 infeasible then return high_point_infeasible
+        xfrm = TransformationFactory('pao.bilevel.highpoint')
+        xfrm.apply_to(self._instance)
+        #
+        # Solve with a specified solver
+        #
+        numerical_solver = self.options.solver
+        if not self.options.solver:
+            numerical_solver = 'ipopt'
+
+        for c in self._instance.component_objects(Block, descend_into=False):
+            if '_hp' in c.name:
+                c.activate()
+                solver = SolverFactory(numerical_solver)
+                results = solver.solve(c)
+                _check_termination_condition(results)
+                c.deactivate()
 
         # s1 <- solve the optimistic bilevel (linear/linear) problem (call solver3)
         # if s1 infeasible then return optimistic_infeasible
+        solver = BilevelSolver3()
+        solver.options.solver = numerical_solver
+        results = solver.solve(self._instance)
+        _check_termination_condition(results)
+        # WIP: HIGHPOINT RELAXATION IS WORKING;
+        # HOWEVER, WE NEED TO DEBUG ABOVE CODE BLOCK
 
         # for k \in [[m_u]] <for each constraint in the upper-level problem>
         # sk <- solve the dual adversarial  problem
