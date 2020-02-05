@@ -46,12 +46,11 @@ safe_termination_conditions = [
                                   doc='Solver for near-optimal vertex enumeration procedure')
 class BilevelSolver5(pyomo.opt.OptSolver):
     """
-    A solver that performs global optimization of bilevel
-    quadratic programs.
+    A solver that performs near-optimal robustness for bilevel programs
     """
 
     def __init__(self, **kwds):
-        kwds['type'] = 'pao.bilevel.bqp'
+        kwds['type'] = 'pao.bilevel.norvep'
         pyomo.opt.OptSolver.__init__(self, **kwds)
         self._metasolver = True
 
@@ -77,23 +76,23 @@ class BilevelSolver5(pyomo.opt.OptSolver):
         #
         # Solve with a specified solver
         #
-        numerical_solver = self.options.solver
+        solver = self.options.solver
         if not self.options.solver:
-            numerical_solver = 'ipopt'
+            solver = 'ipopt'
 
         for c in self._instance.component_objects(Block, descend_into=False):
             if '_hp' in c.name:
                 c.activate()
-                solver = SolverFactory(numerical_solver)
-                results = solver.solve(c)
+                opt = SolverFactory(solver)
+                results = opt.solve(c)
                 _check_termination_condition(results)
                 c.deactivate()
 
         # s1 <- solve the optimistic bilevel (linear/linear) problem (call solver3)
         # if s1 infeasible then return optimistic_infeasible
-        solver = BilevelSolver3()
-        solver.options.solver = numerical_solver
-        results = solver.solve(self._instance)
+        opt = BilevelSolver3()
+        opt.options.solver = solver
+        results = opt.solve(self._instance)
         _check_termination_condition(results)
         # WIP: HIGHPOINT RELAXATION IS WORKING;
         # HOWEVER, WE NEED TO DEBUG ABOVE CODE BLOCK
