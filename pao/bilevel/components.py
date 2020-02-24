@@ -37,7 +37,7 @@ def varref(model, origin=None, vars=None):
                 model.add_component(c.name, Reference(c))
 
 @ModelComponentFactory.register("A submodel in a bilevel program")
-class SubModel(IndexedBlock):
+class SubModel(SimpleBlock):
     """
     This model component defines a sub-model in a bilevel
     program.
