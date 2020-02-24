@@ -11,4 +11,4 @@
 # pao.bilevel tests
 #
 
-import pao.bilevel.tests.aux
+import pao.bilevel.tests.auxiliary
