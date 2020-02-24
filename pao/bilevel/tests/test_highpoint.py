@@ -28,19 +28,19 @@ except ImportError:
     yaml_available=False
 
 current_dir = dirname(abspath(__file__))
-aux_dir = join(dirname(abspath(__file__)),'aux')
+aux_dir = join(dirname(abspath(__file__)),'auxiliary')
 
 # models for bilevel highpoint relaxation tests
 reformulation_model_names = ['besancon27']
-reformulation_models = [join(current_dir, 'aux', '{}.py'.format(i)) for i in reformulation_model_names]
-reformulations = [join(current_dir, 'aux','reformulation','{}.txt'.format(i)) for i in reformulation_model_names]
+reformulation_models = [join(current_dir, 'auxiliary', '{}.py'.format(i)) for i in reformulation_model_names]
+reformulations = [join(current_dir, 'auxiliary','reformulation','{}.txt'.format(i)) for i in reformulation_model_names]
 
 solvers = pyomo.opt.check_available_solvers('cplex','glpk','gurobi','ipopt')
 
 # models for bilevel solution tests
 solution_model_names = ['besancon27']
-solution_models = [join(current_dir, 'aux', '{}.py'.format(i)) for i in solution_model_names]
-solutions = [join(current_dir, 'aux','solution','{}.txt'.format(i)) for i in solution_model_names]
+solution_models = [join(current_dir, 'auxiliary', '{}.py'.format(i)) for i in solution_model_names]
+solutions = [join(current_dir, 'auxiliary','solution','{}.txt'.format(i)) for i in solution_model_names]
 
 cartesian_solutions = [elem for elem in itertools.product(*[solvers,zip(solution_model_names,solution_models,solutions)])]
 

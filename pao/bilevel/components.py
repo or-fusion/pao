@@ -16,13 +16,28 @@ This module defines Pyomo components used to declare bilevel programs.
 
 __all__ = ("SubModel",)
 
+from pyomo.core import Reference, Var, Transformation
 #pylint: disable-msg=too-many-ancestors
 
 from pyomo.core import SimpleBlock, ModelComponentFactory, Component
 
+def varref(model, origin=None, vars=None):
+    """
+    This helper function enables variables to be locally referenced
+    from within a given block on the model, since all variables on
+    a bilevel model exist only on the parent_block() for ConcreteModel()
+    """
+
+    if not origin:
+        origin = model.parent_block()
+
+    if not vars:
+        for c in origin.component_objects(Var, descend_into=False):
+            if c.parent_block() == origin:
+                model.add_component(c.name, Reference(c))
 
 @ModelComponentFactory.register("A submodel in a bilevel program")
-class SubModel(SimpleBlock):
+class SubModel(IndexedBlock):
     """
     This model component defines a sub-model in a bilevel
     program.

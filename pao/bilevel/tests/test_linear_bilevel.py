@@ -37,21 +37,21 @@ solvers2 = pyomo.opt.check_available_solvers('cplex','glpk','gurobi','ipopt')
 pao_solvers2 = ['pao.bilevel.ld']
 
 current_dir = dirname(abspath(__file__))
-aux_dir = join(dirname(abspath(__file__)),'aux')
+aux_dir = join(dirname(abspath(__file__)),'auxiliary')
 
 # models for bilevel reformulation tests
 reformulation_model_names = ['bqp_example1','bqp_example2']
-reformulation_models = [join(current_dir, 'aux', '{}.py'.format(i)) for i in reformulation_model_names]
-reformulations = [join(current_dir, 'aux','reformulation','{}.txt'.format(i)) for i in reformulation_model_names]
+reformulation_models = [join(current_dir, 'auxiliary', '{}.py'.format(i)) for i in reformulation_model_names]
+reformulations = [join(current_dir, 'auxiliary','reformulation','{}.txt'.format(i)) for i in reformulation_model_names]
 
 # models for bilevel solution tests
 solution_model_names = ['bard511']
-solution_models = [join(current_dir, 'aux', '{}.py'.format(i)) for i in solution_model_names]
-solutions = [join(current_dir, 'aux','solution','{}.txt'.format(i)) for i in solution_model_names]
+solution_models = [join(current_dir, 'auxiliary', '{}.py'.format(i)) for i in solution_model_names]
+solutions = [join(current_dir, 'auxiliary','solution','{}.txt'.format(i)) for i in solution_model_names]
 
 solution_model_names2 = ['t5','t1','t1b']
-solution_models2 = [join(current_dir, 'aux', '{}.py'.format(i)) for i in solution_model_names2]
-solutions2 = [join(current_dir, 'aux','solution','{}.txt'.format(i)) for i in solution_model_names2]
+solution_models2 = [join(current_dir, 'auxiliary', '{}.py'.format(i)) for i in solution_model_names2]
+solutions2 = [join(current_dir, 'auxiliary','solution','{}.txt'.format(i)) for i in solution_model_names2]
 
 # cartesian product of lists for a full coverage unittest run
 cartesian_solutions = [elem for elem in itertools.product(*[solvers,pao_solvers,zip(solution_model_names,solution_models,solutions)])]
