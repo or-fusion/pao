@@ -29,12 +29,11 @@ def varref(model, origin=None, vars=None):
     """
 
     if not origin:
-        origin = model.parent_block()
+        origin = model.root_block()
 
     if not vars:
         for c in origin.component_objects(Var, descend_into=False):
-            if c.parent_block() == origin:
-                model.add_component(c.name, Reference(c))
+            model.add_component(c.name, Reference(c))
 
 @ModelComponentFactory.register("A submodel in a bilevel program")
 class SubModel(SimpleBlock):
@@ -50,6 +49,7 @@ class SubModel(SimpleBlock):
         #
         _rule = kwargs.pop('rule', None)
         _fixed = kwargs.pop('fixed', None)
+
         #_var = kwargs.pop('var', None)
         #
         # Initialize the SimpleBlock
