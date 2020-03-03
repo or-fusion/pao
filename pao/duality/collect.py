@@ -16,7 +16,7 @@ collects information that is used to compute a linear dual of a given
 block.
 """
 
-__all__ = ("collect_dual_representation",)
+__all__ = ("create_linear_dual_from",)
 
 #pylint: disable-msg=invalid-name
 #pylint: disable-msg=too-many-locals
@@ -24,11 +24,21 @@ __all__ = ("collect_dual_representation",)
 #pylint: disable-msg=too-many-statements
 
 from pyutilib.misc import Bunch
-from pyomo.core import  Constraint, Objective, maximize, minimize
 from pyomo.repn import generate_standard_repn
+from pyomo.core import (Var,
+                        Constraint,
+                        Objective,
+                        minimize,
+                        maximize,
+                        NonNegativeReals,
+                        NonPositiveReals,
+                        Reals,
+                        Block,
+                        Model,
+                        ConcreteModel)
 
 
-def collect_dual_representation(block, fixed):
+def collect_dual_representation(block, fixed_vars, primal_vars):
     """
     Process linear terms from a block and return information that is
     used to define the dual. This function does not change the block.
@@ -42,7 +52,10 @@ def collect_dual_representation(block, fixed):
 
     Arguments:
         block: The SubModel object that is dualized
-        fixed: An iterable object with VarData values that are fixed in the sub-model.
+        fixed_vars: An iterable object with VarData values that are fixed in this model.  All
+                other variables are assumed to be unfixed.
+        primal_vars: An iterable object with VarData values that are unfixed in this model.  All
+                other variables are assumed to be fixed.
 
     Returns: Tuple with the following values:
         A:        The dual matrix
@@ -57,7 +70,17 @@ def collect_dual_representation(block, fixed):
     # Variables are constraints of block
     # Constraints are unfixed variables of block and the parent model.
     #
-    fixed_vars = {id(v) for v in fixed}
+    if local:
+        local_vars = {id(v) for v in local}
+    else:
+        local_vars = {}
+    if fixed:
+        fixed_vars = {id(v) for v in fixed}
+    else:
+        fixed_vars = {}
+    if not local and not fixed:
+        # If neither set was specified, then treat all variables as local
+        local = True
     all_vars = {}
 
     A = {}
@@ -78,7 +101,8 @@ def collect_dual_representation(block, fixed):
             else:
                 d_sense = maximize
             for var, coef in zip(o_terms.linear_vars, o_terms.linear_coefs):
-                if id(var) in fixed_vars:
+                if (local and id(var) not in local_vars) or id(var) in fixed_vars:
+                    # Variable is fixed
                     continue
                 try:
                     # The variable is in the subproblem
@@ -118,7 +142,7 @@ def collect_dual_representation(block, fixed):
                 continue
             nvars = 0
             for var, coef in zip(body_terms.linear_vars, body_terms.linear_coefs):
-                if id(var) in fixed_vars:
+                if id(var) not in local_vars or id(var) in fixed_vars:
                     body_terms.constant += coef*var
                     continue
                 nvars += 1
@@ -257,3 +281,127 @@ def collect_dual_representation(block, fixed):
             b_coef[name_, ndx] = bounds[0]
     #
     return (A, b_coef, c_rhs, c_sense, d_sense, v_domain)
+
+
+
+
+def create_linear_dual_from(block, fixed=None, local=None):
+    """
+    Construct a block that represents the dual of the given block.
+
+    The resulting block contains variables and constraints whose names are
+    the dual names of the primal block.  Note that this involves a many
+    string operations.  A quicker operations could be executed, but it
+    would generate a dual representation that is difficult to interpret.
+
+    Note that the dualization of a maximization problem is performed by
+    negating objective and right-hand side coefficients after dualizing
+    the corresponding minimization problem.  This suggestion is made
+    by Dimitri Bertsimas and John Tsitsiklis in section 4.2 page 143 of
+    "Introduction to Linear Optimization"
+
+    Arguments:
+        block: A Pyomo block or model
+        local: An iterable object with VarData values that are local, unfixed
+                variables.  All other variables are assumed to be fixed.
+        fixed: An iterable object with VarData values that are fixed.  All
+                other variables are assumed non-fixed.
+
+    Returns:
+        If the block is a model object, then this returns a ConcreteModel.
+        Otherwise, it returns a Block.
+    """
+    #
+    # Collect linear terms from the block
+    #
+    # NOTE: We are ignoring the vnames and cnames data
+    #
+    A, b_coef, c_rhs, c_sense, d_sense, v_domain = \
+        collect_dual_representation(block, fixed, local)
+    #
+    # Construct the block
+    #
+    if isinstance(block, Model):
+        dual = ConcreteModel()
+    else:
+        dual = Block()
+    dual.construct()
+    _vars = {}
+
+    # Return variable object from name and index (if applicable)
+    def getvar(name, ndx=None):
+        v = _vars.get((name, ndx), None)
+        if v is None:
+            v = Var()
+            if ndx is None:
+                v_name = name
+            elif isinstance(ndx, tuple):
+                v_name = "%s[%s]" % (name, ','.join(map(str, ndx)))
+            else:
+                v_name = "%s[%s]" % (name, str(ndx))
+            setattr(dual, v_name, v)
+            _vars[name, ndx] = v
+        return v
+    #
+    # Construct the objective
+    # The dualization of a maximization problem is handled by simply negating the
+    # objective and left-hand side coefficients while keeping the dual sense.
+    #
+    if d_sense == minimize:
+        dual.o = Objective(expr=sum(- b_coef[name, ndx]*getvar(name, ndx)
+                                    for name, ndx in b_coef), sense=d_sense)
+        rhs_multiplier = -1
+    else:
+        dual.o = Objective(expr=sum(b_coef[name, ndx]*getvar(name, ndx)
+                                    for name, ndx in b_coef), sense=d_sense)
+        rhs_multiplier = 1
+    #
+    # Construct the constraints from dual A matrix
+    #
+    for cname in A:
+        for ndx, terms in iteritems(A[cname]):
+
+            # Build left-hand side of constraint
+            expr = 0
+            for term in terms:
+                expr += term.coef * getvar(term.var, term.ndx)
+
+            #
+            # Assign right-hand side coefficient
+            # Note that rhs_multiplier is 1 if the dual is a maximization problem and -1 otherwise
+            #
+            rhsval = rhs_multiplier*c_rhs.get((cname, ndx), 0.0)
+
+            # Using the correct inequality or equality
+            if c_sense[cname, ndx] == 'e':
+                e = expr - rhsval == 0
+            elif c_sense[cname, ndx] == 'l':
+                e = expr - rhsval <= 0
+            else:
+                e = expr - rhsval >= 0
+            c = Constraint(expr=e)
+
+            # Build constraint name
+            if ndx is None:
+                c_name = cname
+            elif isinstance(ndx, tuple):
+                c_name = "%s[%s]" % (cname, ','.join(map(str, ndx)))
+            else:
+                c_name = "%s[%s]" % (cname, str(ndx))
+
+            # Add new constraint along with its name to the dual
+            setattr(dual, c_name, c)
+
+        # Set variable domains
+        for (name, ndx), domain in iteritems(v_domain):
+            v = getvar(name, ndx)
+            #flag = type(ndx) is tuple and (ndx[-1] == 'lb' or ndx[-1] == 'ub')
+            if domain == 1:
+                v.domain = NonNegativeReals
+            elif domain == -1:
+                v.domain = NonPositiveReals
+            else:
+                # This is possible when the variable's corresponding constraint is an equality
+                v.domain = Reals
+
+    return dual

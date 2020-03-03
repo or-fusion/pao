@@ -48,19 +48,19 @@ class CommonTests(object):
             usermodel = pyutilib.misc.import_file(_args[0], clear_cache=True)
             instance = usermodel.model
             #
-            # Collected fixed variables
+            # Collected local variables
             #
-            _fixed = kwds.pop('fixed', [])
-            for v in _fixed:
+            _local = kwds.pop('local', [])
+            for v in _local:
                 v_ = ComponentUID(v).find_component_on(instance)
-            fixed = [ComponentUID(v).find_component_on(instance) for v in _fixed]
+            local = [ComponentUID(v).find_component_on(instance) for v in _local]
             #
             # Apply transformations
             #
             if 'transform' in kwds:
                 xfrm = TransformationFactory(kwds['transform'])
                 transform_kwds = kwds.get('transform_kwds', {})
-                transform_kwds['fixed'] = fixed
+                transform_kwds['local_vars'] = local
                 new_instance = xfrm.create_using(instance, **transform_kwds)
             else:
                 new_instance = instance
