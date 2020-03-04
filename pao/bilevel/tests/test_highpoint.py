@@ -189,5 +189,6 @@ class TestHighpointSolve(unittest.TestCase):
                 ans[name] = value(data)
         return ans
 
+
 if __name__ == "__main__":
     unittest.main()
