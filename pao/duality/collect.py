@@ -38,7 +38,7 @@ from pyomo.core import (Var,
                         ConcreteModel)
 
 
-def collect_dual_representation(block, fixed_vars, primal_vars):
+def collect_dual_representation(block, fixed, unfixed):
     """
     Process linear terms from a block and return information that is
     used to define the dual. This function does not change the block.
@@ -52,10 +52,10 @@ def collect_dual_representation(block, fixed_vars, primal_vars):
 
     Arguments:
         block: The SubModel object that is dualized
-        fixed_vars: An iterable object with VarData values that are fixed in this model.  All
+        fixed: An iterable object with VarData values that are fixed in this model.  All
                 other variables are assumed to be unfixed.
-        primal_vars: An iterable object with VarData values that are unfixed in this model.  All
-                other variables are assumed to be fixed.
+        unfixed: An iterable object with VarData values that are not fixed in this model.
+                All other variables are assumed to be fixed.
 
     Returns: Tuple with the following values:
         A:        The dual matrix
@@ -70,17 +70,18 @@ def collect_dual_representation(block, fixed_vars, primal_vars):
     # Variables are constraints of block
     # Constraints are unfixed variables of block and the parent model.
     #
-    if local:
-        local_vars = {id(v) for v in local}
-    else:
-        local_vars = {}
-    if fixed:
-        fixed_vars = {id(v) for v in fixed}
-    else:
-        fixed_vars = {}
-    if not local and not fixed:
+    if not fixed and not unfixed:
         # If neither set was specified, then treat all variables as local
-        local = True
+        unfixed = True
+    elif unfixed:
+        unfixed_vars = {id(v) for v in unfixed}
+        fixed_vars = {}
+        unfixed = False
+    elif fixed:
+        unfixed_vars = {}
+        fixed_vars = {id(v) for v in fixed}
+        unfixed = False
+
     all_vars = {}
 
     A = {}
@@ -101,7 +102,7 @@ def collect_dual_representation(block, fixed_vars, primal_vars):
             else:
                 d_sense = maximize
             for var, coef in zip(o_terms.linear_vars, o_terms.linear_coefs):
-                if (local and id(var) not in local_vars) or id(var) in fixed_vars:
+                if not unfixed and ((len(unfixed_vars) > 0  and (id(var) not in unfixed_vars)) or (id(var) in fixed_vars)):
                     # Variable is fixed
                     continue
                 try:
@@ -142,7 +143,8 @@ def collect_dual_representation(block, fixed_vars, primal_vars):
                 continue
             nvars = 0
             for var, coef in zip(body_terms.linear_vars, body_terms.linear_coefs):
-                if id(var) not in local_vars or id(var) in fixed_vars:
+                if not unfixed and ((len(unfixed_vars) > 0  and (id(var) not in unfixed_vars)) or (id(var) in fixed_vars)):
+                    # Variable is fixed
                     body_terms.constant += coef*var
                     continue
                 nvars += 1
@@ -285,7 +287,7 @@ def collect_dual_representation(block, fixed_vars, primal_vars):
 
 
 
-def create_linear_dual_from(block, fixed=None, local=None):
+def create_linear_dual_from(block, fixed=None, unfixed=None):
     """
     Construct a block that represents the dual of the given block.
 
@@ -302,10 +304,10 @@ def create_linear_dual_from(block, fixed=None, local=None):
 
     Arguments:
         block: A Pyomo block or model
-        local: An iterable object with VarData values that are local, unfixed
+        unfixed: An iterable object with VarData values that are not fixed
                 variables.  All other variables are assumed to be fixed.
         fixed: An iterable object with VarData values that are fixed.  All
-                other variables are assumed non-fixed.
+                other variables are assumed not fixed.
 
     Returns:
         If the block is a model object, then this returns a ConcreteModel.
@@ -317,7 +319,7 @@ def create_linear_dual_from(block, fixed=None, local=None):
     # NOTE: We are ignoring the vnames and cnames data
     #
     A, b_coef, c_rhs, c_sense, d_sense, v_domain = \
-        collect_dual_representation(block, fixed, local)
+        collect_dual_representation(block, fixed, unfixed)
     #
     # Construct the block
     #
@@ -359,7 +361,7 @@ def create_linear_dual_from(block, fixed=None, local=None):
     # Construct the constraints from dual A matrix
     #
     for cname in A:
-        for ndx, terms in iteritems(A[cname]):
+        for ndx, terms in A[cname].items():
 
             # Build left-hand side of constraint
             expr = 0
@@ -393,7 +395,7 @@ def create_linear_dual_from(block, fixed=None, local=None):
             setattr(dual, c_name, c)
 
         # Set variable domains
-        for (name, ndx), domain in iteritems(v_domain):
+        for (name, ndx), domain in v_domain.items():
             v = getvar(name, ndx)
             #flag = type(ndx) is tuple and (ndx[-1] == 'lb' or ndx[-1] == 'ub')
             if domain == 1:

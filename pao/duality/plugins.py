@@ -18,13 +18,12 @@ This module defines the transformation plugin for linear dualization.
 #pylint: disable-msg=too-many-locals
 #pylint: disable-msg=too-many-branches
 
-from six import iteritems
 import logging
 
 logger = logging.getLogger(__name__)
 
 from pyomo.core import (Transformation,
-                        TransformationFactory)
+                        TransformationFactory, Block)
 from pao.duality.collect import create_linear_dual_from
 
 def load(): #pragma:nocover
@@ -44,7 +43,7 @@ class LinearDual_PyomoTransformation(Transformation):
     """
 
     def _create_using(self, model, **kwds):
-        bname = kwds.get('block', None)
+        bname = kwds.pop('block', None)
         #
         # Iterate over the model collecting variable data,
         # until the block is found.
