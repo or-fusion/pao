@@ -15,4 +15,4 @@ This module defines transformations for forming dual problem
 representations.
 """
 
-import pao.duality.collect
+from pao.duality.collect import create_linear_dual_from

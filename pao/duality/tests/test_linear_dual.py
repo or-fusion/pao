@@ -48,7 +48,12 @@ class CommonTests(object):
             usermodel = pyutilib.misc.import_file(_args[0], clear_cache=True)
             instance = usermodel.model
             #
-            # Collected fixed variables
+            # Collected local variables
+            #
+            _unfixed = kwds.pop('unfixed', [])
+            for v in _unfixed:
+                v_ = ComponentUID(v).find_component_on(instance)
+            unfixed = [ComponentUID(v).find_component_on(instance) for v in _unfixed]
             #
             _fixed = kwds.pop('fixed', [])
             for v in _fixed:
@@ -60,7 +65,10 @@ class CommonTests(object):
             if 'transform' in kwds:
                 xfrm = TransformationFactory(kwds['transform'])
                 transform_kwds = kwds.get('transform_kwds', {})
-                transform_kwds['fixed'] = fixed
+                if fixed:
+                    transform_kwds['fixed'] = fixed
+                if unfixed:
+                    transform_kwds['unfixed'] = unfixed
                 new_instance = xfrm.create_using(instance, **transform_kwds)
             else:
                 new_instance = instance
@@ -195,9 +203,14 @@ class Reformulate(unittest.TestCase, CommonTests):
         except RuntimeError:
             pass
 
-    def test_t3_fixedsome(self):
+    def test_t3_fixedsome1(self):
         self.problem='test_t3_fixedsome'
         self.run_bilevel(join(exdir,'t3.py'), fixed=['x2','b.x1'], format='txt')
+        self.check( 't3_fixedsome', 'linear_dual' )
+
+    def test_t3_fixedsome2(self):
+        self.problem='test_t3_fixedsome'
+        self.run_bilevel(join(exdir,'t3.py'), unfixed=['x1'], format='txt')
         self.check( 't3_fixedsome', 'linear_dual' )
 
     def test_t10(self):
