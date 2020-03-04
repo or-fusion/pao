@@ -60,61 +60,15 @@ class LinearHighpointTransformation(BaseBilevelTransformation):
     """
 
     def _apply_to(self, model, **kwds):
-        submodel_name = kwds.pop('submodel', None)
-
-        #
-        # Process options
-        #
         self._preprocess('pao.bilevel.highpoint', model)
 
-        def _sub_transformation(model, sub, key):
-            model.reclassify_component_type(sub, Block)
-            #
-            # Create a block with optimality conditions
-            #
-            setattr(model, key +'_hp',
-                    create_submodel_hp_block(model, sub))
-            model._transformation_data['pao.bilevel.highpoint'].submodel_cuid =\
-                ComponentUID(sub)
-            model._transformation_data['pao.bilevel.highpoint'].block_cuid =\
-                ComponentUID(getattr(model, key +'_hp'))
-
-        if not submodel_name is None:
-            lookup = {value: key for key, value in self.submodel}
-            sub = getattr(model,submodel_name)
-            if sub:
-                _sub_transformation(model, sub, lookup[sub])
-            return
-
         for key, sub in self.submodel.items():
-            _sub_transformation(model, sub, key)
+            model.reclassify_component_type(sub, Block)
 
+        setattr(model, 'hpr',
+                    create_submodel_hp_block(model))
 
-# if __name__ == '__main__':
-#     from pyomo.environ import *
-#     from pao.bilevel import *
-#
-#     M = ConcreteModel()
-#     M.x1 = Var(bounds=(0, None))
-#     M.x2 = Var(within=Binary)
-#     M.y1 = Var(bounds=(1, None))
-#     M.y2 = Var(bounds=(-100, 2))
-#     M.y3 = Var(bounds=(None, None))
-#     M.y4 = Var(bounds=(3, 4))
-#     M.o = Objective(expr=M.x1 - 4 * M.y1)
-#
-#     M.sub = SubModel(fixed=(M.x1, M.x2))
-#     M.sub.o = Objective(expr=11 * M.x2 + 12 * M.x2 * M.y1 + M.y2 + 9 * M.y3)
-#     M.sub.c1 = Constraint(expr=M.x1 + 13 * M.x2 * M.y1 + 5 * M.y1 <= 19)
-#     M.sub.c2 = Constraint(expr=20 <= 2 * M.x1 + 6 * M.y1 + 14 * M.x2 * M.y2 + 10 * M.y3)
-#     M.sub.c3 = Constraint(expr=32 == 4 * M.x1 + 8 * M.y1 + 15 * M.x2 * M.y4)
-#     M.sub.c4 = Constraint(expr=inequality(22, 3 * M.x1 + 7 * M.y1 + 16 * M.x2 * M.y3, 28))
-#
-#     M.T = range(2)
-#     M.block = Block(M.T)
-#
-#     for t in M.T:
-#         M.block[t].c1 = Constraint(expr=M.x1 + 13 * M.x2 * M.y1 + 5 * M.y1 <= 19)
-#
-#     M.hp = create_submodel_hp_block(M)
-#     M.hp.pprint()
+        model._transformation_data['pao.bilevel.highpoint'].submodel_cuid = \
+            ComponentUID(model)
+        model._transformation_data['pao.bilevel.highpoint'].block_cuid = \
+            ComponentUID(getattr(model, 'hpr'))

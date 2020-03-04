@@ -125,7 +125,7 @@ class TestHighpointSolve(unittest.TestCase):
 
         solver = SolverFactory(numerical_solver)
         for c in instance.component_objects(Block, descend_into=False):
-            if '_hp' in c.name:
+            if 'hpr' in c.name:
                 c.activate()
                 results = solver.solve(c, tee=True, keepfiles=True)
                 c.deactivate()
