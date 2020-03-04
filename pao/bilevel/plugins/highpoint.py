@@ -24,38 +24,25 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def create_submodel_hp_block(instance, submodel):
+def create_submodel_hp_block(instance):
     """
-    Creates highpoint relaxation with the given specified submodel
+    Creates highpoint relaxation with the given specified model; does
+    not include any submodel or block that is deactivated
     """
     block = Block(concrete=True)
 
     # get the objective for the master problem
     for c in instance.component_objects(Objective, descend_into=False):
-        if c.parent_block() == instance:
-            block.add_component(c.name, Reference(c))
+        block.add_component(c.name, Reference(c))
 
     # get the variables of the model (if there are more submodels, then
     # extraneous variables may be added to the block)
-    for c in instance.component_objects(Var, descend_into=False):
-        if c.parent_block() == instance:
-            block.add_component(c.name, Reference(c))
+    for c in instance.component_objects(Var, sort=True, descend_into=True, active=True):
+        block.add_component(c.name, Reference(c))
 
     # get the constraints from the main model
-    for c in instance.component_objects(Constraint, descend_into=False):
-        if c.parent_block() == instance:
-            block.add_component(c.name, Reference(c))
-
-    # get the constraints from the submodel of interest
-    for _block in instance.component_objects(Block, descend_into=False):
-        if _block == submodel:
-            for c in _block.component_objects(Constraint, descend_into=False):
-                check = block.find_component(c.name) # checks to see if a constraint by the same name is on the main block
-                # this is feasible due to local scoping of each block, but we need unique names for the highpoint relaxation
-                if check is None:
-                    block.add_component(c.name, Reference(c))
-                else:
-                    block.add_component(submodel.name + '_' + c.name, Reference(c))
+    for c in instance.component_objects(Constraint, sort=True, descend_into=True, active=True):
+        block.add_component(c.name, Reference(c))
 
     # deactivate the highpoint relaxation
     block.deactivate()
@@ -73,32 +60,15 @@ class LinearHighpointTransformation(BaseBilevelTransformation):
     """
 
     def _apply_to(self, model, **kwds):
-        submodel_name = kwds.pop('submodel', None)
-
-        #
-        # Process options
-        #
         self._preprocess('pao.bilevel.highpoint', model)
 
-        def _sub_transformation(model, sub, key):
-            model.reclassify_component_type(sub, Block)
-            #
-            # Create a block with optimality conditions
-            #
-            setattr(model, key +'_hp',
-                    create_submodel_hp_block(model, sub))
-            model._transformation_data['pao.bilevel.highpoint'].submodel_cuid =\
-                ComponentUID(sub)
-            model._transformation_data['pao.bilevel.highpoint'].block_cuid =\
-                ComponentUID(getattr(model, key +'_hp'))
-
-        if not submodel_name is None:
-            lookup = {value: key for key, value in self.submodel}
-            sub = getattr(model,submodel_name)
-            if sub:
-                _sub_transformation(model, sub, lookup[sub])
-            return
-
         for key, sub in self.submodel.items():
-            _sub_transformation(model, sub, key)
+            model.reclassify_component_type(sub, Block)
 
+        setattr(model, 'hpr',
+                    create_submodel_hp_block(model))
+
+        model._transformation_data['pao.bilevel.highpoint'].submodel_cuid = \
+            ComponentUID(model)
+        model._transformation_data['pao.bilevel.highpoint'].block_cuid = \
+            ComponentUID(getattr(model, 'hpr'))

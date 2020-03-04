@@ -14,17 +14,7 @@
         Key  : Lower : Body          : Upper : Active
         None :  -Inf : 1 - 0.1*x - v :   0.0 :   True
 2 Block Declarations
-    sub : Size=1, Index=None, Active=True
-        1 Objective Declarations
-            o : Size=1, Index=None, Active=True
-                Key  : Active : Sense    : Expression
-                None :   True : maximize :          v
-        1 Constraint Declarations
-            c1 : Size=1, Index=None, Active=True
-                Key  : Lower : Body            : Upper : Active
-                None :  -Inf : v - (1 + 0.1*x) :   0.0 :   True
-        2 Declarations: o c1
-    sub_hp : Size=1, Index=None, Active=False
+    hpr : Size=1, Index=None, Active=False
         5 Set Declarations
             c1_index : Dim=0, Dimen=1, Size=1, Domain=None, Ordered=False, Bounds=(None, None)
                 [None]
@@ -37,22 +27,32 @@
             x_index : Dim=0, Dimen=1, Size=1, Domain=None, Ordered=False, Bounds=(None, None)
                 [None]
         2 Var Declarations
-            v : Size=1, Index=sub_hp.v_index
+            v : Size=1, Index=hpr.v_index
                 Key  : Lower : Value : Upper : Fixed : Stale : Domain
                 None :  None :  None :  None : False :  True :  Reals
-            x : Size=1, Index=sub_hp.x_index
+            x : Size=1, Index=hpr.x_index
                 Key  : Lower : Value : Upper : Fixed : Stale : Domain
                 None :     0 :  None :  None : False :  True : NonNegativeReals
         1 Objective Declarations
-            o : Size=1, Index=sub_hp.o_index, Active=True
+            o : Size=1, Index=hpr.o_index, Active=True
                 Key  : Active : Sense    : Expression
                 None :   True : minimize :          x
         2 Constraint Declarations
-            c1 : Size=1, Index=sub_hp.c1_index, Active=True
+            c1 : Size=1, Index=hpr.c1_index, Active=True
                 Key  : Lower : Body          : Upper : Active
                 None :  -Inf : 1 - 0.1*x - v :   0.0 :   True
-            sub.c1 : Size=1, Index=sub_hp.sub.c1_index, Active=True
+            sub.c1 : Size=1, Index=hpr.sub.c1_index, Active=True
                 Key  : Lower : Body            : Upper : Active
                 None :  -Inf : v - (1 + 0.1*x) :   0.0 :   True
-        10 Declarations: o_index o x_index x v_index v c1_index c1 sub.c1_index sub.c1
-6 Declarations: x v o c1 sub sub_hp
+        10 Declarations: o_index o v_index v x_index x c1_index c1 sub.c1_index sub.c1
+    sub : Size=1, Index=None, Active=True
+        1 Objective Declarations
+            o : Size=1, Index=None, Active=True
+                Key  : Active : Sense    : Expression
+                None :   True : maximize :          v
+        1 Constraint Declarations
+            c1 : Size=1, Index=None, Active=True
+                Key  : Lower : Body            : Upper : Active
+                None :  -Inf : v - (1 + 0.1*x) :   0.0 :   True
+        2 Declarations: o c1
+6 Declarations: x v o c1 sub hpr
