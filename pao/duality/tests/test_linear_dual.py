@@ -190,6 +190,11 @@ class Reformulate(unittest.TestCase, CommonTests):
         self.run_bilevel(join(exdir,'t2a.py'), transform_kwds={'block':'b'})
         self.check( 't2', 'linear_dual' )
 
+    def test_t2a_fixedsome(self):
+        self.problem='test_t2a_fixedsome'
+        self.run_bilevel(join(exdir,'t2a.py'), transform_kwds={'block':'b'})
+        self.check( 't2', 'linear_dual' )
+
     def test_t2b(self):
         self.problem='test_t2b'
         self.run_bilevel(join(exdir,'t2a.py'), transform_kwds={'block':'B'})
