@@ -52,10 +52,10 @@ def collect_dual_representation(block, fixed, unfixed):
 
     Arguments:
         block: The SubModel object that is dualized
-        fixed: An iterable object with VarData values that are fixed in this model.  All
-                other variables are assumed to be unfixed.
-        unfixed: An iterable object with VarData values that are not fixed in this model.
-                All other variables are assumed to be fixed.
+        fixed: An iterable object with Variable and VarData values that are fixed in 
+                this model.  All other variables are assumed to be unfixed.
+        unfixed: An iterable object with Variable and VarData values that are not fixed 
+                in this model.  All other variables are assumed to be fixed.
 
     Returns: Tuple with the following values:
         A:        The dual matrix
@@ -316,10 +316,10 @@ def create_linear_dual_from(block, fixed=None, unfixed=None):
 
     Arguments:
         block: A Pyomo block or model
-        unfixed: An iterable object with VarData values that are not fixed
-                variables.  All other variables are assumed to be fixed.
-        fixed: An iterable object with VarData values that are fixed.  All
-                other variables are assumed not fixed.
+        unfixed: An iterable object with Variable and VarData values that are 
+                not fixed variables.  All other variables are assumed to be fixed.
+        fixed: An iterable object with Variable and VarData values that are fixed.  
+                All other variables are assumed not fixed.
 
     Returns:
         If the block is a model object, then this returns a ConcreteModel.
