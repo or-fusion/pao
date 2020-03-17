@@ -27,8 +27,6 @@ def pyomo_create_model():
     M.sub.c2 = Constraint(expr=20 <=          2*M.x1 +                6*M.y1 + 14*M.x2*M.y2 +      10*M.y3                      )
     M.sub.c3 = Constraint(expr=32 ==          4*M.x1 +                8*M.y1                               + 15*M.x2*M.y4       )
     M.sub.c4 = Constraint(expr=inequality(22, 3*M.x1 +                7*M.y1                + 16*M.x2*M.y3                ,  28))
-    from pao.bilevel.components import varref
-    varref(M.sub)
 
     return M
 
