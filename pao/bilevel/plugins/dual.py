@@ -45,7 +45,7 @@ class LinearDualBilevelTransformation(BaseBilevelTransformation):
             # Generate the dual block
             #
             transform = TransformationFactory('pao.duality.linear_dual')
-            dual = transform.create_using(sub, fixed=self._fixed_vardata)
+            dual = transform.create_using(sub, fixed=self._fixed_vardata[sub.name])
             #
             # Figure out which objective is being used
             #

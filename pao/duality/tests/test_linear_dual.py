@@ -213,6 +213,16 @@ class Reformulate(unittest.TestCase, CommonTests):
         self.run_bilevel(join(exdir,'t3.py'), unfixed=['x1'], format='txt')
         self.check( 't3_fixedsome', 'linear_dual' )
 
+    def test_t7_fixedsome1(self):
+        self.problem='test_t7_fixedsome1'
+        self.run_bilevel(join(exdir,'t7.py'), fixed=['y'], format='txt')
+        self.check( 't7', 'linear_dual' )
+
+    def test_t7_unfixedsome1(self):
+        self.problem='test_t7_unfixedsome1'
+        self.run_bilevel(join(exdir,'t7.py'), unfixed=['x'], format='txt')
+        self.check( 't7', 'linear_dual' )
+
     def test_t10(self):
         self.problem='test_t10'
         self.run_bilevel(join(exdir,'t10.py'))

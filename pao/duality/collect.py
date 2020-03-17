@@ -52,10 +52,10 @@ def collect_dual_representation(block, fixed, unfixed):
 
     Arguments:
         block: The SubModel object that is dualized
-        fixed: An iterable object with VarData values that are fixed in this model.  All
-                other variables are assumed to be unfixed.
-        unfixed: An iterable object with VarData values that are not fixed in this model.
-                All other variables are assumed to be fixed.
+        fixed: An iterable object with Variable and VarData values that are fixed in 
+                this model.  All other variables are assumed to be unfixed.
+        unfixed: An iterable object with Variable and VarData values that are not fixed 
+                in this model.  All other variables are assumed to be fixed.
 
     Returns: Tuple with the following values:
         A:        The dual matrix
@@ -74,12 +74,24 @@ def collect_dual_representation(block, fixed, unfixed):
         # If neither set was specified, then treat all variables as local
         unfixed = True
     elif unfixed:
-        unfixed_vars = {id(v) for v in unfixed}
-        fixed_vars = {}
+        unfixed_vars = set()
+        for v in unfixed:
+            if v.is_indexed():
+                for vardata in v.values():
+                    unfixed_vars.add( id(vardata) )
+            else:
+                unfixed_vars.add( id(v) )
+        fixed_vars = set()
         unfixed = False
     elif fixed:
-        unfixed_vars = {}
-        fixed_vars = {id(v) for v in fixed}
+        unfixed_vars = set()
+        fixed_vars = set()
+        for v in fixed:
+            if v.is_indexed():
+                for vardata in v.values():
+                    fixed_vars.add( id(vardata) )
+            else:
+                fixed_vars.add( id(v) )
         unfixed = False
 
     all_vars = {}
@@ -304,10 +316,10 @@ def create_linear_dual_from(block, fixed=None, unfixed=None):
 
     Arguments:
         block: A Pyomo block or model
-        unfixed: An iterable object with VarData values that are not fixed
-                variables.  All other variables are assumed to be fixed.
-        fixed: An iterable object with VarData values that are fixed.  All
-                other variables are assumed not fixed.
+        unfixed: An iterable object with Variable and VarData values that are 
+                not fixed variables.  All other variables are assumed to be fixed.
+        fixed: An iterable object with Variable and VarData values that are fixed.  
+                All other variables are assumed not fixed.
 
     Returns:
         If the block is a model object, then this returns a ConcreteModel.

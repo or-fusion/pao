@@ -75,7 +75,14 @@ class BaseBilevelTransformation(Transformation):
                 instance._transformation_data[tname].submodel = [name]
                 #nest_level = self._nest_level(submodel)
                 if submodel._fixed:
-                    self._fixed_vardata[name] = [vardata for v in submodel._fixed for vardata in v.values()]
+                    self._fixed_vardata[name] = list()
+                    # if v is an indexed variable component, then append each element separately
+                    for v in submodel._fixed:
+                        if v.is_indexed():
+                            for vardata in v.values():
+                                self._fixed_vardata[name].append(vardata)
+                        else:
+                            self._fixed_vardata[name].append(v)
                     instance._transformation_data[tname].fixed = [ComponentUID(v) for v in self._fixed_vardata[name]]
                     self._submodel[name] = submodel
                 else:
