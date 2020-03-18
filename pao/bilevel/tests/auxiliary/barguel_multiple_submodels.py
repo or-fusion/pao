@@ -41,11 +41,11 @@ def pyomo_create_model():
     M.o = Objective(expr=M.x + M.u)
 
     M.sub1 = SubModel(fixed=M.u)
-    M.sub1.o = Objective(expr=M.x['1'] + M.u, sense=Maximize)
+    M.sub1.o = Objective(expr=M.x['1'] + M.u, sense=maximize)
     M.sub1.c = Constraint(expr= M.x['1'] == M.u*M.y['1'])
 
     M.sub2 = SubModel(fixed=M.u)
-    M.sub2.o = Objective(expr=M.x['2'] + M.u, sense=Maximize)
-    M.sub2.c = Constraint(expr= M.x['2'] == M.u*M.y['2'])
+    M.sub2.o = Objective(expr=M.x['2'] + M.u, sense=maximize)
+    M.sub2.c = Constraint(expr= M.x['2'] - M.u*M.y['2'] <= 1)
 
     return M
