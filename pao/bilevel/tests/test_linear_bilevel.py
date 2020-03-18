@@ -40,7 +40,7 @@ current_dir = dirname(abspath(__file__))
 aux_dir = join(dirname(abspath(__file__)),'auxiliary')
 
 # models for bilevel reformulation tests
-reformulation_model_names = ['bqp_example1','bqp_example2','bqp_example2_indexed']
+reformulation_model_names = ['bqp_example1','bqp_example2']#,'bqp_example2_indexed']
 reformulation_models = [join(current_dir, 'auxiliary', '{}.py'.format(i)) for i in reformulation_model_names]
 reformulations = [join(current_dir, 'auxiliary','reformulation','{}.txt'.format(i)) for i in reformulation_model_names]
 
