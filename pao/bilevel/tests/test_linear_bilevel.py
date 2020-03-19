@@ -49,7 +49,7 @@ solution_model_names = ['bard511']
 solution_models = [join(current_dir, 'auxiliary', '{}.py'.format(i)) for i in solution_model_names]
 solutions = [join(current_dir, 'auxiliary','solution','{}.txt'.format(i)) for i in solution_model_names]
 
-solution_model_names2 = ['t5','t1','t1b']
+solution_model_names2 = ['t5','bqp_example2_indexed']#['t5','t1','t1b']
 solution_models2 = [join(current_dir, 'auxiliary', '{}.py'.format(i)) for i in solution_model_names2]
 solutions2 = [join(current_dir, 'auxiliary','solution','{}.txt'.format(i)) for i in solution_model_names2]
 
@@ -57,8 +57,9 @@ solutions2 = [join(current_dir, 'auxiliary','solution','{}.txt'.format(i)) for i
 cartesian_solutions = [elem for elem in itertools.product(*[solvers,pao_solvers,zip(solution_model_names,solution_models,solutions)])]
 cartesian_solutions2 = [elem for elem in itertools.product(*[solvers2,pao_solvers2,zip(solution_model_names2,solution_models2,solutions2)])]
 cartesian_solutions = cartesian_solutions + cartesian_solutions2
+cartesian_solutions = cartesian_solutions2
 
-class TestBilevelReformulate(unittest.TestCase):
+class TestBilevelReformulate():#unittest.TestCase):
     """
     Testing for bilevel reformulations that use the pao.bilevel.linear_mpec transformation
 
@@ -136,7 +137,10 @@ class TestBilevelSolve(unittest.TestCase):
 
         solver = SolverFactory(pao_solver)
         solver.options.solver = numerical_solver
-        results = solver.solve(instance)
+        if solution_zip[0] == 'bqp_example2_indexed':
+            instance.u['1'].fixed = True
+            instance.x['1'].fixed = True
+        results = solver.solve(instance, tee=True)
 
         self.assertTrue(results.solver.termination_condition == pyomo.opt.TerminationCondition.optimal)
 
