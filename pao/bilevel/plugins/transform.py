@@ -83,7 +83,7 @@ class BaseBilevelTransformation(Transformation):
                                 self._fixed_vardata[name].append(vardata)
                         else:
                             self._fixed_vardata[name].append(v)
-                    instance._transformation_data[tname].fixed = [ComponentUID(v) for v in self._fixed_vardata[name]]
+                    instance._transformation_data[tname].fixed = [v for v in self._fixed_vardata[name]]
                     self._submodel[name] = submodel
                 else:
                     e = "Must specify 'fixed' or 'unfixed' options"

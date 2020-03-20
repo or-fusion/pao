@@ -100,14 +100,13 @@ class BilevelSolver1(pyomo.opt.OptSolver):
                 # Transform the result back into the original model
                 #
                 tdata = self._instance._transformation_data['pao.bilevel.linear_dual']
-                unfixed_cuids = set()
+                unfixed_tdata = list()
                 # Copy variable values and fix them
-                for vuid in tdata.fixed:
-                    for data_ in vuid.find_component_on(self._instance).values():
-                        if not data_.fixed:
-                            data_.value = self._instance.find_component(data_).value
-                            data_.fixed = True
-                            unfixed_cuids.add(ComponentUID(data_))
+                for v in tdata.fixed:
+                    if not v.fixed:
+                        v.value = self._instance.find_component(v).value
+                        v.fixed = True
+                        unfixed_tdata.append(v)
                 # Reclassify the SubModel components and resolve
                 for name_ in tdata.submodel:
                     submodel = getattr(self._instance, name_)
@@ -139,12 +138,13 @@ class BilevelSolver1(pyomo.opt.OptSolver):
                         self.results.append(results)
 
                 # Unfix variables
-                for vuid in tdata.fixed:
-                    for data_ in vuid.find_component_on(self._instance).values():
-                        if ComponentUID(data_) in unfixed_cuids:
-                            data_.fixed = False
-            #
-            self._instance.solutions.select(0, ignore_fixed_vars=True)
+                for v in tdata.fixed:
+                    if v in unfixed_tdata:
+                        v.fixed = False
+
+            # check that the solutions list is not empty
+            if self._instance.solutions.solutions:
+                self._instance.solutions.select(0, ignore_fixed_vars=True)
             #
             stop_time = time.time()
             self.wall_time = stop_time - start_time
