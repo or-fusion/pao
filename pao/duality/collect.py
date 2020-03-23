@@ -59,6 +59,7 @@ def collect_dual_representation(block, fixed_modelvars):
     Returns: Tuple with the following values:
         A:        The dual matrix
         b_coef:   The coefficients of the dual objective
+        obj_offset: The offset for the dual objective
         c_rhs:    The dual constraint right-hand side
         c_sense:  The sense of each constraint in the dual
         d_sense:  The sense of the dual objective
@@ -75,6 +76,7 @@ def collect_dual_representation(block, fixed_modelvars):
 
     A = {}
     b_coef = {}
+    obj_offset = 0
     c_rhs = {}
     c_sense = {}
     d_sense = None
@@ -86,6 +88,7 @@ def collect_dual_representation(block, fixed_modelvars):
     for odata in block.component_objects(Objective, active=True):
         for ndx in odata:
             o_terms = generate_standard_repn(odata[ndx].expr, compute_values=False)
+            obj_offset = o_terms.constant
             if odata[ndx].sense == maximize:
                 d_sense = minimize
             else:
@@ -256,25 +259,44 @@ def collect_dual_representation(block, fixed_modelvars):
                 b_coef[name_, ndx] = bounds[0]
         else:
             # Bounded above and below
-            c_sense[name, ndx] = 'e'
-            #
-            # Add constraint that defines the upper bound
-            #
-            name_ = name + "_upper_"
-            A.setdefault(name, {}).setdefault(ndx, []).append(Bunch(coef=1.0, var=name_, ndx=ndx))
-            #
-            v_domain[name_, ndx] = -1
-            b_coef[name_, ndx] = bounds[1]
-            #
-            # Add constraint that defines the lower bound
-            #
-            name_ = name + "_lower_"
-            #varname = data.parent_component().getname(fully_qualified=True, relative_to=block)
-            #varndx = data[ndx].index()
-            A.setdefault(name, {}).setdefault(ndx, []).append(Bunch(coef=1.0, var=name_, ndx=ndx))
-            #
-            v_domain[name_, ndx] = 1
-            b_coef[name_, ndx] = bounds[0]
+            if bounds[0] == 0:
+                c_sense[name, ndx] = 'l'
+                #
+                # Add constraint that defines the upper bound
+                #
+                name_ = name + "_upper_"
+                A.setdefault(name, {}).setdefault(ndx, []).append(Bunch(coef=1.0, var=name_, ndx=ndx))
+                #
+                v_domain[name_, ndx] = -1
+                b_coef[name_, ndx] = bounds[1]
+            elif bounds[1] == 0:
+                c_sense[name, ndx] = 'g'
+                #
+                # Add constraint that defines the lower bound
+                #
+                name_ = name + "_lower_"
+                A.setdefault(name, {}).setdefault(ndx, []).append(Bunch(coef=1.0, var=name_, ndx=ndx))
+                #
+                v_domain[name_, ndx] = 1
+                b_coef[name_, ndx] = bounds[0]
+            else:
+                c_sense[name, ndx] = 'e'
+                #
+                # Add constraint that defines the upper bound
+                #
+                name_ = name + "_upper_"
+                A.setdefault(name, {}).setdefault(ndx, []).append(Bunch(coef=1.0, var=name_, ndx=ndx))
+                #
+                v_domain[name_, ndx] = -1
+                b_coef[name_, ndx] = bounds[1]
+                #
+                # Add constraint that defines the lower bound
+                #
+                name_ = name + "_lower_"
+                A.setdefault(name, {}).setdefault(ndx, []).append(Bunch(coef=1.0, var=name_, ndx=ndx))
+                #
+                v_domain[name_, ndx] = 1
+                b_coef[name_, ndx] = bounds[0]
 
     #
     # Unfix the variables that were fixed
@@ -282,7 +304,7 @@ def collect_dual_representation(block, fixed_modelvars):
     for vdata in fixed_modelvars.values():
         vdata.fixed = False
 
-    return (A, b_coef, c_rhs, c_sense, d_sense, v_domain)
+    return (A, b_coef, obj_offset, c_rhs, c_sense, d_sense, v_domain)
 
 
 
@@ -371,7 +393,7 @@ def create_linear_dual_from(block, fixed=None, unfixed=None):
                 if id_ in modelvars:
                     fixed_modelvars[id_] = modelvars[id_]
 
-    A, b_coef, c_rhs, c_sense, d_sense, v_domain =\
+    A, b_coef, obj_constant, c_rhs, c_sense, d_sense, v_domain =\
                     collect_dual_representation(block, fixed_modelvars)
 
     #
@@ -404,11 +426,11 @@ def create_linear_dual_from(block, fixed=None, unfixed=None):
     # objective and left-hand side coefficients while keeping the dual sense.
     #
     if d_sense == minimize:
-        dual.o = Objective(expr=sum(- b_coef[name, ndx]*getvar(name, ndx)
+        dual.o = Objective(expr=obj_constant + sum(- b_coef[name, ndx]*getvar(name, ndx)
                                     for name, ndx in b_coef), sense=d_sense)
         rhs_multiplier = -1
     else:
-        dual.o = Objective(expr=sum(b_coef[name, ndx]*getvar(name, ndx)
+        dual.o = Objective(expr=obj_constant + sum(b_coef[name, ndx]*getvar(name, ndx)
                                     for name, ndx in b_coef), sense=d_sense)
         rhs_multiplier = 1
     #

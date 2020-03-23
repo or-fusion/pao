@@ -9,7 +9,7 @@
 1 Objective Declarations
     o : Size=1, Index=None, Active=True
         Key  : Active : Sense    : Expression
-        None :   True : maximize : (5.0 - (2*x2 + b.x1))*c1 + (3.0 - x2)*c2
+        None :   True : maximize : 4*x2 + 2*b.x1 + (5.0 - (2*x2 + b.x1))*c1 + (3.0 - x2)*c2
 
 1 Constraint Declarations
     x1 : Size=1, Index=None, Active=True

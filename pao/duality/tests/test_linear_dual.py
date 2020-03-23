@@ -204,12 +204,12 @@ class Reformulate(unittest.TestCase, CommonTests):
             pass
 
     def test_t3_fixedsome1(self):
-        self.problem='test_t3_fixedsome'
+        self.problem='test_t3_fixedsome1'
         self.run_bilevel(join(exdir,'t3.py'), fixed=['x2','b.x1'], format='txt')
         self.check( 't3_fixedsome', 'linear_dual' )
 
     def test_t3_fixedsome2(self):
-        self.problem='test_t3_fixedsome'
+        self.problem='test_t3_fixedsome2'
         self.run_bilevel(join(exdir,'t3.py'), unfixed=['x1'], format='txt')
         self.check( 't3_fixedsome', 'linear_dual' )
 
