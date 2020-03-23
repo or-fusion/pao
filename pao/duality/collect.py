@@ -140,10 +140,10 @@ def collect_dual_representation(block, fixed_modelvars):
             nvars = 0
             for var, coef in zip(body_terms.linear_vars, body_terms.linear_coefs):
                 #if not unfixed and ((len(unfixed_vars) > 0  and (id(var) not in unfixed_vars)) or (id(var) in fixed_vars)):
-                if var.fixed:
+                #if var.fixed:
                     # Variable is fixed
-                    body_terms.constant += coef*var
-                    continue
+                    #body_terms.constant += coef*var
+                    #continue
                 nvars += 1
                 try:
                     # The variable is in the subproblem
@@ -158,11 +158,6 @@ def collect_dual_representation(block, fixed_modelvars):
                 for dvar in dualvars:
                     A.setdefault(varname, {}).setdefault(varndx, []).append(
                                                 Bunch(coef=coef, var=dvar, ndx=ndx))
-            if nvars == 0:
-                #
-                # If a constraint has a fixed body, then don't collect it.
-                #
-                continue
             #
             lower_terms = generate_standard_repn(con.lower, compute_values=False) \
                                                     if not con.lower is None else None
