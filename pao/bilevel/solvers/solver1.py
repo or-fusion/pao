@@ -81,6 +81,7 @@ class BilevelSolver1(pyomo.opt.OptSolver):
             self.results = []
             #
             #
+            opt.options['mipgap'] = self.options.get('mipgap', 0.001)
             self.results.append(opt.solve(self._instance,
                                           tee=self._tee,
                                           timelimit=self._timelimit))
@@ -110,7 +111,7 @@ class BilevelSolver1(pyomo.opt.OptSolver):
                             v.value = round(self._instance.find_component(v).value)
                         if v.is_integer():
                             v.value = round(self._instance.find_component(v).value)
-                        if v.is_continuous():
+                        else:
                             v.value = self._instance.find_component(v).value
                         v.fixed = True
                         unfixed_tdata.append(v)
@@ -139,6 +140,7 @@ class BilevelSolver1(pyomo.opt.OptSolver):
                         #         io_options are getting relayed to the subsolver
                         #         here).
                         #
+                        opt_inner.options['mipgap'] = self.options.get('mipgap', 0.001)
                         results = opt_inner.solve(self._instance,
                                                   tee=self._tee,
                                                   timelimit=self._timelimit)
