@@ -106,7 +106,12 @@ class BilevelSolver1(pyomo.opt.OptSolver):
                 # Copy variable values and fix them
                 for v in tdata.fixed:
                     if not v.fixed:
-                        v.value = self._instance.find_component(v).value
+                        if v.is_binary():
+                            v.value = round(self._instance.find_component(v).value)
+                        if v.is_integer():
+                            v.value = round(self._instance.find_component(v).value)
+                        if v.is_continuous():
+                            v.value = self._instance.find_component(v).value
                         v.fixed = True
                         unfixed_tdata.append(v)
                 # Reclassify the SubModel components and resolve
