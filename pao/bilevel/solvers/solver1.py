@@ -16,10 +16,10 @@ Declare the ld solver.
 
 import time
 import pyutilib.misc
-from pyomo.core import TransformationFactory, Var, ComponentUID, Block, Objective, Set
+from pyomo.core import TransformationFactory, Var, Constraint, Block, Objective, Set
 import pyomo.opt
 import pyomo.common
-
+from itertools import chain
 
 @pyomo.opt.SolverFactory.register('pao.bilevel.ld',
                                   doc=\
@@ -52,13 +52,15 @@ class BilevelSolver1(pyomo.opt.OptSolver):
         xfrm = TransformationFactory('pao.bilevel.linear_dual')
         xfrm.apply_to(self._instance, use_dual_objective=self.use_dual_objective)
         #
-        # Verify whether the objective is linear
+        # Verify whether the model is linear
         #
         nonlinear = False
-        for odata in self._instance.component_objects(Objective, active=True):
+        for odata in chain(self._instance.component_objects(Objective, active=True), \
+                           self._instance.component_objects(Constraint, active=True)):
             nonlinear = odata.expr.polynomial_degree() != 1
-            # Stop after the first objective
-            break
+            if nonlinear:
+                # Stop after the first occurrence in the objective or one of the constraints
+                break
         #
         # Apply an additional transformation to remap bilinear terms
         #
