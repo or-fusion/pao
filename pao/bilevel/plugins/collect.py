@@ -30,169 +30,155 @@ from pyomo.core import (Var,
                         Model,
                         ConcreteModel)
 from scipy.sparse import coo_matrix
-from numpy import zeros
+from ..components import SubModel
+from numpy import zeros, array
+
 
 def collect_block_constraints(block):
-
     cons_sense_rhs = dict()
     for c in block.component_objects(Constraint, active=True, sort=True):
         for ndx in c:
             con = c[ndx]
             lower_terms = generate_standard_repn(con.lower, compute_values=False) \
-                                                    if not con.lower is None else None
+                if not con.lower is None else None
             upper_terms = generate_standard_repn(con.upper, compute_values=False) \
-                                                    if not con.upper is None else None
+                if not con.upper is None else None
             body_terms = generate_standard_repn(con.body, compute_values=True)
             if con.equality:
-                cons_sense_rhs[id(con),'e'] = lower_terms.constant - body_terms.constant
+                cons_sense_rhs[id(con), 'e'] = lower_terms.constant - body_terms.constant
             else:
                 if not (lower_terms is None):
-                    cons_sense_rhs[id(con),'g'] = lower_terms.constant - body_terms.constant
+                    cons_sense_rhs[id(con), 'g'] = lower_terms.constant - body_terms.constant
                 if not (upper_terms is None):
-                    cons_sense_rhs[id(con),'l'] = upper_terms.constant - body_terms.constant
+                    cons_sense_rhs[id(con), 'l'] = upper_terms.constant - body_terms.constant
 
     return cons_sense_rhs
 
-def collect_block_vars(block):
+
+def collect_global_vars(model):
     """
-    Collect vars on the block
+    Collect vars on the model
     """
     c_var_ids = set()
     b_var_ids = set()
     i_var_ids = set()
-    fixed_var_ids = set()
+
     all_vars = dict()
-    if hasattr(block,'_fixed'):
+    for v in model.component_objects(Var, descend_into=False, sort=True):
+        if v.is_indexed():
+            for vardata in v.values():
+                all_vars[id(vardata)] = vardata
+                if v.is_continuous():
+                    c_var_ids.add(id(vardata))
+                if v.is_binary():
+                    b_var_ids.add(id(vardata))
+                if v.is_integer():
+                    i_var_ids.add(id(vardata))
+        else:
+            all_vars[id(v)] = v
+            if v.is_continuous():
+                c_var_ids.add(id(v))
+            if v.is_binary():
+                b_var_ids.add(id(v))
+            if v.is_integer():
+                i_var_ids.add(id(v))
+
+    return all_vars, c_var_ids, b_var_ids, i_var_ids
+
+
+def collect_fixed_vars(block):
+    """
+    Collect fixed vars on the block
+    """
+    fixed_var_ids = set()
+    if hasattr(block, '_fixed'):
         for v in block._fixed:
             if v.is_indexed():
                 for vardata in v.values():
                     fixed_var_ids.add(id(vardata))
-                    all_vars[id(vardata)] = vardata
             else:
                 fixed_var_ids.add(id(v))
 
-    root = block.root_block()
-    for v in root.component_objects(Var, descend_into=False, sort=True):
-        if id(v) not in fixed_var_ids:
-            if v.is_indexed():
-                for vardata in v.values():
-                    if v.is_continuous():
-                        c_var_ids.add(id(vardata))
-                    if v.is_binary():
-                        b_var_ids.add(id(vardata))
-                    if v.is_integer():
-                        i_var_ids.add(id(vardata))
-                    all_vars[id(vardata)] = vardata
-            else:
-                if v.is_continuous():
-                    c_var_ids.add(id(v))
-                if v.is_binary():
-                    b_var_ids.add(id(v))
-                if v.is_integer():
-                    i_var_ids.add(id(v))
-                all_vars[id(v)] = v
-        else:
-            if v.is_indexed():
-                for vardata in v.values():
-                    all_vars[id(vardata)] = vardata
-            else:
-                all_vars[id(v)] = v
+    return fixed_var_ids
 
 
-    return c_var_ids, b_var_ids, i_var_ids, fixed_var_ids, all_vars
-
-
-def collect_bilevel_matrix_representation(block):#, c_var_ids, b_var_ids, i_var_ids, fixed_var_ids):
+def collect_bilevel_matrix_representation(block, all_vars, c_var_ids, b_var_ids, i_var_ids, fixed_var_ids,
+                                          cons_sense_rhs):
     """
     Collects the terms for each ==, >= and <= constraints
     for the given local variable scope, per variable type (c:continuous,
     b:binary, i:integer). Nested Blocks (or SubModels) are not considered
     within local scope.
 
-    The terms will be denoted as follows:
-    A,          varref,         sense,          b_coef
-    A^{c} *     x^{c}           {==, >=, <=}    b^{c}
-    A^{b} *     x^{b}           {==, >=, <=}    b^{b}
-    A^{i} *     x^{i}           {==, >=, <=}    b^{i}
+    TODO: The way the coo_matrix is constructed (by casting a numpy matrix)
+    TODO: may be resource intensive. If that is the case, we will want to update the code
+    TODO: as follows:
+    # Constructing a coo_matrix using ijv format
+    row  = np.array([r1, ...., rN])
+    col  = np.array([c1, ...., cN])
+    data = np.array([d1, ...., dN])
+    _r = len(cons_sense_rhs)
+    _c = len(all_vars)
+    coo_matrix((data, (row, col)), shape=(_r, _c))
 
     Arguments:
         block: A Pyomo Model, Block, or SubModel that will be processed to
                 collect terms for Ax <= b, Ax >= b, and Ax == b.
-        fixed: An iterable object with Variable and VarData values that are fixed in
-                this model.  All other variables are assumed to be unfixed.
-        unfixed: An iterable object with Variable and VarData values that are not fixed
-                in this model.  All other variables are assumed to be fixed.
+        all_vars: An iterable, sorted object with Variable and VarData values.
+        c_var_ids: Unique id for vars that are continuous and not fixed on this block.
+        b_var_ids: Unique id for vars that are binary and not fixed on this block.
+        i_var_ids: Unique id for vars that are integer and not fixed on this block.
+        fixed_var_ids: Unique id for vars that are fixed on this block.
+        cons_sense_rhs: Unique id for constraints on the block.
 
     Returns: Tuple with the following values:
-    A^{c}:          The A coefficient matrix associate to continuous vars
-    x^{c}:          The continuous vars
-    sense^{c}:      The sense of the constraints to the continuous vars, per constraint
-    b_coef^{c}:     The coefficients of the right-hand side for the continuous vars
-    A^{b}:          The A coefficient matrix associate to binary vars
-    x^{b}:          The binary vars
-    sense^{b}:      The sense of the constraints to the binary vars, per constraint
-    b_coef^{b}:     The coefficients of the right-hand side for the binary vars
-    A^{i}:          The A coefficient matrix associate to integer vars
-    x^{i}:          The integer vars
-    sense^{i}:      The sense of the constraints to the integer vars, per constraint
-    b_coef^{i}:     The coefficients of the right-hand side for the integer vars
-    A^{f}:          The A coefficient matrix associate to fixed vars
-    x^{f}:          The fixed vars
-    sense^{f}:      The sense of the constraints to the fixed vars, per constraint
-    b_coef^{f}:     The coefficients of the right-hand side for the fixed vars
+    A^{c}:         The A coefficient matrix associate to continuous vars
+    A_q^{c}:       The A coefficient matrix associate to continuous vars in bilinear terms
+    A^{b}:         The A coefficient matrix associate to binary vars
+    A_q^{b}:       The A coefficient matrix associate to binary vars in bilinear terms
+    A^{i}:         The A coefficient matrix associate to integer vars
+    A_q^{i}:       The A coefficient matrix associate to integer vars in bilinear terms
+    A^{f}:         The A coefficient matrix associate to fixed vars
+    A_q^{f}:       The A coefficient matrix associate to fixed vars in bilinear terms
     """
 
-    c_var_ids, b_var_ids, i_var_ids, fixed_var_ids, all_vars = \
-        collect_block_vars(block)
-
-    cons_sense_rhs = collect_block_constraints(block)
-
-    _r = len(cons_sense_rhs) # sum(len(v) for v in cons_sense_rhs.itervalues())
+    _r = len(cons_sense_rhs)  # sum(len(v) for v in cons_sense_rhs.itervalues())
     _c = len(all_vars)
 
     # A coefficients for linear terms, continuous var
-    A_c = {k: zeros((_r,_c)) for k in c_var_ids}
+    A_c = {k: zeros((_r, _c)) for k in c_var_ids}
 
     # A coefficients for bilinear terms, for the continuous var
-    A_c_q = {k: zeros((_r,_c)) for k in c_var_ids}
+    A_c_q = {k: zeros((_r, _c)) for k in c_var_ids}
 
     # A coefficients for linear terms, binary var
-    A_b = {k: zeros((_r,_c)) for k in b_var_ids}
+    A_b = {k: zeros((_r, _c)) for k in b_var_ids}
 
     # A coefficients for bilinear terms, for the binary var
-    A_b_q = {k: zeros((_r,_c)) for k in b_var_ids}
+    A_b_q = {k: zeros((_r, _c)) for k in b_var_ids}
 
     # A coefficients for linear terms, integer var
-    A_i = {k: zeros((_r,_c)) for k in i_var_ids}
+    A_i = {k: zeros((_r, _c)) for k in i_var_ids}
 
     # A coefficients for bilinear terms, for the integer var
-    A_i_q = {k: zeros((_r,_c)) for k in i_var_ids}
+    A_i_q = {k: zeros((_r, _c)) for k in i_var_ids}
 
     # A coefficients for linear terms, fixed var in submodel
-    A_f = {k: zeros((_r,_c)) for k in fixed_var_ids}
+    A_f = {k: zeros((_r, _c)) for k in fixed_var_ids}
 
     # A coefficients for bilinear terms, fixed var in submodel
-    A_f_q = {k: zeros((_r,_c)) for k in fixed_var_ids}
+    A_f_q = {k: zeros((_r, _c)) for k in fixed_var_ids}
 
-    # sense_c = {}
-    # b_coef_c = {}
-    # sense_b = {}
-    # b_coef_b = {}
-    # sense_i = {}
-    # b_coef_i = {}
-    # sense_f = {}
-    # b_coef_f = {}
-
-    for c in block.component_objects(Constraint, active=True, sort=True):
+    for c in block.component_objects(Constraint, active=True, descend_into=True):
         sense = list()
         for ndx in c:
             con = c[ndx]
             _cid = id(con)
 
             lower_terms = generate_standard_repn(con.lower, compute_values=False) \
-                                                    if not con.lower is None else None
+                if not con.lower is None else None
             upper_terms = generate_standard_repn(con.upper, compute_values=False) \
-                                                    if not con.upper is None else None
+                if not con.upper is None else None
             body_terms = generate_standard_repn(con.body, compute_values=True)
             if con.equality:
                 sense.append('e')
@@ -202,7 +188,7 @@ def collect_bilevel_matrix_representation(block):#, c_var_ids, b_var_ids, i_var_
                 if not (upper_terms is None):
                     sense.append('l')
             for s in sense:
-                _row = list(cons_sense_rhs.keys()).index((_cid,s))
+                _row = list(cons_sense_rhs.keys()).index((_cid, s))
 
                 for var, coef in zip(body_terms.linear_vars, body_terms.linear_coefs):
                     _vid = id(var)
@@ -216,8 +202,8 @@ def collect_bilevel_matrix_representation(block):#, c_var_ids, b_var_ids, i_var_
                     if _vid in fixed_var_ids:
                         A_f[_vid][_row, _col] = coef
 
-                for (var1,var2), coef in zip(body_terms.quadratic_vars, body_terms.quadratic_coefs):
-                    for (var,fixed) in [(var1, var2),(var2, var1)]:
+                for (var1, var2), coef in zip(body_terms.quadratic_vars, body_terms.quadratic_coefs):
+                    for (var, fixed) in [(var1, var2), (var2, var1)]:
                         _vid = id(var)
                         _col = list(all_vars.keys()).index(id(fixed))
                         if _vid in c_var_ids:
@@ -229,23 +215,138 @@ def collect_bilevel_matrix_representation(block):#, c_var_ids, b_var_ids, i_var_
                         if _vid in fixed_var_ids:
                             A_f_q[_vid][_row, _col] = coef
 
-    return
+    A_c = {k: coo_matrix(v) for k, v in A_c}
+    A_c_q = {k: coo_matrix(v) for k, v in A_c_q}
+    A_b = {k: coo_matrix(v) for k, v in A_b}
+    A_b_q = {k: coo_matrix(v) for k, v in A_b_q}
+    A_i = {k: coo_matrix(v) for k, v in A_i}
+    A_i_q = {k: coo_matrix(v) for k, v in A_i_q}
+    A_f = {k: coo_matrix(v) for k, v in A_f}
+    A_f_q = {k: coo_matrix(v) for k, v in A_f_q}
+
+    return A_c, A_c_q, A_b, A_b_q, A_i, A_i_q, A_f, A_f_q
 
 
+class BilevelMatrixRepn():
+    """
+    A class that creates an object which contains all the matrix expressions
+    to the Pyomo model.
+    """
 
+    def __init__(self, model):
+        # Pyomo ConcreteModel
+        self._model = model
 
+        # List of model block name and all Submodels
+        self._all_models = {block.name for block in model.component_objects(SubModel)}
+        self._all_models.add(model.name)
 
-# class BilevelMatrixRepn():
-#     """
-#     A class that creates an object which contains all the matrix expressions
-#     to the Pyomo model.
-#     """
-#
-#     def __init__(self, **kwds):
-#         iter = 0
-#
-#         A_c = dict()
-#         A_c_q
-#
+        # All variables on model, including var id sets for continuous (c), binary (b) and integer (i) variable types
+        all_vars, c_var_ids, b_var_ids, i_var_ids = collect_global_vars(model)
+        self._all_vars = all_vars
+        self._c_var_ids = c_var_ids
+        self._b_var_ids = b_var_ids
+        self._i_var_ids = i_var_ids
 
-# constraint id
+        # All fixed variables that exist on specified SubModel blocks (these do not exist on the Model block)
+        self._fixed_var_ids = {block.name: collect_fixed_vars(block) for block in model.component_objects(SubModel)}
+
+        # All constraint ids, corresponding sense and rhs; includes two entries for constraint declarations LHS <= body <= RHS
+        # that are not equality constraints
+        self._cons_sense_rhs = {block.name: collect_block_constraints(block) for block in
+                                model.component_objects(SubModel)}
+        self._cons_sense_rhs[model.name] = collect_block_constraints(model)
+
+        # A coefficients for linear terms, continuous var
+        self._A_c = {k: dict() for k in self._all_models}
+        # A coefficients for bilinear terms, for the continuous var
+        self._A_c_q = {k: dict() for k in self._all_models}
+        # A coefficients for linear terms, binary var
+        self._A_b = {k: dict() for k in self._all_models}
+        # A coefficients for bilinear terms, for the binary var
+        self._A_b_q = {k: dict() for k in self._all_models}
+        # A coefficients for linear terms, integer var
+        self._A_i = {k: dict() for k in self._all_models}
+        # A coefficients for bilinear terms, for the integer var
+        self._A_i_q = {k: dict() for k in self._all_models}
+        # A coefficients for linear terms, fixed var in SubModel
+        self._A_f = {k: dict() for k in self._all_models - model.name}
+        # A coefficients for bilinear terms, fixed var in SubModel
+        self._A_f_q = {k: dict() for k in self._all_models - model.name}
+
+        self._preprocess()
+
+    def coef_matrices(self, block, var, sense=None):
+        if id(var) in self._fixed_var_ids[block.name]:
+            A = (self._A_f.get(block.name)).get(id(var))
+            A_q = (self._A_f_q.get(block.name)).get(id(var))
+        else:
+            if var.is_continuous():
+                A = (self._A_c.get(block.name)).get(id(var))
+                A_q = (self._A_c_q.get(block.name)).get(id(var))
+            if var.is_binary():
+                A = (self._A_b.get(block.name)).get(id(var))
+                A_q = (self._A_c_q.get(block.name)).get(id(var))
+            if var.is_integer():
+                A = (self._A_i.get(block.name)).get(id(var))
+                A_q = (self._A_i_q.get(block.name)).get(id(var))
+
+        # return the full matrices if the sign on the constraint is not specified
+        cons_sense_rhs = self._cons_sense_rhs[block.name]
+        b = [rhs for (_cid, _sense), rhs in cons_sense_rhs]
+        if sense is None or not sense in ['e', 'l', 'g']:
+            return A, A_q, array(b)
+
+        # return partial matrices if the sign on the constraint is specified
+        indices = list()
+        b = list()
+        for (_cid, _sense), rhs in cons_sense_rhs:
+            if _sense == sense:
+                idx = list(cons_sense_rhs.keys()).index((_cid, _sense))
+                indices.append(idx)
+                b.append(rhs)
+
+        if len(indices) == 0:
+            return coo_matrix((0, 0)), coo_matrix((0, 0)), array(b) # return empty coo_matrix for A, A_q
+
+        cons_sense_rhs = self._cons_sense_rhs[block.name]
+        if len(indices) == len(cons_sense_rhs):
+            return A, A_q, array(b)  # return the full coo_matrix
+
+        return A.todok()[indices, :].tocoo(), A_q.todok()[indices, :].tocoo(), array(b)  # returns coo_matrix for selected rows
+
+    def _preprocess(self):
+        # Preprocess the main Model (upper-level)
+        A_c, A_c_q, A_b, A_b_q, A_i, A_i_q, A_f, A_f_q = \
+            collect_bilevel_matrix_representation(self._model, \
+                                                  self._all_vars, \
+                                                  self._c_var_ids, \
+                                                  self._b_var_ids, \
+                                                  self._i_var_ids, \
+                                                  None, \
+                                                  self._cons_sense_rhs[self._model.name])
+        self._A_c[self._model.name] = A_c
+        self._A_c_q[self._model.name] = A_c_q
+        self._A_b[self._model.name] = A_b
+        self._A_b_q[self._model.name] = A_b_q
+        self._A_i[self._model.name] = A_i
+        self._A_i_q[self._model.name] = A_i_q
+
+        # Preprocess each SubModel (lower-level(s))
+        for block in self._model.component_objects(SubModel):
+            A_c, A_c_q, A_b, A_b_q, A_i, A_i_q, A_f, A_f_q = \
+                collect_bilevel_matrix_representation(block, \
+                                                      self._all_vars, \
+                                                      self._c_var_ids - self._fixed_var_ids, \
+                                                      self._b_var_ids - self._fixed_var_ids, \
+                                                      self._i_var_ids - self._fixed_var_ids, \
+                                                      self._fixed_var_ids[block.name], \
+                                                      self._cons_sense_rhs[block.name])
+            self._A_c[block.name] = A_c
+            self._A_c_q[block.name] = A_c_q
+            self._A_b[block.name] = A_b
+            self._A_b_q[block.name] = A_b_q
+            self._A_i[block.name] = A_i
+            self._A_i_q[block.name] = A_i_q
+            self._A_f[block.name] = A_f
+            self._A_f_q[block.name] = A_f_q

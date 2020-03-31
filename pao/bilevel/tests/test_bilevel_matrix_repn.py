@@ -65,26 +65,10 @@ class TestBilevelMatrixRepn(unittest.TestCase):
         namespace = SourceFileLoader(name,model).load_module()
         instance = namespace.pyomo_create_model()
 
-        (A_c, c_vars, sense_c, b_coef_c, \
-            A_b, b_vars, sense_b, b_coef_b, \
-            A_i, i_vars, sense_i, b_coef_i, \
-            A_f, fixed_vars, sense_f, b_coef_f) = collect_bilevel_matrix_representation(instance)
-
-        print(A_c, c_vars, sense_c, b_coef_c, \
-            A_b, b_vars, sense_b, b_coef_b, \
-            A_i, i_vars, sense_i, b_coef_i, \
-            A_f, fixed_vars, sense_f, b_coef_f)
+        #collect_bilevel_matrix_representation(instance)
 
         for submodel in instance.component_objects(SubModel):
-            (A_c, c_vars, sense_c, b_coef_c, \
-            A_b, b_vars, sense_b, b_coef_b, \
-            A_i, i_vars, sense_i, b_coef_i, \
-            A_f, fixed_vars, sense_f, b_coef_f) = collect_bilevel_matrix_representation(submodel)
-
-        print(A_c, c_vars, sense_c, b_coef_c, \
-            A_b, b_vars, sense_b, b_coef_b, \
-            A_i, i_vars, sense_i, b_coef_i, \
-            A_f, fixed_vars, sense_f, b_coef_f)
+            collect_bilevel_matrix_representation(submodel)
 
         with open(join(aux_dir, name + '_linear_mpec.out'), 'w') as ofile:
             instance.pprint(ostream=ofile)
