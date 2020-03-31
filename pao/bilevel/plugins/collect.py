@@ -215,14 +215,14 @@ def collect_bilevel_matrix_representation(block, all_vars, c_var_ids, b_var_ids,
                         if _vid in fixed_var_ids:
                             A_f_q[_vid][_row, _col] = coef
 
-    A_c = {k: coo_matrix(v) for k, v in A_c}
-    A_c_q = {k: coo_matrix(v) for k, v in A_c_q}
-    A_b = {k: coo_matrix(v) for k, v in A_b}
-    A_b_q = {k: coo_matrix(v) for k, v in A_b_q}
-    A_i = {k: coo_matrix(v) for k, v in A_i}
-    A_i_q = {k: coo_matrix(v) for k, v in A_i_q}
-    A_f = {k: coo_matrix(v) for k, v in A_f}
-    A_f_q = {k: coo_matrix(v) for k, v in A_f_q}
+    A_c = {k: coo_matrix(v) for k, v in A_c.items()}
+    A_c_q = {k: coo_matrix(v) for k, v in A_c_q.items()}
+    A_b = {k: coo_matrix(v) for k, v in A_b.items()}
+    A_b_q = {k: coo_matrix(v) for k, v in A_b_q.items()}
+    A_i = {k: coo_matrix(v) for k, v in A_i.items()}
+    A_i_q = {k: coo_matrix(v) for k, v in A_i_q.items()}
+    A_f = {k: coo_matrix(v) for k, v in A_f.items()}
+    A_f_q = {k: coo_matrix(v) for k, v in A_f_q.items()}
 
     return A_c, A_c_q, A_b, A_b_q, A_i, A_i_q, A_f, A_f_q
 
@@ -270,9 +270,9 @@ class BilevelMatrixRepn():
         # A coefficients for bilinear terms, for the integer var
         self._A_i_q = {k: dict() for k in self._all_models}
         # A coefficients for linear terms, fixed var in SubModel
-        self._A_f = {k: dict() for k in self._all_models - model.name}
+        self._A_f = {k: dict() for k in self._all_models - {model.name}}
         # A coefficients for bilinear terms, fixed var in SubModel
-        self._A_f_q = {k: dict() for k in self._all_models - model.name}
+        self._A_f_q = {k: dict() for k in self._all_models - {model.name}}
 
         self._preprocess()
 
@@ -293,27 +293,30 @@ class BilevelMatrixRepn():
 
         # return the full matrices if the sign on the constraint is not specified
         cons_sense_rhs = self._cons_sense_rhs[block.name]
-        b = [rhs for (_cid, _sense), rhs in cons_sense_rhs]
+        b = [rhs for (_cid, _sense), rhs in cons_sense_rhs.items()]
+        sign = [_sense for (_cid, _sense), rhs in cons_sense_rhs.items()]
         if sense is None or not sense in ['e', 'l', 'g']:
-            return A, A_q, array(b)
+            return A, A_q, sign, array(b)
 
         # return partial matrices if the sign on the constraint is specified
         indices = list()
         b = list()
-        for (_cid, _sense), rhs in cons_sense_rhs:
+        sign = list()
+        for (_cid, _sense), rhs in cons_sense_rhs.items():
             if _sense == sense:
                 idx = list(cons_sense_rhs.keys()).index((_cid, _sense))
                 indices.append(idx)
                 b.append(rhs)
+                sign.append(_sense)
 
         if len(indices) == 0:
             return coo_matrix((0, 0)), coo_matrix((0, 0)), array(b) # return empty coo_matrix for A, A_q
 
         cons_sense_rhs = self._cons_sense_rhs[block.name]
         if len(indices) == len(cons_sense_rhs):
-            return A, A_q, array(b)  # return the full coo_matrix
+            return A, A_q, sign, array(b)  # return the full coo_matrix
 
-        return A.todok()[indices, :].tocoo(), A_q.todok()[indices, :].tocoo(), array(b)  # returns coo_matrix for selected rows
+        return A.todok()[indices, :].tocoo(), A_q.todok()[indices, :].tocoo(), sign, array(b)  # returns coo_matrix for selected rows
 
     def _preprocess(self):
         # Preprocess the main Model (upper-level)
@@ -323,7 +326,7 @@ class BilevelMatrixRepn():
                                                   self._c_var_ids, \
                                                   self._b_var_ids, \
                                                   self._i_var_ids, \
-                                                  None, \
+                                                  [], \
                                                   self._cons_sense_rhs[self._model.name])
         self._A_c[self._model.name] = A_c
         self._A_c_q[self._model.name] = A_c_q
@@ -337,9 +340,9 @@ class BilevelMatrixRepn():
             A_c, A_c_q, A_b, A_b_q, A_i, A_i_q, A_f, A_f_q = \
                 collect_bilevel_matrix_representation(block, \
                                                       self._all_vars, \
-                                                      self._c_var_ids - self._fixed_var_ids, \
-                                                      self._b_var_ids - self._fixed_var_ids, \
-                                                      self._i_var_ids - self._fixed_var_ids, \
+                                                      self._c_var_ids - self._fixed_var_ids[block.name], \
+                                                      self._b_var_ids - self._fixed_var_ids[block.name], \
+                                                      self._i_var_ids - self._fixed_var_ids[block.name], \
                                                       self._fixed_var_ids[block.name], \
                                                       self._cons_sense_rhs[block.name])
             self._A_c[block.name] = A_c
@@ -350,3 +353,4 @@ class BilevelMatrixRepn():
             self._A_i_q[block.name] = A_i_q
             self._A_f[block.name] = A_f
             self._A_f_q[block.name] = A_f_q
+

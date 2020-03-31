@@ -22,7 +22,7 @@ from pyomo.environ import *
 import itertools
 from pyomo.core import Objective
 from pao.bilevel.components import SubModel
-from pao.bilevel.plugins.collect import collect_bilevel_matrix_representation
+from pao.bilevel.plugins.collect import BilevelMatrixRepn
 
 current_dir = dirname(abspath(__file__))
 aux_dir = join(dirname(abspath(__file__)),'auxiliary')
@@ -65,16 +65,50 @@ class TestBilevelMatrixRepn(unittest.TestCase):
         namespace = SourceFileLoader(name,model).load_module()
         instance = namespace.pyomo_create_model()
 
-        #collect_bilevel_matrix_representation(instance)
-
+        matrix_repn = BilevelMatrixRepn(instance)
+        print('---------------------')
+        print('--Variable Vector----')
+        print('---------------------')
+        _name = [var.name for idx,var in matrix_repn._all_vars.items()]
+        print(_name)
+        print('\n')
+        print('---------------------')
+        print('-Grouped By Variable-')
+        print('---------------------')
         for submodel in instance.component_objects(SubModel):
-            collect_bilevel_matrix_representation(submodel)
+            for var in instance.component_objects(Var):
+                (A, A_q, sign, b) = matrix_repn.coef_matrices(submodel, var)
+                print('---------------------')
+                print('submodel name: {}'.format(submodel.name))
+                print('variable name: {}'.format(var.name))
+                print('A linear matrix coefficients: ')
+                print(A.toarray())
+                print('A bilinear matrix coefficients: ')
+                print(A_q.toarray())
+                print('Sense (=, <=, >=): ')
+                print(sign)
+                print('Rhs: ')
+                print(b)
+        print('\n')
+        print('---------------------')
+        print('--Grouped By Sense---')
+        print('---------------------')
+        for submodel in instance.component_objects(SubModel):
+            for var in instance.component_objects(Var):
+                for sense in ['e', 'l', 'g']:
+                    (A, A_q, sign, b) = matrix_repn.coef_matrices(submodel, var, sense=sense)
+                    print('---------------------')
+                    print('submodel name: {}'.format(submodel.name))
+                    print('variable name: {}'.format(var.name))
+                    print('A linear matrix coefficients: ')
+                    print(A.toarray())
+                    print('A bilinear matrix coefficients: ')
+                    print(A_q.toarray())
+                    print('Sense (=, <=, >=): ')
+                    print(sign)
+                    print('Rhs: ')
+                    print(b)
 
-        with open(join(aux_dir, name + '_linear_mpec.out'), 'w') as ofile:
-            instance.pprint(ostream=ofile)
-
-        self.assertFileEqualsBaseline(join(aux_dir, name + '_linear_mpec.out'),
-                                      reformulation, tolerance=1e-5)
 
 if __name__ == "__main__":
     unittest.main()
