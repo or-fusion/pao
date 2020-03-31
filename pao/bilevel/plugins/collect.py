@@ -29,9 +29,80 @@ from pyomo.core import (Var,
                         Block,
                         Model,
                         ConcreteModel)
+from scipy.sparse import coo_matrix
+from numpy import zeros
+
+def collect_block_constraints(block):
+
+    cons_sense_rhs = dict()
+    for c in block.component_objects(Constraint, active=True, sort=True):
+        for ndx in c:
+            con = c[ndx]
+            lower_terms = generate_standard_repn(con.lower, compute_values=False) \
+                                                    if not con.lower is None else None
+            upper_terms = generate_standard_repn(con.upper, compute_values=False) \
+                                                    if not con.upper is None else None
+            body_terms = generate_standard_repn(con.body, compute_values=True)
+            if con.equality:
+                cons_sense_rhs[id(con),'e'] = lower_terms.constant - body_terms.constant
+            else:
+                if not (lower_terms is None):
+                    cons_sense_rhs[id(con),'g'] = lower_terms.constant - body_terms.constant
+                if not (upper_terms is None):
+                    cons_sense_rhs[id(con),'l'] = upper_terms.constant - body_terms.constant
+
+    return cons_sense_rhs
+
+def collect_block_vars(block):
+    """
+    Collect vars on the block
+    """
+    c_var_ids = set()
+    b_var_ids = set()
+    i_var_ids = set()
+    fixed_var_ids = set()
+    all_vars = dict()
+    if hasattr(block,'_fixed'):
+        for v in block._fixed:
+            if v.is_indexed():
+                for vardata in v.values():
+                    fixed_var_ids.add(id(vardata))
+                    all_vars[id(vardata)] = vardata
+            else:
+                fixed_var_ids.add(id(v))
+
+    root = block.root_block()
+    for v in root.component_objects(Var, descend_into=False, sort=True):
+        if id(v) not in fixed_var_ids:
+            if v.is_indexed():
+                for vardata in v.values():
+                    if v.is_continuous():
+                        c_var_ids.add(id(vardata))
+                    if v.is_binary():
+                        b_var_ids.add(id(vardata))
+                    if v.is_integer():
+                        i_var_ids.add(id(vardata))
+                    all_vars[id(vardata)] = vardata
+            else:
+                if v.is_continuous():
+                    c_var_ids.add(id(v))
+                if v.is_binary():
+                    b_var_ids.add(id(v))
+                if v.is_integer():
+                    i_var_ids.add(id(v))
+                all_vars[id(v)] = v
+        else:
+            if v.is_indexed():
+                for vardata in v.values():
+                    all_vars[id(vardata)] = vardata
+            else:
+                all_vars[id(v)] = v
 
 
-def collect_bilevel_matrix_representation(block):
+    return c_var_ids, b_var_ids, i_var_ids, fixed_var_ids, all_vars
+
+
+def collect_bilevel_matrix_representation(block):#, c_var_ids, b_var_ids, i_var_ids, fixed_var_ids):
     """
     Collects the terms for each ==, >= and <= constraints
     for the given local variable scope, per variable type (c:continuous,
@@ -70,119 +141,111 @@ def collect_bilevel_matrix_representation(block):
     sense^{f}:      The sense of the constraints to the fixed vars, per constraint
     b_coef^{f}:     The coefficients of the right-hand side for the fixed vars
     """
-    #
-    # Group like variables
-    #
-    c_vars = set()
-    b_vars = set()
-    i_vars = set()
-    fixed_vars = set()
 
-    if hasattr(block,'_fixed'):
-        for v in block._fixed:
-            if v.is_indexed():
-                for vardata in v.values():
-                    fixed_vars.add(id(vardata))
-            else:
-                fixed_vars.add(id(v))
-    for v in block.component_objects(Var, descend_into=False):
-        if v.is_indexed():
-            for vardata in v.values():
-                if v.is_continuous():
-                    c_vars.add(id(vardata))
-                if v.is_binary():
-                    b_vars.add(id(vardata))
-                if v.is_integer():
-                    i_vars.add(id(vardata))
-        else:
-            if v.is_continuous():
-                c_vars.add(id(v))
-            if v.is_binary():
-                b_vars.add(id(v))
-            if v.is_integer():
-                i_vars.add(id(v))
+    c_var_ids, b_var_ids, i_var_ids, fixed_var_ids, all_vars = \
+        collect_block_vars(block)
 
+    cons_sense_rhs = collect_block_constraints(block)
 
-    A_c = {}
-    sense_c = {}
-    b_coef_c = {}
-    A_b = {}
-    sense_b = {}
-    b_coef_b = {}
-    A_i = {}
-    sense_i = {}
-    b_coef_i = {}
-    A_f = {}
-    sense_f = {}
-    b_coef_f = {}
+    _r = len(cons_sense_rhs) # sum(len(v) for v in cons_sense_rhs.itervalues())
+    _c = len(all_vars)
 
-    def _set_sense_b(b_coef, sense, con, lower_terms, upper_terms, body_terms, var, ndx):
+    # A coefficients for linear terms, continuous var
+    A_c = {k: zeros((_r,_c)) for k in c_var_ids}
 
-        if not con.equality:
-            #
-            # Inequality constraint
-            # lower <= body <= upper
-            # if both lower_terms and upper_terms are not None
-            #
-            if not (upper_terms is None):
-                #
-                # body <= upper
-                #
-                rhs = upper_terms.constant - body_terms.constant
-                con_sense = 'l'
-                b_coef.setdefault(var.name, {}).setdefault(var.index(), []).append(
-                    Bunch(rhs=rhs, var=var, ndx=ndx))
-            if not (lower_terms is None):
-                #
-                # lower <= body
-                #
-                rhs = lower_terms.constant - body_terms.constant
-                con_sense = 'g'
-                b_coef.setdefault(var.name, {}).setdefault(var.index(), []).append(
-                    Bunch(rhs=rhs, var=var, ndx=ndx))
-        else:
-            #
-            # Equality constraint
-            #
-            rhs = lower_terms.constant - body_terms.constant
-            con_sense = 'e'
-        b_coef.setdefault(var.name, {}).setdefault(var.index(), []).append(
-                Bunch(rhs=rhs, var=var, ndx=ndx))
-        sense.setdefault(var.name, {}).setdefault(var.index(), []).append(
-                Bunch(sense=con_sense, var=var, ndx=ndx))
+    # A coefficients for bilinear terms, for the continuous var
+    A_c_q = {k: zeros((_r,_c)) for k in c_var_ids}
 
-    for data in block.component_objects(Constraint, active=True):
-        A = {}
-        sense = {}
-        b_coef = {}
-        name = data.getname(relative_to=block)
-        for ndx in data:
-            con = data[ndx]
+    # A coefficients for linear terms, binary var
+    A_b = {k: zeros((_r,_c)) for k in b_var_ids}
+
+    # A coefficients for bilinear terms, for the binary var
+    A_b_q = {k: zeros((_r,_c)) for k in b_var_ids}
+
+    # A coefficients for linear terms, integer var
+    A_i = {k: zeros((_r,_c)) for k in i_var_ids}
+
+    # A coefficients for bilinear terms, for the integer var
+    A_i_q = {k: zeros((_r,_c)) for k in i_var_ids}
+
+    # A coefficients for linear terms, fixed var in submodel
+    A_f = {k: zeros((_r,_c)) for k in fixed_var_ids}
+
+    # A coefficients for bilinear terms, fixed var in submodel
+    A_f_q = {k: zeros((_r,_c)) for k in fixed_var_ids}
+
+    # sense_c = {}
+    # b_coef_c = {}
+    # sense_b = {}
+    # b_coef_b = {}
+    # sense_i = {}
+    # b_coef_i = {}
+    # sense_f = {}
+    # b_coef_f = {}
+
+    for c in block.component_objects(Constraint, active=True, sort=True):
+        sense = list()
+        for ndx in c:
+            con = c[ndx]
+            _cid = id(con)
+
             lower_terms = generate_standard_repn(con.lower, compute_values=False) \
                                                     if not con.lower is None else None
             upper_terms = generate_standard_repn(con.upper, compute_values=False) \
                                                     if not con.upper is None else None
             body_terms = generate_standard_repn(con.body, compute_values=True)
-            for var, coef in zip(body_terms.linear_vars, body_terms.linear_coefs):
-                if id(var) in c_vars:
-                    A_c.setdefault(var.name, {}).setdefault(var.index(), []).append(
-                        Bunch(coef=coef, var=var, ndx=ndx))
-                    _set_sense_b(b_coef_c, sense_c, con, lower_terms, upper_terms, body_terms, var, ndx)
-                if id(var) in b_vars:
-                    A_b.setdefault(var.name, {}).setdefault(var.index(), []).append(
-                        Bunch(coef=coef, var=var, ndx=ndx))
-                    _set_sense_b(b_coef_b, sense_b, con, lower_terms, upper_terms, body_terms, var, ndx)
-                if id(var) in i_vars:
-                    A_i.setdefault(var.name, {}).setdefault(var.index(), []).append(
-                        Bunch(coef=coef, var=var, ndx=ndx))
-                    _set_sense_b(b_coef_i, sense_i, con, lower_terms, upper_terms, body_terms, var, ndx)
-                if id(var) in fixed_vars:
-                    A_f.setdefault(var.name, {}).setdefault(var.index(), []).append(
-                        Bunch(coef=coef, var=var, ndx=ndx))
-                    _set_sense_b(b_coef_f, sense_f, con, lower_terms, upper_terms, body_terms, var, ndx)
+            if con.equality:
+                sense.append('e')
+            else:
+                if not (lower_terms is None):
+                    sense.append('g')
+                if not (upper_terms is None):
+                    sense.append('l')
+            for s in sense:
+                _row = list(cons_sense_rhs.keys()).index((_cid,s))
 
-    return (A_c, c_vars, sense_c, b_coef_c, A_b, b_vars, sense_b, b_coef_b, A_i, i_vars, sense_i, b_coef_i, A_f, fixed_vars, sense_f, b_coef_f)
+                for var, coef in zip(body_terms.linear_vars, body_terms.linear_coefs):
+                    _vid = id(var)
+                    _col = list(all_vars.keys()).index(_vid)
+                    if _vid in c_var_ids:
+                        A_c[_vid][_row, _col] = coef
+                    if _vid in b_var_ids:
+                        A_b[_vid][_row, _col] = coef
+                    if _vid in i_var_ids:
+                        A_i[_vid][_row, _col] = coef
+                    if _vid in fixed_var_ids:
+                        A_f[_vid][_row, _col] = coef
+
+                for (var1,var2), coef in zip(body_terms.quadratic_vars, body_terms.quadratic_coefs):
+                    for (var,fixed) in [(var1, var2),(var2, var1)]:
+                        _vid = id(var)
+                        _col = list(all_vars.keys()).index(id(fixed))
+                        if _vid in c_var_ids:
+                            A_c_q[_vid][_row, _col] = coef
+                        if _vid in b_var_ids:
+                            A_b_q[_vid][_row, _col] = coef
+                        if _vid in i_var_ids:
+                            A_i_q[_vid][_row, _col] = coef
+                        if _vid in fixed_var_ids:
+                            A_f_q[_vid][_row, _col] = coef
+
+    return
 
 
 
 
+
+# class BilevelMatrixRepn():
+#     """
+#     A class that creates an object which contains all the matrix expressions
+#     to the Pyomo model.
+#     """
+#
+#     def __init__(self, **kwds):
+#         iter = 0
+#
+#         A_c = dict()
+#         A_c_q
+#
+
+# constraint id
