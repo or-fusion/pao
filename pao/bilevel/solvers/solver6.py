@@ -26,7 +26,9 @@ import pyutilib.misc
 import pyomo.opt
 from math import inf
 import pyomo.common
-from pyomo.core import TransformationFactory, Var, Set, Block
+from pao.bilevel.plugins.collect import BilevelMatrixRepn
+from pao.bilevel.components import SubModel
+from pyomo.core import TransformationFactory, Var, Set, Block, ConcreteModel, Constraint
 
 @pyomo.opt.SolverFactory.register('pao.bilevel.ccg',
                                   doc='Solver for projection-based reformulation and decomposition.')
@@ -54,14 +56,25 @@ class BilevelSolver5(pyomo.opt.OptSolver):
         k = 0
         YL0 = None
 
+        matrix_repn = BilevelMatrixRepn(self._instance)
+
         while k <= self._k_max_iter:
+
             # Step 2. Lower Bounding
             # Solve problem (P5) master problem.
+            for b in self._instance.component_objects(SubModel):
+                b.deactivate()
+            xfrm = TransformationFactory('pao.bilevel.highpoint')
+            xfrm.apply_to(self._instance) # creates block 'hpr'
+
+
+
             solver = self.options.solver
             if not self.options.solver:
-                solver = 'gurobi'
+                solver = 'glpk'
 
-            opt = SolverFactory(solver)
+            with pyomo.opt.SolverFactory(solver) as opt:
+                self.results = []
             # Step 3. Termination
             if UB - LB < xi:
                 return pyutilib.misc.Bunch(rc=getattr(opt, '_rc', None),

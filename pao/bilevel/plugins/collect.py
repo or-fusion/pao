@@ -146,25 +146,25 @@ def collect_bilevel_matrix_representation(block, all_vars, c_var_ids, b_var_ids,
     _c = len(all_vars)
 
     # A coefficients for linear terms, continuous var
-    A_c = {k: zeros((_r, _c)) for k in c_var_ids}
+    A_c = {k: zeros(_r) for k in c_var_ids}
 
     # A coefficients for bilinear terms, for the continuous var
     A_c_q = {k: zeros((_r, _c)) for k in c_var_ids}
 
     # A coefficients for linear terms, binary var
-    A_b = {k: zeros((_r, _c)) for k in b_var_ids}
+    A_b = {k: zeros(_r) for k in b_var_ids}
 
     # A coefficients for bilinear terms, for the binary var
     A_b_q = {k: zeros((_r, _c)) for k in b_var_ids}
 
     # A coefficients for linear terms, integer var
-    A_i = {k: zeros((_r, _c)) for k in i_var_ids}
+    A_i = {k: zeros(_r) for k in i_var_ids}
 
     # A coefficients for bilinear terms, for the integer var
     A_i_q = {k: zeros((_r, _c)) for k in i_var_ids}
 
     # A coefficients for linear terms, fixed var in submodel
-    A_f = {k: zeros((_r, _c)) for k in fixed_var_ids}
+    A_f = {k: zeros(_r) for k in fixed_var_ids}
 
     # A coefficients for bilinear terms, fixed var in submodel
     A_f_q = {k: zeros((_r, _c)) for k in fixed_var_ids}
@@ -192,15 +192,15 @@ def collect_bilevel_matrix_representation(block, all_vars, c_var_ids, b_var_ids,
 
                 for var, coef in zip(body_terms.linear_vars, body_terms.linear_coefs):
                     _vid = id(var)
-                    _col = list(all_vars.keys()).index(_vid)
+                    #_col = list(all_vars.keys()).index(_vid)
                     if _vid in c_var_ids:
-                        A_c[_vid][_row, _col] = coef
+                        A_c[_vid][_row] = coef #_col] = coef
                     if _vid in b_var_ids:
-                        A_b[_vid][_row, _col] = coef
+                        A_b[_vid][_row] = coef #_col] = coef
                     if _vid in i_var_ids:
-                        A_i[_vid][_row, _col] = coef
+                        A_i[_vid][_row] = coef #_col] = coef
                     if _vid in fixed_var_ids:
-                        A_f[_vid][_row, _col] = coef
+                        A_f[_vid][_row] = coef #_col] = coef
 
                 for (var1, var2), coef in zip(body_terms.quadratic_vars, body_terms.quadratic_coefs):
                     for (var, fixed) in [(var1, var2), (var2, var1)]:
@@ -215,13 +215,9 @@ def collect_bilevel_matrix_representation(block, all_vars, c_var_ids, b_var_ids,
                         if _vid in fixed_var_ids:
                             A_f_q[_vid][_row, _col] = coef
 
-    A_c = {k: coo_matrix(v) for k, v in A_c.items()}
     A_c_q = {k: coo_matrix(v) for k, v in A_c_q.items()}
-    A_b = {k: coo_matrix(v) for k, v in A_b.items()}
     A_b_q = {k: coo_matrix(v) for k, v in A_b_q.items()}
-    A_i = {k: coo_matrix(v) for k, v in A_i.items()}
     A_i_q = {k: coo_matrix(v) for k, v in A_i_q.items()}
-    A_f = {k: coo_matrix(v) for k, v in A_f.items()}
     A_f_q = {k: coo_matrix(v) for k, v in A_f_q.items()}
 
     return A_c, A_c_q, A_b, A_b_q, A_i, A_i_q, A_f, A_f_q
@@ -310,13 +306,13 @@ class BilevelMatrixRepn():
                 sign.append(_sense)
 
         if len(indices) == 0:
-            return coo_matrix((0, 0)), coo_matrix((0, 0)), array(b) # return empty coo_matrix for A, A_q
+            return array(indices), coo_matrix((0, 0)), array(b) # return empty coo_matrix for A, A_q
 
         cons_sense_rhs = self._cons_sense_rhs[block.name]
         if len(indices) == len(cons_sense_rhs):
             return A, A_q, sign, array(b)  # return the full coo_matrix
 
-        return A.todok()[indices, :].tocoo(), A_q.todok()[indices, :].tocoo(), sign, array(b)  # returns coo_matrix for selected rows
+        return A[indices], A_q.todok()[indices, :].tocoo(), sign, array(b)  # returns coo_matrix for selected rows
 
     def _preprocess(self):
         # Preprocess the main Model (upper-level)
