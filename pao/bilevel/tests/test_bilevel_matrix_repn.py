@@ -95,7 +95,7 @@ class TestBilevelMatrixRepn(unittest.TestCase):
         print('---------------------')
         for submodel in instance.component_objects(SubModel):
             for var in instance.component_objects(Var):
-                for sense in ['e', 'l', 'g']:
+                for sense in ['e', 'l']:
                     (A, A_q, sign, b) = matrix_repn.coef_matrices(submodel, var, sense=sense)
                     print('---------------------')
                     print('submodel name: {}'.format(submodel.name))

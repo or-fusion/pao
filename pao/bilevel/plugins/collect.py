@@ -32,27 +32,7 @@ from pyomo.core import (Var,
 from scipy.sparse import coo_matrix
 from ..components import SubModel
 from numpy import zeros, array
-
-
-def collect_block_constraints(block):
-    cons_sense_rhs = dict()
-    for c in block.component_objects(Constraint, active=True, sort=True):
-        for ndx in c:
-            con = c[ndx]
-            lower_terms = generate_standard_repn(con.lower, compute_values=False) \
-                if not con.lower is None else None
-            upper_terms = generate_standard_repn(con.upper, compute_values=False) \
-                if not con.upper is None else None
-            body_terms = generate_standard_repn(con.body, compute_values=True)
-            if con.equality:
-                cons_sense_rhs[id(con), 'e'] = lower_terms.constant - body_terms.constant
-            else:
-                if not (lower_terms is None):
-                    cons_sense_rhs[id(con), 'g'] = lower_terms.constant - body_terms.constant
-                if not (upper_terms is None):
-                    cons_sense_rhs[id(con), 'l'] = upper_terms.constant - body_terms.constant
-
-    return cons_sense_rhs
+from collections import OrderedDict
 
 
 def collect_global_vars(model):
@@ -103,7 +83,7 @@ def collect_fixed_vars(block):
 
 
 def collect_bilevel_matrix_representation(block, all_vars, c_var_ids, b_var_ids, i_var_ids, fixed_var_ids,
-                                          cons_sense_rhs):
+                                          standard_form=True):
     """
     Collects the terms for each ==, >= and <= constraints
     for the given local variable scope, per variable type (c:continuous,
@@ -142,7 +122,14 @@ def collect_bilevel_matrix_representation(block, all_vars, c_var_ids, b_var_ids,
     A_q^{f}:       The A coefficient matrix associate to fixed vars in bilinear terms
     """
 
-    _r = len(cons_sense_rhs)  # sum(len(v) for v in cons_sense_rhs.itervalues())
+    # number of constraints
+    _r = 0
+    for data in block.component_map(Constraint, active=True).itervalues():
+        _r += len(data)
+        if data.has_lb() and data.has_ub():
+            _r += len(data)
+
+    # number of variables
     _c = len(all_vars)
 
     # A coefficients for linear terms, continuous var
@@ -169,6 +156,7 @@ def collect_bilevel_matrix_representation(block, all_vars, c_var_ids, b_var_ids,
     # A coefficients for bilinear terms, fixed var in submodel
     A_f_q = {k: zeros((_r, _c)) for k in fixed_var_ids}
 
+    cons_sense_rhs = OrderedDict()
     for c in block.component_objects(Constraint, active=True, descend_into=True):
         sense = list()
         for ndx in c:
@@ -182,45 +170,54 @@ def collect_bilevel_matrix_representation(block, all_vars, c_var_ids, b_var_ids,
             body_terms = generate_standard_repn(con.body, compute_values=True)
             if con.equality:
                 sense.append('e')
+                cons_sense_rhs[id(con), 'e'] = lower_terms.constant - body_terms.constant
             else:
                 if not (lower_terms is None):
-                    sense.append('g')
+                    if standard_form:
+                        sense.append('g->l')
+                        cons_sense_rhs[id(con), 'g->l'] = -(lower_terms.constant - body_terms.constant)
+                    else:
+                        sense.append('g')
+                        cons_sense_rhs[id(con), 'g'] = lower_terms.constant - body_terms.constant
                 if not (upper_terms is None):
                     sense.append('l')
+                    cons_sense_rhs[id(con), 'l'] = upper_terms.constant - body_terms.constant
             for s in sense:
+                _sign = 1.
+                if s=='g->l':
+                    _sign = -1.
                 _row = list(cons_sense_rhs.keys()).index((_cid, s))
 
                 for var, coef in zip(body_terms.linear_vars, body_terms.linear_coefs):
                     _vid = id(var)
-                    #_col = list(all_vars.keys()).index(_vid)
                     if _vid in c_var_ids:
-                        A_c[_vid][_row] = coef #_col] = coef
+                        A_c[_vid][_row] = _sign*coef
                     if _vid in b_var_ids:
-                        A_b[_vid][_row] = coef #_col] = coef
+                        A_b[_vid][_row] = _sign*coef
                     if _vid in i_var_ids:
-                        A_i[_vid][_row] = coef #_col] = coef
+                        A_i[_vid][_row] = _sign*coef
                     if _vid in fixed_var_ids:
-                        A_f[_vid][_row] = coef #_col] = coef
+                        A_f[_vid][_row] = _sign*coef
 
                 for (var1, var2), coef in zip(body_terms.quadratic_vars, body_terms.quadratic_coefs):
                     for (var, fixed) in [(var1, var2), (var2, var1)]:
                         _vid = id(var)
                         _col = list(all_vars.keys()).index(id(fixed))
                         if _vid in c_var_ids:
-                            A_c_q[_vid][_row, _col] = coef
+                            A_c_q[_vid][_row, _col] = _sign*coef
                         if _vid in b_var_ids:
-                            A_b_q[_vid][_row, _col] = coef
+                            A_b_q[_vid][_row, _col] = _sign*coef
                         if _vid in i_var_ids:
-                            A_i_q[_vid][_row, _col] = coef
+                            A_i_q[_vid][_row, _col] = _sign*coef
                         if _vid in fixed_var_ids:
-                            A_f_q[_vid][_row, _col] = coef
+                            A_f_q[_vid][_row, _col] = _sign*coef
 
     A_c_q = {k: coo_matrix(v) for k, v in A_c_q.items()}
     A_b_q = {k: coo_matrix(v) for k, v in A_b_q.items()}
     A_i_q = {k: coo_matrix(v) for k, v in A_i_q.items()}
     A_f_q = {k: coo_matrix(v) for k, v in A_f_q.items()}
 
-    return A_c, A_c_q, A_b, A_b_q, A_i, A_i_q, A_f, A_f_q
+    return A_c, A_c_q, A_b, A_b_q, A_i, A_i_q, A_f, A_f_q, cons_sense_rhs
 
 
 class BilevelMatrixRepn():
@@ -229,7 +226,10 @@ class BilevelMatrixRepn():
     to the Pyomo model.
     """
 
-    def __init__(self, model):
+    def __init__(self, model, **kwds):
+        # Put in Standard Form
+        self._standard_form = kwds.pop('standard_form', True)
+
         # Pyomo ConcreteModel
         self._model = model
 
@@ -247,12 +247,6 @@ class BilevelMatrixRepn():
         # All fixed variables that exist on specified SubModel blocks (these do not exist on the Model block)
         self._fixed_var_ids = {block.name: collect_fixed_vars(block) for block in model.component_objects(SubModel)}
 
-        # All constraint ids, corresponding sense and rhs; includes two entries for constraint declarations LHS <= body <= RHS
-        # that are not equality constraints
-        self._cons_sense_rhs = {block.name: collect_block_constraints(block) for block in
-                                model.component_objects(SubModel)}
-        self._cons_sense_rhs[model.name] = collect_block_constraints(model)
-
         # A coefficients for linear terms, continuous var
         self._A_c = {k: dict() for k in self._all_models}
         # A coefficients for bilinear terms, for the continuous var
@@ -269,6 +263,9 @@ class BilevelMatrixRepn():
         self._A_f = {k: dict() for k in self._all_models - {model.name}}
         # A coefficients for bilinear terms, fixed var in SubModel
         self._A_f_q = {k: dict() for k in self._all_models - {model.name}}
+        # All constraint ids, corresponding sense and rhs; includes two entries for constraint declarations LHS <= body <= RHS
+        # that are not equality constraints
+        self._cons_sense_rhs = {k: dict() for k in self._all_models}
 
         self._preprocess()
 
@@ -290,23 +287,32 @@ class BilevelMatrixRepn():
         # return the full matrices if the sign on the constraint is not specified
         cons_sense_rhs = self._cons_sense_rhs[block.name]
         b = [rhs for (_cid, _sense), rhs in cons_sense_rhs.items()]
-        sign = [_sense for (_cid, _sense), rhs in cons_sense_rhs.items()]
-        if sense is None or not sense in ['e', 'l', 'g']:
+        sign = [_sense if _sense != 'g->l' else 'l' for (_cid, _sense), rhs in cons_sense_rhs.items()]
+        if sense is None or not sense in ['e', 'l', 'g','g->l']:
             return A, A_q, sign, array(b)
+
+        # grouping 'l' (<=) and those 'g->l' transformed to (<=) together
+        if sense=='l':
+            sense = ['l','g->l']
+        else:
+            sense=[sense]
 
         # return partial matrices if the sign on the constraint is specified
         indices = list()
         b = list()
         sign = list()
         for (_cid, _sense), rhs in cons_sense_rhs.items():
-            if _sense == sense:
+            if _sense in sense:
                 idx = list(cons_sense_rhs.keys()).index((_cid, _sense))
                 indices.append(idx)
                 b.append(rhs)
-                sign.append(_sense)
+                if _sense == 'g->l':
+                    sign.append('l')
+                else:
+                    sign.append(_sense)
 
         if len(indices) == 0:
-            return array(indices), coo_matrix((0, 0)), array(b) # return empty coo_matrix for A, A_q
+            return array(indices), coo_matrix((0, 0)), sign, array(b) # return empty coo_matrix for A, A_q
 
         cons_sense_rhs = self._cons_sense_rhs[block.name]
         if len(indices) == len(cons_sense_rhs):
@@ -316,31 +322,32 @@ class BilevelMatrixRepn():
 
     def _preprocess(self):
         # Preprocess the main Model (upper-level)
-        A_c, A_c_q, A_b, A_b_q, A_i, A_i_q, A_f, A_f_q = \
+        A_c, A_c_q, A_b, A_b_q, A_i, A_i_q, A_f, A_f_q, cons_sense_rhs = \
             collect_bilevel_matrix_representation(self._model, \
                                                   self._all_vars, \
                                                   self._c_var_ids, \
                                                   self._b_var_ids, \
                                                   self._i_var_ids, \
                                                   [], \
-                                                  self._cons_sense_rhs[self._model.name])
+                                                  standard_form = self._standard_form)
         self._A_c[self._model.name] = A_c
         self._A_c_q[self._model.name] = A_c_q
         self._A_b[self._model.name] = A_b
         self._A_b_q[self._model.name] = A_b_q
         self._A_i[self._model.name] = A_i
         self._A_i_q[self._model.name] = A_i_q
+        self._cons_sense_rhs[self._model.name] = cons_sense_rhs
 
         # Preprocess each SubModel (lower-level(s))
         for block in self._model.component_objects(SubModel):
-            A_c, A_c_q, A_b, A_b_q, A_i, A_i_q, A_f, A_f_q = \
+            A_c, A_c_q, A_b, A_b_q, A_i, A_i_q, A_f, A_f_q, cons_sense_rhs = \
                 collect_bilevel_matrix_representation(block, \
                                                       self._all_vars, \
                                                       self._c_var_ids - self._fixed_var_ids[block.name], \
                                                       self._b_var_ids - self._fixed_var_ids[block.name], \
                                                       self._i_var_ids - self._fixed_var_ids[block.name], \
                                                       self._fixed_var_ids[block.name], \
-                                                      self._cons_sense_rhs[block.name])
+                                                      standard_form = self._standard_form)
             self._A_c[block.name] = A_c
             self._A_c_q[block.name] = A_c_q
             self._A_b[block.name] = A_b
@@ -349,4 +356,4 @@ class BilevelMatrixRepn():
             self._A_i_q[block.name] = A_i_q
             self._A_f[block.name] = A_f
             self._A_f_q[block.name] = A_f_q
-
+            self._cons_sense_rhs[block.name] = cons_sense_rhs
