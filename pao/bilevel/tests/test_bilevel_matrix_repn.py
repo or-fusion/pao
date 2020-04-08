@@ -78,6 +78,7 @@ class TestBilevelMatrixRepn(unittest.TestCase):
         for submodel in instance.component_objects(SubModel):
             for var in instance.component_objects(Var):
                 (A, A_q, sign, b) = matrix_repn.coef_matrices(submodel, var)
+                (C, C_q, C_constant) = matrix_repn.cost_vectors(submodel, var)
                 print('---------------------')
                 print('submodel name: {}'.format(submodel.name))
                 print('variable name: {}'.format(var.name))
@@ -89,6 +90,12 @@ class TestBilevelMatrixRepn(unittest.TestCase):
                 print(sign)
                 print('Rhs: ')
                 print(b)
+                print('C linear coefficient: ')
+                print(C)
+                print('C bilinear vector coefficients: ')
+                print(C_q)
+                print('C constant coefficient: ')
+                print(C_constant)
         print('\n')
         print('---------------------')
         print('--Grouped By Sense---')

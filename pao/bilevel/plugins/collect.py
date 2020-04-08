@@ -82,8 +82,115 @@ def collect_fixed_vars(block):
     return fixed_var_ids
 
 
-def collect_bilevel_matrix_representation(block, all_vars, c_var_ids, b_var_ids, i_var_ids, fixed_var_ids,
-                                          standard_form=True):
+def collect_bilevel_objective_vector_representation(block, all_vars, c_var_ids, b_var_ids, i_var_ids, fixed_var_ids,
+                                                    standard_form=True):
+    """
+    Collects the terms for the objective
+    for the given local variable scope, per variable type (c:continuous,
+    b:binary, i:integer). Nested Blocks (or SubModels) are not considered
+    within local scope.
+
+    Arguments:
+        block: A Pyomo Model, Block, or SubModel that will be processed to
+                collect the objective terms.
+        all_vars: An iterable, sorted object with Variable and VarData values.
+        c_var_ids: Unique id for vars that are continuous and not fixed on this block.
+        b_var_ids: Unique id for vars that are binary and not fixed on this block.
+        i_var_ids: Unique id for vars that are integer and not fixed on this block.
+        fixed_var_ids: Unique id for vars that are fixed on this block.
+        standard_form: Whether to put the model into stanndard form representation (max for subproblem; min for model).
+
+    Returns: Tuple with the following values:
+    C^{c}:         The C coefficient scalar associate to continuous vars
+    C_q^{c}:       The C coefficient vector associate to continuous vars in bilinear terms
+    C^{b}:         The C coefficient scalar associate to binary vars
+    C_q^{b}:       The C coefficient vector associate to binary vars in bilinear terms
+    C^{i}:         The C coefficient scalar associate to integer vars
+    C_q^{i}:       The C coefficient vector associate to integer vars in bilinear terms
+    C^{f}:         The C coefficient scalar associate to fixed vars
+    C_q^{f}:       The C coefficient vector associate to fixed vars in bilinear terms
+    C_constant:    The C coefficient vector associate to constant terms
+    """
+
+    # number of variables
+    _c = len(all_vars)
+
+    # C coefficient for linear terms, continuous var
+    C_c = {k: 0. for k in c_var_ids}
+
+    # C coefficients for bilinear terms, for the continuous var
+    C_c_q = {k: zeros(_c) for k in c_var_ids}
+
+    # C coefficient for linear terms, binary var
+    C_b = {k: 0. for k in b_var_ids}
+
+    # C coefficients for bilinear terms, for the binary var
+    C_b_q = {k: zeros(_c) for k in b_var_ids}
+
+    # C coefficient for linear terms, integer var
+    C_i = {k: 0. for k in i_var_ids}
+
+    # C coefficients for bilinear terms, for the integer var
+    C_i_q = {k: zeros(_c) for k in i_var_ids}
+
+    # C coefficient for linear terms, fixed var in submodel
+    C_f = {k: 0. for k in fixed_var_ids}
+
+    # C coefficients for bilinear terms, fixed var in submodel
+    C_f_q = {k: zeros(_c) for k in fixed_var_ids}
+
+    C_constant = 0.
+
+    nobj = 0
+    for odata in block.component_objects(Objective, active=True):
+        for ndx in odata:
+            o_terms = generate_standard_repn(odata[ndx].expr, compute_values=False)
+            C_constant = o_terms.constant
+            _sign = 1.
+            if odata[ndx].sense == minimize: # swith to a maximize lower-level
+                if standard_form and not block.parent_block() is None:
+                    _sign = -1.
+            if odata[ndx].sense == maximize: # switch to a minimize upper-level
+                if standard_form and id(block) == id(block.root_block()):
+                    _sign = -1.
+            for var, coef in zip(o_terms.linear_vars, o_terms.linear_coefs):
+                _vid = id(var)
+                if _vid in c_var_ids:
+                    C_c[_vid] = _sign * coef
+                if _vid in b_var_ids:
+                    C_b[_vid] = _sign * coef
+                if _vid in i_var_ids:
+                    C_i[_vid] = _sign * coef
+                if _vid in fixed_var_ids:
+                    C_f[_vid] = _sign * coef
+
+            for (var1, var2), coef in zip(o_terms.quadratic_vars, o_terms.quadratic_coefs):
+                for (var, fixed) in [(var1, var2), (var2, var1)]:
+                    _vid = id(var)
+                    _col = list(all_vars.keys()).index(id(fixed)) if (id(fixed) in fixed_var_ids or id(var) in fixed_var_ids) else None
+                    if not _col is None:
+                        if _vid in c_var_ids:
+                            C_c_q[_vid][_col] = _sign * coef
+                        if _vid in b_var_ids:
+                            C_b_q[_vid][_col] = _sign * coef
+                        if _vid in i_var_ids:
+                            C_i_q[_vid][_col] = _sign * coef
+                        if _vid in fixed_var_ids:
+                            C_f_q[_vid][_col] = _sign * coef
+                    else:
+                        raise RuntimeError(
+                            "Error in matrix representation of bilevel Submodel block.  Bilinear expressions using"
+                            "variables in the same bilevel upper- or lower-level.")
+            nobj += 1
+    if nobj == 0:
+        raise RuntimeError("Error in vector representation of bilevel Submodel block.  No objective expression.")
+    if nobj > 1:
+        raise RuntimeError("Error in vector representation of bilevel Submodel block.  Multiple objective expressions.")
+
+    return C_c, C_c_q, C_b, C_b_q, C_i, C_i_q, C_f, C_f_q, C_constant
+
+def collect_bilevel_constraint_matrix_representation(block, all_vars, c_var_ids, b_var_ids, i_var_ids, fixed_var_ids,
+                                                     standard_form=True):
     """
     Collects the terms for each ==, >= and <= constraints
     for the given local variable scope, per variable type (c:continuous,
@@ -109,17 +216,18 @@ def collect_bilevel_matrix_representation(block, all_vars, c_var_ids, b_var_ids,
         b_var_ids: Unique id for vars that are binary and not fixed on this block.
         i_var_ids: Unique id for vars that are integer and not fixed on this block.
         fixed_var_ids: Unique id for vars that are fixed on this block.
-        cons_sense_rhs: Unique id for constraints on the block.
+        standard_form: Whether to put the model into stanndard form representation (<=, ==).
 
     Returns: Tuple with the following values:
-    A^{c}:         The A coefficient matrix associate to continuous vars
+    A^{c}:         The A coefficient vector associate to continuous vars
     A_q^{c}:       The A coefficient matrix associate to continuous vars in bilinear terms
-    A^{b}:         The A coefficient matrix associate to binary vars
+    A^{b}:         The A coefficient vector associate to binary vars
     A_q^{b}:       The A coefficient matrix associate to binary vars in bilinear terms
-    A^{i}:         The A coefficient matrix associate to integer vars
+    A^{i}:         The A coefficient vector associate to integer vars
     A_q^{i}:       The A coefficient matrix associate to integer vars in bilinear terms
-    A^{f}:         The A coefficient matrix associate to fixed vars
+    A^{f}:         The A coefficient vector associate to fixed vars
     A_q^{f}:       The A coefficient matrix associate to fixed vars in bilinear terms
+    cons_sense_rhs: Unique id for constraints on the block.
     """
 
     # number of constraints
@@ -202,15 +310,20 @@ def collect_bilevel_matrix_representation(block, all_vars, c_var_ids, b_var_ids,
                 for (var1, var2), coef in zip(body_terms.quadratic_vars, body_terms.quadratic_coefs):
                     for (var, fixed) in [(var1, var2), (var2, var1)]:
                         _vid = id(var)
-                        _col = list(all_vars.keys()).index(id(fixed))
-                        if _vid in c_var_ids:
-                            A_c_q[_vid][_row, _col] = _sign*coef
-                        if _vid in b_var_ids:
-                            A_b_q[_vid][_row, _col] = _sign*coef
-                        if _vid in i_var_ids:
-                            A_i_q[_vid][_row, _col] = _sign*coef
-                        if _vid in fixed_var_ids:
-                            A_f_q[_vid][_row, _col] = _sign*coef
+                        _col = list(all_vars.keys()).index(id(fixed)) if (id(fixed) in fixed_var_ids or id(var) in fixed_var_ids) else None
+                        if not _col is None:
+                            if _vid in c_var_ids:
+                                A_c_q[_vid][_row, _col] = _sign*coef
+                            if _vid in b_var_ids:
+                                A_b_q[_vid][_row, _col] = _sign*coef
+                            if _vid in i_var_ids:
+                                A_i_q[_vid][_row, _col] = _sign*coef
+                            if _vid in fixed_var_ids:
+                                A_f_q[_vid][_row, _col] = _sign*coef
+                        else:
+                            raise RuntimeError(
+                                "Error in matrix representation of bilevel Submodel block.  Bilinear expressions using"
+                                " variables in the same bilevel upper- or lower-level.")
 
     A_c_q = {k: coo_matrix(v) for k, v in A_c_q.items()}
     A_b_q = {k: coo_matrix(v) for k, v in A_b_q.items()}
@@ -267,7 +380,45 @@ class BilevelMatrixRepn():
         # that are not equality constraints
         self._cons_sense_rhs = {k: dict() for k in self._all_models}
 
+        # C coefficients for linear terms, continuous var
+        self._C_c = {k: dict() for k in self._all_models}
+        # C coefficients for bilinear terms, for the continuous var
+        self._C_c_q = {k: dict() for k in self._all_models}
+        # C coefficients for linear terms, binary var
+        self._C_b = {k: dict() for k in self._all_models}
+        # C coefficients for bilinear terms, for the binary var
+        self._C_b_q = {k: dict() for k in self._all_models}
+        # C coefficients for linear terms, integer var
+        self._C_i = {k: dict() for k in self._all_models}
+        # C coefficients for bilinear terms, for the integer var
+        self._C_i_q = {k: dict() for k in self._all_models}
+        # C coefficients for linear terms, fixed var in SubModel
+        self._C_f = {k: dict() for k in self._all_models - {model.name}}
+        # C coefficients for bilinear terms, fixed var in SubModel
+        self._C_f_q = {k: dict() for k in self._all_models - {model.name}}
+        # C coefficients for constant terms
+        self._C_constant = {k: dict() for k in self._all_models}
+
         self._preprocess()
+
+    def cost_vectors(self, block, var):
+        if id(var) in self._fixed_var_ids[block.name]:
+            C = (self._C_f.get(block.name)).get(id(var))
+            C_q = (self._C_f_q.get(block.name)).get(id(var))
+        else:
+            if var.is_continuous():
+                C = (self._C_c.get(block.name)).get(id(var))
+                C_q = (self._C_c_q.get(block.name)).get(id(var))
+            if var.is_binary():
+                C = (self._C_b.get(block.name)).get(id(var))
+                C_q = (self._C_c_q.get(block.name)).get(id(var))
+            if var.is_integer():
+                C = (self._C_i.get(block.name)).get(id(var))
+                C_q = (self._C_i_q.get(block.name)).get(id(var))
+
+        C_constant = self._C_constant.get(block.name)
+
+        return C, C_q, C_constant  # returns coo_matrix for selected rows
 
     def coef_matrices(self, block, var, sense=None):
         if id(var) in self._fixed_var_ids[block.name]:
@@ -323,13 +474,13 @@ class BilevelMatrixRepn():
     def _preprocess(self):
         # Preprocess the main Model (upper-level)
         A_c, A_c_q, A_b, A_b_q, A_i, A_i_q, A_f, A_f_q, cons_sense_rhs = \
-            collect_bilevel_matrix_representation(self._model, \
-                                                  self._all_vars, \
-                                                  self._c_var_ids, \
-                                                  self._b_var_ids, \
-                                                  self._i_var_ids, \
-                                                  [], \
-                                                  standard_form = self._standard_form)
+            collect_bilevel_constraint_matrix_representation(self._model, \
+                                                             self._all_vars, \
+                                                             self._c_var_ids, \
+                                                             self._b_var_ids, \
+                                                             self._i_var_ids, \
+                                                             [], \
+                                                             standard_form = self._standard_form)
         self._A_c[self._model.name] = A_c
         self._A_c_q[self._model.name] = A_c_q
         self._A_b[self._model.name] = A_b
@@ -338,16 +489,32 @@ class BilevelMatrixRepn():
         self._A_i_q[self._model.name] = A_i_q
         self._cons_sense_rhs[self._model.name] = cons_sense_rhs
 
+        C_c, C_c_q, C_b, C_b_q, C_i, C_i_q, C_f, C_f_q, C_constant = \
+            collect_bilevel_objective_vector_representation(self._model, \
+                                                            self._all_vars, \
+                                                            self._c_var_ids, \
+                                                            self._b_var_ids, \
+                                                            self._i_var_ids, \
+                                                            [], \
+                                                            standard_form = self._standard_form)
+        self._C_c[self._model.name] = C_c
+        self._C_c_q[self._model.name] = C_c_q
+        self._C_b[self._model.name] = C_b
+        self._C_b_q[self._model.name] = C_b_q
+        self._C_i[self._model.name] = C_i
+        self._C_i_q[self._model.name] = C_i_q
+        self._C_constant[self._model.name] = C_constant
+
         # Preprocess each SubModel (lower-level(s))
         for block in self._model.component_objects(SubModel):
             A_c, A_c_q, A_b, A_b_q, A_i, A_i_q, A_f, A_f_q, cons_sense_rhs = \
-                collect_bilevel_matrix_representation(block, \
-                                                      self._all_vars, \
-                                                      self._c_var_ids - self._fixed_var_ids[block.name], \
-                                                      self._b_var_ids - self._fixed_var_ids[block.name], \
-                                                      self._i_var_ids - self._fixed_var_ids[block.name], \
-                                                      self._fixed_var_ids[block.name], \
-                                                      standard_form = self._standard_form)
+                collect_bilevel_constraint_matrix_representation(block, \
+                                                                 self._all_vars, \
+                                                                 self._c_var_ids - self._fixed_var_ids[block.name], \
+                                                                 self._b_var_ids - self._fixed_var_ids[block.name], \
+                                                                 self._i_var_ids - self._fixed_var_ids[block.name], \
+                                                                 self._fixed_var_ids[block.name], \
+                                                                 standard_form = self._standard_form)
             self._A_c[block.name] = A_c
             self._A_c_q[block.name] = A_c_q
             self._A_b[block.name] = A_b
@@ -357,3 +524,21 @@ class BilevelMatrixRepn():
             self._A_f[block.name] = A_f
             self._A_f_q[block.name] = A_f_q
             self._cons_sense_rhs[block.name] = cons_sense_rhs
+
+            C_c, C_c_q, C_b, C_b_q, C_i, C_i_q, C_f, C_f_q, C_constant = \
+                collect_bilevel_objective_vector_representation(block, \
+                                                                self._all_vars, \
+                                                                self._c_var_ids - self._fixed_var_ids[block.name], \
+                                                                self._b_var_ids - self._fixed_var_ids[block.name], \
+                                                                self._i_var_ids - self._fixed_var_ids[block.name], \
+                                                                self._fixed_var_ids[block.name], \
+                                                                standard_form = self._standard_form)
+            self._C_c[block.name] = C_c
+            self._C_c_q[block.name] = C_c_q
+            self._C_b[block.name] = C_b
+            self._C_b_q[block.name] = C_b_q
+            self._C_i[block.name] = C_i
+            self._C_i_q[block.name] = C_i_q
+            self._C_f[block.name] = C_f
+            self._C_f_q[block.name] = C_f_q
+            self._C_constant[block.name] = C_constant
