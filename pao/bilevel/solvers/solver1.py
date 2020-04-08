@@ -16,10 +16,10 @@ Declare the ld solver.
 
 import time
 import pyutilib.misc
-from pyomo.core import TransformationFactory, Var, ComponentUID, Block, Objective, Set
+from pyomo.core import TransformationFactory, Var, Constraint, Block, Objective, Set
 import pyomo.opt
 import pyomo.common
-
+from itertools import chain
 
 @pyomo.opt.SolverFactory.register('pao.bilevel.ld',
                                   doc=\
@@ -52,13 +52,15 @@ class BilevelSolver1(pyomo.opt.OptSolver):
         xfrm = TransformationFactory('pao.bilevel.linear_dual')
         xfrm.apply_to(self._instance, use_dual_objective=self.use_dual_objective)
         #
-        # Verify whether the objective is linear
+        # Verify whether the model is linear
         #
         nonlinear = False
-        for odata in self._instance.component_objects(Objective, active=True):
+        for odata in chain(self._instance.component_objects(Objective, active=True), \
+                           self._instance.component_objects(Constraint, active=True)):
             nonlinear = odata.expr.polynomial_degree() != 1
-            # Stop after the first objective
-            break
+            if nonlinear:
+                # Stop after the first occurrence in the objective or one of the constraints
+                break
         #
         # Apply an additional transformation to remap bilinear terms
         #
@@ -79,6 +81,7 @@ class BilevelSolver1(pyomo.opt.OptSolver):
             self.results = []
             #
             #
+            opt.options['mipgap'] = self.options.get('mipgap', 0.001)
             self.results.append(opt.solve(self._instance,
                                           tee=self._tee,
                                           timelimit=self._timelimit))
@@ -104,7 +107,12 @@ class BilevelSolver1(pyomo.opt.OptSolver):
                 # Copy variable values and fix them
                 for v in tdata.fixed:
                     if not v.fixed:
-                        v.value = self._instance.find_component(v).value
+                        if v.is_binary():
+                            v.value = round(self._instance.find_component(v).value)
+                        if v.is_integer():
+                            v.value = round(self._instance.find_component(v).value)
+                        else:
+                            v.value = self._instance.find_component(v).value
                         v.fixed = True
                         unfixed_tdata.append(v)
                 # Reclassify the SubModel components and resolve
@@ -132,6 +140,7 @@ class BilevelSolver1(pyomo.opt.OptSolver):
                         #         io_options are getting relayed to the subsolver
                         #         here).
                         #
+                        opt_inner.options['mipgap'] = self.options.get('mipgap', 0.001)
                         results = opt_inner.solve(self._instance,
                                                   tee=self._tee,
                                                   timelimit=self._timelimit)

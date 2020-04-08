@@ -15,7 +15,7 @@
 1 Objective Declarations
     o : Size=1, Index=None, Active=True
         Key  : Active : Sense    : Expression
-        None :   True : minimize : - (100.0 - y[1])*c1 - (100.0 - y[2])*c2 - 100.0*c3 - 100.0*c4
+        None :   True : minimize : 3*y[1] + 2.5*y[2] - (100.0 - y[1])*c1 - (100.0 - y[2])*c2 - 100.0*c3 - 100.0*c4
 
 2 Constraint Declarations
     x[1] : Size=1, Index=None, Active=True

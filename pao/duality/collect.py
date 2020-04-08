@@ -36,9 +36,10 @@ from pyomo.core import (Var,
                         Block,
                         Model,
                         ConcreteModel)
+from pyomo.core.expr.visitor import identify_variables
 
 
-def collect_dual_representation(block, fixed, unfixed):
+def collect_dual_representation(block, fixed_modelvars):
     """
     Process linear terms from a block and return information that is
     used to define the dual. This function does not change the block.
@@ -52,14 +53,13 @@ def collect_dual_representation(block, fixed, unfixed):
 
     Arguments:
         block: The SubModel object that is dualized
-        fixed: An iterable object with Variable and VarData values that are fixed in 
-                this model.  All other variables are assumed to be unfixed.
-        unfixed: An iterable object with Variable and VarData values that are not fixed 
-                in this model.  All other variables are assumed to be fixed.
+        fixed_modelvars: A map from variable ids to VarData objects, which will be
+                fixed before dualization
 
     Returns: Tuple with the following values:
         A:        The dual matrix
         b_coef:   The coefficients of the dual objective
+        obj_offset: The offset for the dual objective
         c_rhs:    The dual constraint right-hand side
         c_sense:  The sense of each constraint in the dual
         d_sense:  The sense of the dual objective
@@ -67,37 +67,16 @@ def collect_dual_representation(block, fixed, unfixed):
                       (-1: Nonpositive, 0: Unbounded, 1: Nonnegative)
     """
     #
-    # Variables are constraints of block
-    # Constraints are unfixed variables of block and the parent model.
+    # fix variables
     #
-    if not fixed and not unfixed:
-        # If neither set was specified, then treat all variables as local
-        unfixed = True
-    elif unfixed:
-        unfixed_vars = set()
-        for v in unfixed:
-            if v.is_indexed():
-                for vardata in v.values():
-                    unfixed_vars.add( id(vardata) )
-            else:
-                unfixed_vars.add( id(v) )
-        fixed_vars = set()
-        unfixed = False
-    elif fixed:
-        unfixed_vars = set()
-        fixed_vars = set()
-        for v in fixed:
-            if v.is_indexed():
-                for vardata in v.values():
-                    fixed_vars.add( id(vardata) )
-            else:
-                fixed_vars.add( id(v) )
-        unfixed = False
+    for vdata in fixed_modelvars.values():
+        vdata.fixed = True
 
     all_vars = {}
 
     A = {}
     b_coef = {}
+    obj_offset = 0
     c_rhs = {}
     c_sense = {}
     d_sense = None
@@ -109,14 +88,15 @@ def collect_dual_representation(block, fixed, unfixed):
     for odata in block.component_objects(Objective, active=True):
         for ndx in odata:
             o_terms = generate_standard_repn(odata[ndx].expr, compute_values=False)
+            obj_offset = o_terms.constant
             if odata[ndx].sense == maximize:
                 d_sense = minimize
             else:
                 d_sense = maximize
             for var, coef in zip(o_terms.linear_vars, o_terms.linear_coefs):
-                if not unfixed and ((len(unfixed_vars) > 0  and (id(var) not in unfixed_vars)) or (id(var) in fixed_vars)):
-                    # Variable is fixed
-                    continue
+                # Variables should not be fixed
+                #if var.fixed:
+                #    continue
                 try:
                     # The variable is in the subproblem
                     varname = var.parent_component().getname(fully_qualified=True,
@@ -139,8 +119,10 @@ def collect_dual_representation(block, fixed, unfixed):
     #
     # Collect constraints
     #
+    #print("Y1")
     for data in block.component_objects(Constraint, active=True):
         name = data.getname(relative_to=block)
+        #print("Y2")
         for ndx in data:
             con = data[ndx]
             if not (con.equality or con.lower is None or con.upper is None):
@@ -148,6 +130,8 @@ def collect_dual_representation(block, fixed, unfixed):
             else:
                 dualvars = [name]
             body_terms = generate_standard_repn(con.body, compute_values=False)
+            #print("HERE")
+            #print(body_terms)
             if body_terms.is_fixed():
                 #
                 # If a constraint has a fixed body, then don't collect it.
@@ -155,10 +139,11 @@ def collect_dual_representation(block, fixed, unfixed):
                 continue
             nvars = 0
             for var, coef in zip(body_terms.linear_vars, body_terms.linear_coefs):
-                if not unfixed and ((len(unfixed_vars) > 0  and (id(var) not in unfixed_vars)) or (id(var) in fixed_vars)):
+                #if not unfixed and ((len(unfixed_vars) > 0  and (id(var) not in unfixed_vars)) or (id(var) in fixed_vars)):
+                #if var.fixed:
                     # Variable is fixed
-                    body_terms.constant += coef*var
-                    continue
+                    #body_terms.constant += coef*var
+                    #continue
                 nvars += 1
                 try:
                     # The variable is in the subproblem
@@ -173,11 +158,6 @@ def collect_dual_representation(block, fixed, unfixed):
                 for dvar in dualvars:
                     A.setdefault(varname, {}).setdefault(varndx, []).append(
                                                 Bunch(coef=coef, var=dvar, ndx=ndx))
-            if nvars == 0:
-                #
-                # If a constraint has a fixed body, then don't collect it.
-                #
-                continue
             #
             lower_terms = generate_standard_repn(con.lower, compute_values=False) \
                                                     if not con.lower is None else None
@@ -274,27 +254,52 @@ def collect_dual_representation(block, fixed, unfixed):
                 b_coef[name_, ndx] = bounds[0]
         else:
             # Bounded above and below
-            c_sense[name, ndx] = 'e'
-            #
-            # Add constraint that defines the upper bound
-            #
-            name_ = name + "_upper_"
-            A.setdefault(name, {}).setdefault(ndx, []).append(Bunch(coef=1.0, var=name_, ndx=ndx))
-            #
-            v_domain[name_, ndx] = -1
-            b_coef[name_, ndx] = bounds[1]
-            #
-            # Add constraint that defines the lower bound
-            #
-            name_ = name + "_lower_"
-            #varname = data.parent_component().getname(fully_qualified=True, relative_to=block)
-            #varndx = data[ndx].index()
-            A.setdefault(name, {}).setdefault(ndx, []).append(Bunch(coef=1.0, var=name_, ndx=ndx))
-            #
-            v_domain[name_, ndx] = 1
-            b_coef[name_, ndx] = bounds[0]
+            if bounds[0] == 0:
+                c_sense[name, ndx] = 'l'
+                #
+                # Add constraint that defines the upper bound
+                #
+                name_ = name + "_upper_"
+                A.setdefault(name, {}).setdefault(ndx, []).append(Bunch(coef=1.0, var=name_, ndx=ndx))
+                #
+                v_domain[name_, ndx] = -1
+                b_coef[name_, ndx] = bounds[1]
+            elif bounds[1] == 0:
+                c_sense[name, ndx] = 'g'
+                #
+                # Add constraint that defines the lower bound
+                #
+                name_ = name + "_lower_"
+                A.setdefault(name, {}).setdefault(ndx, []).append(Bunch(coef=1.0, var=name_, ndx=ndx))
+                #
+                v_domain[name_, ndx] = 1
+                b_coef[name_, ndx] = bounds[0]
+            else:
+                c_sense[name, ndx] = 'e'
+                #
+                # Add constraint that defines the upper bound
+                #
+                name_ = name + "_upper_"
+                A.setdefault(name, {}).setdefault(ndx, []).append(Bunch(coef=1.0, var=name_, ndx=ndx))
+                #
+                v_domain[name_, ndx] = -1
+                b_coef[name_, ndx] = bounds[1]
+                #
+                # Add constraint that defines the lower bound
+                #
+                name_ = name + "_lower_"
+                A.setdefault(name, {}).setdefault(ndx, []).append(Bunch(coef=1.0, var=name_, ndx=ndx))
+                #
+                v_domain[name_, ndx] = 1
+                b_coef[name_, ndx] = bounds[0]
+
     #
-    return (A, b_coef, c_rhs, c_sense, d_sense, v_domain)
+    # Unfix the variables that were fixed
+    #
+    for vdata in fixed_modelvars.values():
+        vdata.fixed = False
+
+    return (A, b_coef, obj_offset, c_rhs, c_sense, d_sense, v_domain)
 
 
 
@@ -326,12 +331,66 @@ def create_linear_dual_from(block, fixed=None, unfixed=None):
         Otherwise, it returns a Block.
     """
     #
-    # Collect linear terms from the block
+    # Collect vardata that needs to be fixed
     #
-    # NOTE: We are ignoring the vnames and cnames data
-    #
-    A, b_coef, c_rhs, c_sense, d_sense, v_domain = \
-        collect_dual_representation(block, fixed, unfixed)
+    fixed_modelvars = {}
+    if fixed or unfixed:
+        #
+        # Collect model variables
+        #
+        modelvars = {}
+        #
+        # vardata in objectives
+        #
+        for obj in block.component_objects(Objective, active=True):
+            for ndx in obj:
+                #odata = generate_standard_repn(obj[ndx].expr, compute_values=False)
+                for vdata in identify_variables(obj[ndx].expr, include_fixed=False):
+                    id_ = id(vdata)
+                    if not id_ in modelvars:
+                        modelvars[id_] = vdata
+        #
+        # vardata in constraints
+        #
+        for con in block.component_objects(Constraint, active=True):
+            for ndx in con:
+                #cdata = generate_standard_repn(con[ndx].body, compute_values=False)
+                for vdata in identify_variables(con[ndx].body, include_fixed=False):
+                    id_ = id(vdata)
+                    if not id_ in modelvars:
+                        modelvars[id_] = vdata
+        #
+        # Fix everything that isn't specified as unfixed
+        #
+        if unfixed:
+            unfixed_vars = set()
+            for v in unfixed:
+                if v.is_indexed():
+                    for vardata in v.values():
+                        unfixed_vars.add( id(vardata) )
+                else:
+                    unfixed_vars.add( id(v) )
+            for id_, vdata in modelvars.items():
+                if id_ not in unfixed_vars:
+                    fixed_modelvars[id_] = vdata
+        #
+        # ... or fix everything that is specified as fixed
+        #
+        elif fixed:
+            fixed_vars = set()
+            for v in fixed:
+                if v.is_indexed():
+                    for vardata in v.values():
+                        fixed_vars.add( id(vardata) )
+                else:
+                    fixed_vars.add( id(v) )
+            for id_ in fixed_vars:
+                if id_ in modelvars:
+                    fixed_modelvars[id_] = modelvars[id_]
+
+    A, b_coef, obj_constant, c_rhs, c_sense, d_sense, v_domain =\
+                    collect_dual_representation(block, fixed_modelvars)
+
     #
     # Construct the block
     #
@@ -362,11 +421,11 @@ def create_linear_dual_from(block, fixed=None, unfixed=None):
     # objective and left-hand side coefficients while keeping the dual sense.
     #
     if d_sense == minimize:
-        dual.o = Objective(expr=sum(- b_coef[name, ndx]*getvar(name, ndx)
+        dual.o = Objective(expr=obj_constant + sum(- b_coef[name, ndx]*getvar(name, ndx)
                                     for name, ndx in b_coef), sense=d_sense)
         rhs_multiplier = -1
     else:
-        dual.o = Objective(expr=sum(b_coef[name, ndx]*getvar(name, ndx)
+        dual.o = Objective(expr=obj_constant + sum(b_coef[name, ndx]*getvar(name, ndx)
                                     for name, ndx in b_coef), sense=d_sense)
         rhs_multiplier = 1
     #
