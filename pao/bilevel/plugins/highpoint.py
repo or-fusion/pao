@@ -14,9 +14,9 @@ pao.bilevel.plugins.highpoint
 
 import six
 
-from pyomo.core import Block, VarList, ConstraintList, Objective,\
-                       Var, Constraint, maximize, ComponentUID, Set,\
-                       TransformationFactory, Model, Reference
+from pyomo.core import Block, Objective,\
+                       Var, Constraint, ComponentUID, \
+                       TransformationFactory, Reference
 from pao.bilevel.components import SubModel
 from .transform import BaseBilevelTransformation
 import logging
@@ -45,7 +45,7 @@ def create_submodel_hp_block(instance):
         block.add_component(c.name, Reference(c))
 
     # deactivate the highpoint relaxation
-    block.deactivate()
+    # block.deactivate()
 
     return block
 
@@ -60,15 +60,19 @@ class LinearHighpointTransformation(BaseBilevelTransformation):
     """
 
     def _apply_to(self, model, **kwds):
+        submodel_name = kwds.pop('submodel_name', 'hpr')
         self._preprocess('pao.bilevel.highpoint', model)
 
         for key, sub in self.submodel.items():
             model.reclassify_component_type(sub, Block)
 
-        setattr(model, 'hpr',
+        setattr(model, submodel_name,
                     create_submodel_hp_block(model))
 
         model._transformation_data['pao.bilevel.highpoint'].submodel_cuid = \
             ComponentUID(model)
         model._transformation_data['pao.bilevel.highpoint'].block_cuid = \
-            ComponentUID(getattr(model, 'hpr'))
+            ComponentUID(getattr(model, submodel_name))
+
+        for key, sub in self.submodel.items():
+            model.reclassify_component_type(sub, SubModel)

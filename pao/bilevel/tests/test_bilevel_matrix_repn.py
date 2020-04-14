@@ -28,7 +28,7 @@ current_dir = dirname(abspath(__file__))
 aux_dir = join(dirname(abspath(__file__)),'auxiliary')
 
 # models for bilevel reformulation tests
-reformulation_model_names = ['bqp_example1','bqp_example2']
+reformulation_model_names = ['yueA1']
 reformulation_models = [join(current_dir, 'auxiliary', '{}.py'.format(i)) for i in reformulation_model_names]
 reformulations = [join(current_dir, 'auxiliary','reformulation','{}.txt'.format(i)) for i in reformulation_model_names]
 
@@ -116,6 +116,14 @@ class TestBilevelMatrixRepn(unittest.TestCase):
                     print('Rhs: ')
                     print(b)
 
+        from pao.bilevel.solvers.solver6 import BilevelSolver5
+        solver = BilevelSolver5()
+        solver._presolve(instance)
+        solver._apply_solver()
+        solver._postsolve(instance)
+        # solver = SolverFactory('pao.bilevel.ccg')
+        # solver.options.solver = 'gurobi'
+        # results = solver.solve(instance, tee=False)
 
 if __name__ == "__main__":
     unittest.main()

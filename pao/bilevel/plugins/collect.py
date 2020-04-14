@@ -402,7 +402,7 @@ class BilevelMatrixRepn():
         self._preprocess()
 
     def cost_vectors(self, block, var):
-        if id(var) in self._fixed_var_ids[block.name]:
+        if id(block) != id(block.root_block()) and id(var) in self._fixed_var_ids[block.name]:
             C = (self._C_f.get(block.name)).get(id(var))
             C_q = (self._C_f_q.get(block.name)).get(id(var))
         else:
@@ -421,7 +421,7 @@ class BilevelMatrixRepn():
         return C, C_q, C_constant  # returns coo_matrix for selected rows
 
     def coef_matrices(self, block, var, sense=None):
-        if id(var) in self._fixed_var_ids[block.name]:
+        if id(block) != id(block.root_block()) and id(var) in self._fixed_var_ids[block.name]:
             A = (self._A_f.get(block.name)).get(id(var))
             A_q = (self._A_f_q.get(block.name)).get(id(var))
         else:
