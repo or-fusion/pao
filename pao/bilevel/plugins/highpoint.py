@@ -38,11 +38,11 @@ def create_submodel_hp_block(instance):
     # get the variables of the model (if there are more submodels, then
     # extraneous variables may be added to the block)
     for c in instance.component_objects(Var, sort=True, descend_into=True, active=True):
-        block.add_component(c.name, Reference(c))
+        block.add_component(c.name, Reference(c[...]))
 
     # get the constraints from the main model
     for c in instance.component_objects(Constraint, sort=True, descend_into=True, active=True):
-        block.add_component(c.name, Reference(c))
+        block.add_component(c.name, Reference(c[...]))
 
     # deactivate the highpoint relaxation
     # block.deactivate()

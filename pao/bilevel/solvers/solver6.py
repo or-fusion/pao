@@ -27,14 +27,14 @@ import pyutilib.misc
 import pyomo.opt
 from math import inf
 import pyomo.common
-from pyomo.mpec import complements
-from pyomo.gdp import Disjunct
+from pyomo.mpec import complements, ComplementarityList, Complementarity
+from pyomo.gdp import Disjunct, Disjunction
 from pao.bilevel.solvers.solver_helpers import _check_termination_condition
 from pao.bilevel.plugins.collect import BilevelMatrixRepn
 from pao.bilevel.components import SubModel, varref, dataref
-from pyomo.core import TransformationFactory, minimize, maximize, Block, Constraint, Objective, Var, Reals, ComplementarityList
+from pyomo.core import TransformationFactory, minimize, maximize, Block, Constraint, Objective, Var, Reals, Binary, Integers, Any
 from pyomo.core.expr.numvalue import value
-from numpy import array, dot, sum
+from numpy import array, dot
 
 @pyomo.opt.SolverFactory.register('pao.bilevel.ccg',
                                   doc='Solver for projection-based reformulation and decomposition.')
@@ -70,6 +70,7 @@ class BilevelSolver5(pyomo.opt.OptSolver):
                     odata.set_value(-odata.expr)
                     odata.set_sense(maximize)
 
+    @property
     def _apply_solver(self):
         #
         # Solve with a specified solver
@@ -97,53 +98,52 @@ class BilevelSolver5(pyomo.opt.OptSolver):
         varref(submodel)
         dataref(submodel)
 
-        all_vars = [var for (key, var) in matrix_repn._all_vars.items()]
-
-
+        all_vars = {key: var for (key, var) in matrix_repn._all_vars.items()}
 
         # get the variables that are fixed for the submodel (lower-level block)
-        fixed_var_ids = matrix_repn._fixed_var_ids[submodel.name]
-        fixed_vars = [var for (key, var) in matrix_repn._all_vars.items() if key in fixed_var_ids]
+        fixed_vars = {key: var for (key, var) in matrix_repn._all_vars.items() if key in matrix_repn._fixed_var_ids[submodel.name]}
 
-        c_var_ids = matrix_repn._c_var_ids - fixed_var_ids  # continuous variables in SubModel
-        c_vars = [var for (key, var) in matrix_repn._all_vars.items() if key in c_var_ids]
+        # continuous variables in SubModel
+        c_vars = {key: var for (key, var) in matrix_repn._all_vars.items() if key in matrix_repn._c_var_ids - fixed_vars.keys()}
 
-        b_var_ids = matrix_repn._b_var_ids - fixed_var_ids  # binary variables in SubModel
-        b_vars = [var for (key, var) in matrix_repn._all_vars.items() if key in b_var_ids]
+        # binary variables in SubModel
+        b_vars = {key: var for (key, var) in matrix_repn._all_vars.items() if key in matrix_repn._b_var_ids - fixed_vars.keys()}
 
-        i_var_ids = matrix_repn._i_var_ids - fixed_var_ids  # integer variables in SubModel
-        i_vars = [var for (key, var) in matrix_repn._all_vars.items() if key in i_var_ids]
+        # integer variables in SubModel
+        i_vars = {key: var for (key, var) in matrix_repn._all_vars.items() if key in matrix_repn._i_var_ids - fixed_vars.keys()}
 
-        sub_cons_ids = set(matrix_repn._cons_sense_rhs[submodel.name].keys())
-        sub_cons_sense_rhs = matrix_repn._cons_sense_rhs[submodel.name]
-
-        _c_var_bounds_rule = lambda m, k: c_var_ids[k].bounds
-        _iter_c = {k: Var(c_var_ids, bounds=_c_var_bounds_rule, domain=Reals)}
-        _iter_c_tilde = {k: Var(c_var_ids, bounds=_c_var_bounds_rule, domain=Reals)}
-        _iter_b = {k: Var(b_var_ids, bounds=_c_var_bounds_rule)}
-        _iter_i = {k: Var(i_var_ids, bounds=_c_var_bounds_rule)}
-
-        _iter_pi_tilde = {k: Var(sub_cons_ids, bounds=(0,None))}
-        _iter_pi = {k: Var(sub_cons_ids, bounds=(0,None))}
-        _iter_t = {k: Var(sub_cons_ids, bounds=(0,None))}
-        _iter_lambda = {k: Var(sub_cons_ids, bounds=(0,None))}
-
-
-
+        # get constraint information related to constraint id, sign, and rhs value
+        sub_cons = matrix_repn._cons_sense_rhs[submodel.name]
 
         while k <= self._k_max_iter:
 
             # Step 2. Lower Bounding
             # Solve problem (P5) master problem.
-            # This includes equations (53), (12), (13), and (15)
-            # which is the highpoint relaxation (HPR)
-            model_name = '_p5_alternate'
+            # This includes equations (53), (12), (13), (15), and (54)
+            # On iteration k = 0, (54) does not exist. Instead of implementing (54),
+            # this approach applies problem (P9) which incorporates KKT-based tightening
+            # constraints, and a projection and indicator constraint set.
+            model_name = '_p9'
             lower_bounding_master = getattr(self._instance, model_name, None)
             if lower_bounding_master is None:
                 xfrm = TransformationFactory('pao.bilevel.highpoint')
                 kwds = {'submodel_name': model_name}
                 xfrm.apply_to(self._instance, **kwds)
                 lower_bounding_master = getattr(self._instance, model_name)
+
+                _c_var_bounds_rule = lambda m, k: c_vars[k].bounds
+                _c_var_init_rule = lambda m, k: (c_vars[k].lb + c_vars[k].ub) / 2
+                lower_bounding_master._iter_c = Var(Any, within=Reals, dense=False)  # set (iter k, c_var_ids)
+                lower_bounding_master._iter_c_tilde = Var(c_vars.keys(), bounds=_c_var_bounds_rule, initialize=_c_var_init_rule,
+                                                   within=Reals)  # set (iter k, c_var_ids)
+                lower_bounding_master._iter_b = Var(Any, within=Binary, dense=False)  # set (iter k, b_var_ids)
+                lower_bounding_master._iter_i = Var(Any, within=Integers, dense=False)  # set (iter k, i_var_ids)
+
+                lower_bounding_master._iter_pi_tilde = Var(sub_cons.keys(), bounds=(0, None))  # set (iter k, sub_cons_ids)
+                lower_bounding_master._iter_pi = Var(Any, bounds=(0, None), dense=False)  # set (iter k, sub_cons_ids)
+                lower_bounding_master._iter_t = Var(Any, bounds=(0, None), dense=False)  # set (iter k, sub_cons_ids)
+                lower_bounding_master._iter_lambda = Var(Any, bounds=(0, None), dense=False)  # set (iter k, sub_cons_ids)
+                m = lower_bounding_master # shorthand reference to model
 
             # solve the HPR and check the termination condition
             lower_bounding_master.activate()
@@ -152,28 +152,38 @@ class BilevelSolver5(pyomo.opt.OptSolver):
                                               tee=self._tee,
                                               timelimit=self._timelimit))
             _check_termination_condition(self.results[-1])
-            # get the objective function value for the HPR, which is the same as the main objective functi
-            LB = [value(odata) for odata in self._instance.component_objects(Objective) if odata.parent_block() == self._instance][0]
+            # the LB should be a sequence of non-decreasing lower-bounds
+            _lb = [value(odata) for odata in self._instance.component_objects(Objective) if odata.parent_block() == self._instance][0]
+            if _lb < LB:
+                raise Exception('The lower-bound should be non-decreasing; a decreasing lower-bound indicates an algorithm issue.')
+            LB = max(LB,_lb)
             lower_bounding_master.deactivate()
+
 
             # Step 3. Termination
             if UB - LB < xi:
+                print(UB)
+                print(LB)
                 return pyutilib.misc.Bunch(rc=getattr(opt, '_rc', None),
                                            log=getattr(opt, '_log', None))
 
             # fix the upper-level (master) variables to solve (P6) and (P7)
-            for var in fixed_vars:
+            for key, var in fixed_vars.items():
                 var.fix(var.value)
 
             # Step 4. Subproblem 1
             # Solve problem (P6) lower-level problem for fixed upper-level optimal vars.
+            # In iteration k=0, this first subproblem is always feasible; furthermore, the
+            # optimal solution to (P5), alternatively (P9), will also be feasible to (P6).
             with pyomo.opt.SolverFactory(solver) as opt:
                 self.results.append(opt.solve(submodel,
                                               tee=self._tee,
                                               timelimit=self._timelimit))
             _check_termination_condition(self.results[-1]) # check the last item appended to list
             theta = [value(odata) for odata in submodel.component_objects(Objective)][0]
-            _fixed = array([var.value for (key, var) in matrix_repn._all_vars.items()])  # all variable values
+
+            # solution for all variable values
+            _fixed = array([var.value for (key, var) in matrix_repn._all_vars.items()])
 
 
             # Step 5. Subproblem 2
@@ -190,9 +200,10 @@ class BilevelSolver5(pyomo.opt.OptSolver):
                     upper_bounding_subproblem.del_component(odata)
 
             # solve for the master problem objective value for just the lower level variables
+            upper_bounding_subproblem.del_component('objective')
             obj_constant = 0.
             obj_expr = 0.
-            for var in c_vars+b_vars+i_vars:
+            for var in {**c_vars, **b_vars, **i_vars}.values():
                 (C, C_q, C_constant) = matrix_repn.cost_vectors(self._instance, var)
                 if obj_constant == 0. and C_constant != 0.:
                     obj_constant += C_constant # only add the constant once
@@ -200,9 +211,10 @@ class BilevelSolver5(pyomo.opt.OptSolver):
             upper_bounding_subproblem.objective = Objective(expr=obj_expr + obj_constant)
 
             # include lower bound constraint on the subproblem objective
+            upper_bounding_subproblem.del_component('theta_pareto')
             sub_constant = 0.
             sub_expr = 0.
-            for var in all_vars:
+            for var in all_vars.values():
                 (C, C_q, C_constant) = matrix_repn.cost_vectors(submodel, var)
                 if sub_constant == 0. and C_constant != 0.:
                     sub_constant += C_constant # only add the constant once
@@ -218,7 +230,7 @@ class BilevelSolver5(pyomo.opt.OptSolver):
             # calculate new upper bound
             obj_constant = 0.
             obj_expr = 0.
-            for var in fixed_vars:
+            for var in fixed_vars.values():
                 (C, C_q, C_constant) = matrix_repn.cost_vectors(self._instance, var)
                 if obj_constant == 0. and C_constant != 0.:
                     obj_constant += C_constant # only add the constant once
@@ -227,267 +239,288 @@ class BilevelSolver5(pyomo.opt.OptSolver):
             _ub = obj_expr + obj_constant + [value(odata) for odata in upper_bounding_subproblem.component_objects(Objective)][0]
             UB = min(UB,_ub)
 
-            # unfix the submodel variables
-            for var in fixed_vars:
+            # unfix the upper-level variables
+            for var in fixed_vars.values():
                 var.unfix()
+
+            # fix the solution for submodel binary variables
+            for _vid, var in b_vars.items():
+                m._iter_b[(k, _vid)].fix(var.value)
+
+            # fix the solution for submodel integer variables
+            for _vid, var in i_vars.items():
+                m._iter_i[(k, _vid)].fix(var.value)
 
             # Step 6. Tightening the Master Problem
 
-            # constraint (74)
-            lower_bounding_master.KKT_tight1 = Constraint(set(c_var_ids))
-            for var in c_vars:
-                _vid = id(var)
-                (C, C_q, C_constant) = matrix_repn.cost_vectors(submodel, var)
-                lhs_expr = float(C + dot(C_q,_fixed))*var
-                rhs_expr = float(C + dot(C_q,_fixed))*_iter_c_tilde[k][_vid]
-            lower_bounding_master.KKT_tight1[_vid] = lhs_expr >= rhs_expr
+            if k == 0:
+                # constraint (74)
+                lhs_expr = 0.
+                rhs_expr = 0.
+                for _vid, var in c_vars.items():
+                    (C, C_q, C_constant) = matrix_repn.cost_vectors(submodel, var)
+                    lhs_expr += float(C + dot(C_q,_fixed))*var
+                    rhs_expr += float(C + dot(C_q,_fixed))*m._iter_c_tilde[_vid]
+                expr = lhs_expr >= rhs_expr
+                if not type(expr) is bool:
+                    lower_bounding_master.KKT_tight1 = Constraint(expr=lhs_expr >= rhs_expr)
 
-            # constraint (75a)
-            lower_bounding_master.KKT_tight2a = Constraint(sub_cons_ids)
-            lhs_expr_a = {key: 0. for key in sub_cons_ids}
-            rhs_expr_a = {key: 0. for key in sub_cons_ids}
-            for var in c_vars:
-                _vid = id(var)
-                (A, A_q, sign, b) = matrix_repn.coef_matrices(submodel, var)
-                coef = A + dot(A_q.toarray(), _fixed)
-                for key in sub_cons_ids:
-                    _cid = list(sub_cons_ids).index(key)
-                    lhs_expr_a[key] += float(coef[_cid])*_iter_c_tilde[k][_vid]
+                # constraint (75a)
+                lower_bounding_master.KKT_tight2a = Constraint(sub_cons.keys())
+                lhs_expr_a = {key: 0. for key in sub_cons.keys()}
+                rhs_expr_a = {key: 0. for key in sub_cons.keys()}
+                for _vid, var in c_vars.items():
+                    (A, A_q, sign, b) = matrix_repn.coef_matrices(submodel, var)
+                    coef = A + dot(A_q.toarray(), _fixed)
+                    for _cid in sub_cons.keys():
+                        idx = list(sub_cons.keys()).index(_cid)
+                        lhs_expr_a[_cid] += float(coef[idx])*m._iter_c_tilde[_vid]
 
-            _vars = b_vars+i_vars+fixed_vars
-            for var in _vars:
-                (A, A_q, sign, b) = matrix_repn.coef_matrices(submodel, var)
-                coef = A + dot(A_q.toarray(), _fixed)
-                for key in sub_cons_ids:
-                    _cid = list(sub_cons_ids).index(key)
-                    rhs_expr_a[key] += -float(coef[_cid])*var
+                for var in {**b_vars, **i_vars, **fixed_vars}.values():
+                    (A, A_q, sign, b) = matrix_repn.coef_matrices(submodel, var)
+                    coef = A + dot(A_q.toarray(), _fixed)
+                    for _cid in sub_cons.keys():
+                        idx = list(sub_cons.keys()).index(_cid)
+                        rhs_expr_a[_cid] += -float(coef[idx])*var
 
-            for key in sub_cons_ids:
-                (id,sign) = key
-                b = sub_cons_sense_rhs[key]
-                rhs_expr_a[key] += b
-                if sign=='l' or sign=='g->l':
-                    lower_bounding_master.KKT_tight2a[key] = lhs_expr_a[key] <= rhs_expr_a[key]
-                if sign=='e':
-                    lower_bounding_master.KKT_tight2a[key] = lhs_expr_a[key] == rhs_expr_a[key]
-                if sign=='g':
-                    raise Exception('Problem encountered, this problem is not in standard form.')
+                for _cid, b in sub_cons.items():
+                    (id,sign) = _cid
+                    rhs_expr_a[_cid] += b
+                    if sign=='l' or sign=='g->l':
+                        expr = lhs_expr_a[_cid] <= rhs_expr_a[_cid]
+                    if sign=='e':
+                        expr = lhs_expr_a[_cid] == rhs_expr_a[_cid]
+                    if sign=='g':
+                        raise Exception('Problem encountered, this problem is not in standard form.')
+                    if not type(expr) is bool:
+                        lower_bounding_master.KKT_tight2a[_cid] = expr
+                    else:
+                        lower_bounding_master.KKT_tight2a[_cid] = Constraint.Skip
 
-            # constraint (75b)
-            lower_bounding_master.KKT_tight2b = Constraint(sub_cons_ids)
-            lhs_expr_b = {key: 0. for key in sub_cons_ids}
-            rhs_expr_b = {key: 0. for key in sub_cons_ids}
-            for var in c_vars:
-                _vid = id(var)
-                (A, A_q, sign, b) = matrix_repn.coef_matrices(submodel, var)
-                coef = A + dot(A_q.toarray(), _fixed)
-                for key in sub_cons_ids:
-                    _cid = list(sub_cons_ids).index(key)
-                    lhs_expr_b[key] += float(coef[_cid])*_iter_pi_tilde[k][_vid]
+                # constraint (75b)
+                lower_bounding_master.KKT_tight2b = Constraint(c_vars.keys())
+                lhs_expr_b = {key: 0. for key in c_vars.keys()}
+                rhs_expr_b = {key: 0. for key in c_vars.keys()}
+                for _vid, var in c_vars.items():
+                    (A, A_q, sign, b) = matrix_repn.coef_matrices(submodel, var)
+                    coef = A + dot(A_q.toarray(), _fixed)
+                    lhs_expr_b[_vid] += float(sum(coef))*m._iter_pi_tilde[_vid]
 
-                (C, C_q, C_constant) = matrix_repn.cost_vectors(submodel, var)
-                rhs_expr_b[key] = float(C + dot(C_q,_fixed))
-            for key in sub_cons_ids:
-                lower_bounding_master.KKT_tight2b[key] = lhs_expr_b[key] >= rhs_expr_b[key]
+                    (C, C_q, C_constant) = matrix_repn.cost_vectors(submodel, var)
+                    rhs_expr_b[_vid] = float(C + dot(C_q,_fixed))
 
-            # constraint (76a)
-            lower_bounding_master.KKT_tight3a = ComplementarityList(sub_cons_ids)
-            for key in sub_cons_ids:
-                lower_bounding_master.KKT_tight3a[key] = complements(_iter_c_tilde[k][key] >= 0, lhs_expr_b[key] - rhs_expr_b[key] >= 0)
+                    expr = lhs_expr_b[_vid] >= rhs_expr_b[_vid]
+                    if not type(expr) is bool:
+                        lower_bounding_master.KKT_tight2b[_vid] = expr
+                    else:
+                        lower_bounding_master.KKT_tight2b[_vid] = Constraint.Skip
 
-            # constraint (76b)
-            lower_bounding_master.KKT_tight3b = ComplementarityList(sub_cons_ids)
-            for key in sub_cons_ids:
-                lower_bounding_master.KKT_tight3b[key] = complements(_iter_pi_tilde[k][key] >= 0, rhs_expr_a[key] - lhs_expr_a[key] >= 0)
+                # constraint (76a)
+                lower_bounding_master.KKT_tight3a = ComplementarityList()
+                for _vid in c_vars.keys():
+                    lower_bounding_master.KKT_tight3a.add(complements(m._iter_c_tilde[_vid] >= 0, lhs_expr_b[_vid] - rhs_expr_b[_vid] >= 0))
 
-            # constraint (77a)
-            lower_bounding_master.KKT_tight4a = Constraint(c_var_ids)
-            for key in c_var_ids:
-                lower_bounding_master.KKT_tight4a[key] = _iter_c_tilde[k][key] >= 0
+                # constraint (76b)
+                lower_bounding_master.KKT_tight3b = ComplementarityList()
+                for _cid in sub_cons.keys():
+                    lower_bounding_master.KKT_tight3b.add(complements(m._iter_pi_tilde[_cid] >= 0, rhs_expr_a[_cid] - lhs_expr_a[_cid] >= 0))
 
-            # constraint (77b)
-            lower_bounding_master.KKT_tight4a = Constraint(sub_cons_ids)
-            for key in sub_cons_ids:
-                lower_bounding_master.KKT_tight4b[key] = _iter_pi_tilde[k][key] >= 0
+                # constraint (77a)
+                lower_bounding_master.KKT_tight4a = Constraint(c_vars.keys())
+                for _vid in c_vars.keys():
+                    lower_bounding_master.KKT_tight4a[_vid] = m._iter_c_tilde[_vid] >= 0
+
+                # constraint (77b)
+                lower_bounding_master.KKT_tight4b = Constraint(sub_cons.keys())
+                for _cid in sub_cons.keys():
+                    lower_bounding_master.KKT_tight4b[_cid] = m._iter_pi_tilde[_cid] >= 0
+
+            projections = getattr(lower_bounding_master, 'projections', None)
+            if projections is None:
+                lower_bounding_master.projections = Block(Any)
+                projections = lower_bounding_master.projections
 
             # constraint (79)
-            lower_bounding_master.projection1 = Constraint(sub_cons_ids)
-            lhs_expr_proj = {key: 0. for key in sub_cons_ids}
-
-            rhs_expr_proj = {key: 0. for key in sub_cons_ids}
-            for var in c_vars:
-                _vid = id(var)
+            projections[k].projection1 = Constraint(sub_cons.keys())
+            lhs_expr_proj = {key: 0. for key in sub_cons.keys()}
+            rhs_expr_proj = {key: 0. for key in sub_cons.keys()}
+            for _vid, var in c_vars.items():
                 (A, A_q, sign, b) = matrix_repn.coef_matrices(submodel, var)
                 coef = A + dot(A_q.toarray(), _fixed)
-                for key in sub_cons_ids:
-                    _cid = list(sub_cons_ids).index(key)
-                    lhs_expr_proj[key] += float(coef[_cid])*_iter_c[k][_vid]
-                    #hs_expr_proj[key] -= _iter_t[k][_cid]
+                for _cid in sub_cons.keys():
+                    idx = list(sub_cons.keys()).index(_cid)
+                    lhs_expr_proj[_cid] += float(coef[idx])*m._iter_c[(k,_vid)]
 
-            for var in b_vars:
-                _vid = id(var)
+            for _vid, var in b_vars.items():
                 (A, A_q, sign, b) = matrix_repn.coef_matrices(submodel, var)
                 coef = A + dot(A_q.toarray(), _fixed)
-                for key in sub_cons_ids:
-                    _cid = list(sub_cons_ids).index(key)
-                    rhs_expr_proj[key] += -float(coef[_cid])*_iter_b[k][_vid]
+                for _cid in sub_cons.keys():
+                    idx = list(sub_cons.keys()).index(_cid)
+                    rhs_expr_proj[_cid] += -float(coef[idx])*m._iter_b[(k,_vid)]
 
-            for var in i_vars:
-                _vid = id(var)
+            for _vid, var in i_vars.items():
                 (A, A_q, sign, b) = matrix_repn.coef_matrices(submodel, var)
                 coef = A + dot(A_q.toarray(), _fixed)
-                for key in sub_cons_ids:
-                    _cid = list(sub_cons_ids).index(key)
-                    rhs_expr_proj[key] += -float(coef[_cid])*_iter_i[k][_vid]
+                for _cid in sub_cons.keys():
+                    idx = list(sub_cons.keys()).index(_cid)
+                    rhs_expr_proj[_cid] += -float(coef[idx])*m._iter_i[(k,_vid)]
 
-            for var in fixed_vars:
-                _vid = id(var)
+            for _vid, var in fixed_vars.items():
                 (A, A_q, sign, b) = matrix_repn.coef_matrices(submodel, var)
                 coef = A + dot(A_q.toarray(), _fixed)
-                for key in sub_cons_ids:
-                    _cid = list(sub_cons_ids).index(key)
-                    rhs_expr_proj[key] += -float(coef[_cid])*var
+                for _cid in sub_cons.keys():
+                    idx = list(sub_cons.keys()).index(_cid)
+                    rhs_expr_proj[_cid] += -float(coef[idx])*var
 
-            for key in sub_cons_ids:
-                (id,sign) = key
-                b = sub_cons_sense_rhs[key]
-                rhs_expr[key] += b
+            for _cid, b in sub_cons.items():
+                (id,sign) = _cid
+                rhs_expr_proj[_cid] += b
                 if sign=='l' or sign=='g->l':
-                    lower_bounding_master.projection1[key] = lhs_expr_proj[key] - _iter_t[k][key] <= rhs_expr_proj[key]
+                    projections[k].projection1[_cid] = lhs_expr_proj[_cid] - m._iter_t[(k,_cid)] <= rhs_expr_proj[_cid]
                 if sign=='e':
-                    lower_bounding_master.projection1[key] = lhs_expr_proj[key] - _iter_t[k][key] == rhs_expr_proj[key]
+                    projections[k].projection1[_cid] = lhs_expr_proj[_cid] - m._iter_t[(k,_cid)] == rhs_expr_proj[_cid]
                 if sign=='g':
                     raise Exception('Problem encountered, this problem is not in standard form.')
 
             # constraint (80a)
-            lower_bounding_master.KKT_tight4a = Constraint(c_var_ids)
-            for key in sub_cons_ids:
-                lower_bounding_master.projection2a[key] = _iter_c[k][key] >= 0
+            projections[k].projection2a = Constraint(sub_cons.keys())
+            for _vid in c_vars.keys():
+                projections[k].projection2a[_vid] = m._iter_c[(k,_vid)] >= 0
 
             # constraint (80b)
-            lower_bounding_master.KKT_tight4a = Constraint(sub_cons_ids)
-            for key in sub_cons_ids:
-                lower_bounding_master.projection2b[key] = _iter_t[k][key] >= 0
+            projections[k].projection2b = Constraint(sub_cons.keys())
+            for _cid in sub_cons.keys():
+                projections[k].projection2b[_cid] = m._iter_t[(k,_cid)] >= 0
 
-            disjunction = getattr(lower_bounding_master, 'disjunction', None)
-            if disjunction is None:
-                disjunction = Block(set(range(0,self._k_max_iter)))
-            disjunction[k].indicator = Disjunct()
-            disjunction[k].block = Disjunct()
+            # constraint (82)
+            projections[k].projection3 = Block()
+            projections[k].projection3.indicator = Disjunct()
+            projections[k].projection3.block = Disjunct()
+            projections[k].projection3.disjunct = Disjunction(expr=[projections[k].projection3.indicator,projections[k].projection3.block])
 
-            disjunction[k].indicator.cons = Constraint(sum(_iter_t[k][key] for key in sub_cons_ids) >= epsilon)
+            projections[k].projection3.indicator.cons_feas = Constraint(expr=sum(m._iter_t[(k,_cid)] for _cid in sub_cons.keys()) >= epsilon)
+
+            disjunction = projections[k].projection3.block
 
             # constraint (82a)
             lhs_constant = 0.
             lhs_expr = 0.
             rhs_constant = 0.
             rhs_expr = 0.
-            for var in all_vars:
+            for _vid, var in {**c_vars,**b_vars,**i_vars}.items():
                 (C, C_q, C_constant) = matrix_repn.cost_vectors(submodel, var)
-                if lhs_constant == 0. and C_constant != 0.:
-                    lhs_constant += C_constant # only add the constant once
                 lhs_expr += float(C + dot(C_q,_fixed))*var
-            for var in c_vars:
-                _vid = id(var)
-                (C, C_q, C_constant) = matrix_repn.cost_vectors(submodel, var)
-                if lhs_constant == 0. and C_constant != 0.:
-                    lhs_constant += C_constant # only add the constant once
-                rhs_expr += float(C + dot(C_q,_fixed))*_iter_c[k][_vid]
-            for var in b_vars:
-                _vid = id(var)
-                (C, C_q, C_constant) = matrix_repn.cost_vectors(submodel, var)
-                if lhs_constant == 0. and C_constant != 0.:
-                    lhs_constant += C_constant # only add the constant once
-                rhs_expr += float(C + dot(C_q,_fixed))*_iter_b[k][_vid]
-            for var in i_vars:
-                _vid = id(var)
-                (C, C_q, C_constant) = matrix_repn.cost_vectors(submodel, var)
-                if lhs_constant == 0. and C_constant != 0.:
-                    lhs_constant += C_constant # only add the constant once
-                rhs_expr += float(C + dot(C_q,_fixed))*_iter_i[k][_vid]
-            disjunction[k].block.projection3a = Constraint(expr= lhs_expr + lhs_constant >= rhs_expr + rhs_constant)
+                if var.is_continuous():
+                    rhs_expr += float(C + dot(C_q, _fixed)) * m._iter_c[(k,_vid)]
+                if var.is_binary():
+                    rhs_expr += float(C + dot(C_q, _fixed)) * m._iter_b[(k,_vid)]
+                if var.is_integer():
+                    rhs_expr += float(C + dot(C_q, _fixed)) * m._iter_i[(k,_vid)]
+            disjunction.projection3a = Constraint(expr= lhs_expr + lhs_constant >= rhs_expr + rhs_constant)
 
             # constraint (82b)
-            disjunction[k].block.projection3b = Constraint(sub_cons_ids)
-            for key in sub_cons_ids:
-                (id,sign) = key
+            disjunction.projection3b = Constraint(sub_cons.keys())
+            for _cid in sub_cons.keys():
+                (id,sign) = _cid
                 if sign=='l' or sign=='g->l':
-                    disjunction[k].block.projection3b[key] = lhs_expr_proj[key] <= rhs_expr_proj[key]
+                    expr = lhs_expr_proj[_cid] <= rhs_expr_proj[_cid]
                 if sign=='e':
-                    disjunction[k].block.projection3b[key] = lhs_expr_proj[key] == rhs_expr_proj[key]
+                    expr = lhs_expr_proj[_cid] == rhs_expr_proj[_cid]
                 if sign=='g':
                     raise Exception('Problem encountered, this problem is not in standard form.')
-
+                if not type(expr) is bool:
+                    disjunction.projection3b[_cid] = expr
+                else:
+                    disjunction.projection3b[_cid] = Constraint.Skip
 
             # constraint (82c)
-            disjunction[k].block.projection3c = Constraint(sub_cons_ids)
-            lhs_expr = {key: 0. for key in sub_cons_ids}
-            rhs_expr = {key: 0. for key in sub_cons_ids}
-            for var in c_vars:
-                _vid = id(var)
+            disjunction.projection3c = Constraint(c_vars.keys())
+            lhs_expr = {key: 0. for key in c_vars.keys()}
+            rhs_expr = {key: 0. for key in c_vars.keys()}
+            for _vid, var in c_vars.items():
                 (A, A_q, sign, b) = matrix_repn.coef_matrices(submodel, var)
                 coef = A + dot(A_q.toarray(), _fixed)
-                for key in sub_cons_ids:
-                    _cid = list(sub_cons_ids).index(key)
-                    lhs_expr[key] += float(coef[_cid])*_iter_pi[k][_vid]
+                lhs_expr[_vid] += float(sum(coef))*m._iter_pi_tilde[_vid]
 
                 (C, C_q, C_constant) = matrix_repn.cost_vectors(submodel, var)
-                rhs_expr[key] = float(C + dot(C_q,_fixed))
-            for key in sub_cons_ids:
-                lower_bounding_master.KKT_tight2b[key] = lhs_expr[key] >= rhs_expr[key]
+                rhs_expr[_vid] = float(C + dot(C_q,_fixed))
+
+                expr = lhs_expr[_vid] >= rhs_expr[_vid]
+                if not type(expr) is bool:
+                    disjunction.projection3c[_vid] = expr
+                else:
+                    disjunction.projection3c[_vid] = Constraint.Skip
 
             # constraint (82d)
-            disjunction[k].block.projection3d = ComplementarityList(sub_cons_ids)
-            for key in sub_cons_ids:
-                disjunction[k].block.projection3d[key] = complements(_iter_c[k][key] >= 0, lhs_expr[key] - rhs_expr[key] >= 0)
+            disjunction.projection3d = ComplementarityList()
+            for _vid in c_vars.keys():
+                disjunction.projection3d.add(complements(m._iter_c[(k,_vid)] >= 0, lhs_expr[_vid] - rhs_expr[_vid] >= 0))
 
             # constraint (82e)
-            disjunction[k].block.projection3e = ComplementarityList(sub_cons_ids)
-            for key in sub_cons_ids:
-                disjunction[k].block.projection3e[key] = complements(_iter_pi[k][key] >= 0, rhs_expr_proj[key] - lhs_expr_proj[key] >= 0)
+            disjunction.projection3e = ComplementarityList()
+            for _cid in sub_cons.keys():
+                disjunction.projection3e.add(complements(m._iter_pi[(k,_cid)] >= 0, rhs_expr_proj[_cid] - lhs_expr_proj[_cid] >= 0))
 
             # constraint (82f)
-            disjunction[k].block.projection3f = Constraint(c_var_ids)
-            for key in sub_cons_ids:
-                disjunction[k].block.projection3f[key] = _iter_c[k][key] >= 0
+            disjunction.projection3f = Constraint(c_vars.keys())
+            for _vid in c_vars.keys():
+                disjunction.projection3f[_cid] = m._iter_c[(k,_vid)] >= 0
 
             # constraint (82g)
-            disjunction[k].block.projection3g = Constraint(sub_cons_ids)
-            for key in sub_cons_ids:
-                disjunction[k].block.projection3g[key] = _iter_pi[k][key] >= 0
+            disjunction.projection3g = Constraint(sub_cons.keys())
+            for _cid in sub_cons.keys():
+                disjunction.projection3g[_cid] = m._iter_pi[(k,_cid)] >= 0
 
-            # need to do constraints 83-85
+            # constraint (83a)
+            projections[k].projection4a = Constraint(c_vars.keys())
+            lhs_expr = {key: 0. for key in c_vars.keys()}
+            for _vid, var in c_vars.items():
+                (A, A_q, sign, b) = matrix_repn.coef_matrices(submodel, var)
+                coef = A + dot(A_q.toarray(), _fixed)
+                for _cid in sub_cons.keys():
+                    idx = list(sub_cons.keys()).index(_cid)
+                    lhs_expr[_vid] += float(coef[idx])*m._iter_lambda[(k,_cid)]
 
-            # # set up the constraint sets needed
-            # sub_con_set = set(key for key in matrix_repn._cons_sense_rhs[submodel.name].keys())
-            # master_con_set = set(key for key in matrix_repn._cons_sense_rhs[self._instance.name].keys())
-            # con_set = sub_con_set.union(master_con_set)
-            # upper_bounding_subproblem.constraint = Constraint(con_set)
-            #
-            # # do the submodel constraints
-            # con_expr_dict = matrix_repn._cons_sense_rhs[submodel.name]
-            # con_range = range(0,len(con_expr_dict))
-            # con_expr_list = [0. for i in con_range]
-            # for var in i_vars:
-            #     (A, A_q, sign, b) = matrix_repn.coef_matrices(submodel, var)
-            #     coef = A + dot(A_q.toarray(),_fixed)
-            #
-            #     for i in con_range:
-            #         con_expr_list[i] += coef[i]*var
-            #
-            # for (k,s), rhs for con_expr_dict.items():
-            #     idx = list(con_expr_dict).index((k,s))
-            #     if s == 'l' or s == 'g->l':
-            #         upper_bounding_subproblem.constraint[(k,s)] = con_expr_list[idx] <= rhs
-            #     if s == 'e':
-            #         upper_bounding_subproblem.constraint[(k,s)] = con_expr_list[idx] == rhs
+                expr = lhs_expr[_vid] >= 0
+                if not type(expr) is bool:
+                    projections[k].projection4a[_vid] = expr
+                else:
+                    projections[k].projection4a[_vid] = Constraint.Skip
+
+            # constraint (83b)
+            projections[k].projection4b = ComplementarityList()
+            for _vid in c_vars.keys():
+                projections[k].projection4b.add(complements(m._iter_c[(k,_vid)] >= 0, lhs_expr[_vid] >= 0))
+
+            # constraint (84a)
+            projections[k].projection5a = Constraint(sub_cons.keys())
+            for _cid in sub_cons.keys():
+                projections[k].projection5a[_cid] = 1-m._iter_lambda[(k,_cid)] >= 0
+
+            # constraint (84b)
+            projections[k].projection5b = ComplementarityList()
+            for _cid in sub_cons.keys():
+                projections[k].projection5b.add(complements(m._iter_t[(k,_cid)] >= 0, 1 - m._iter_lambda[(k,_cid)] >= 0))
+
+            # constraint (85)
+            projections[k].projection6 = ComplementarityList()
+            for _cid in sub_cons.keys():
+                projections[k].projection6.add(complements(m._iter_lambda[(k,_cid)] >= 0, rhs_expr_proj[_cid] - lhs_expr_proj[_cid] + m._iter_t[(k,_cid)] >= 0))
+                projections[k].projection6.add(complements(m._iter_lambda[(k,_cid)] >= 0, rhs_expr_proj[_cid] - lhs_expr_proj[_cid] + m._iter_t[(k,_cid)] >= 0))
+
+            # Transform all the complementarity to be MILP representable
+            TransformationFactory('mpec.simple_disjunction').apply_to(lower_bounding_master)
 
             k = k + 1
             # Step 7. Loop
             if UB - LB < xi:
+                print(UB)
+                print(LB)
                 return pyutilib.misc.Bunch(rc=getattr(opt, '_rc', None),
                                            log=getattr(opt, '_log', None))
 
+        print(UB)
+        print(LB)
     def _postsolve(self):
 
         # put problem back into original standard form

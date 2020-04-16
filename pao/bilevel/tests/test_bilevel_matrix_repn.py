@@ -119,8 +119,8 @@ class TestBilevelMatrixRepn(unittest.TestCase):
         from pao.bilevel.solvers.solver6 import BilevelSolver5
         solver = BilevelSolver5()
         solver._presolve(instance)
-        solver._apply_solver()
-        solver._postsolve(instance)
+        solver._apply_solver
+        solver._postsolve
         # solver = SolverFactory('pao.bilevel.ccg')
         # solver.options.solver = 'gurobi'
         # results = solver.solve(instance, tee=False)
