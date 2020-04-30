@@ -127,7 +127,9 @@ class BilevelSolver1(pyomo.opt.OptSolver):
                     submodel = self._instance.find_component(name_)
                     submodel.activate()
                     for data in submodel.component_map(active=False).values():
-                        if not isinstance(data, Var) and not isinstance(data, Set):
+                        if not isinstance(data, Objective):
+                            data.activate()
+                        if isinstance(data, Objective) and self.use_dual_objective:
                             data.activate()
                     _dual_name = name_+'_dual'
                     _parent = submodel.parent_block()
@@ -144,20 +146,20 @@ class BilevelSolver1(pyomo.opt.OptSolver):
                     # solver plugin always occurs thereby avoiding memory
                     # leaks caused by plugins!
                     #
-                    with pyomo.opt.SolverFactory(solver) as opt_inner:
-                        #
-                        # **NOTE: It would be better to override _presolve on the
-                        #         base class of this solver as you might be
-                        #         missing a number of keywords that were passed
-                        #         into the solve method (e.g., none of the
-                        #         io_options are getting relayed to the subsolver
-                        #         here).
-                        #
-                        #opt_inner.options['mipgap'] = self.options.get('mipgap', 0.001)
-                        results = opt_inner.solve(self._instance,
-                                                  tee=self._tee,
-                                                  timelimit=self._timelimit)
-                        self.results.append(results)
+                with pyomo.opt.SolverFactory(solver) as opt_inner:
+                    #
+                    # **NOTE: It would be better to override _presolve on the
+                    #         base class of this solver as you might be
+                    #         missing a number of keywords that were passed
+                    #         into the solve method (e.g., none of the
+                    #         io_options are getting relayed to the subsolver
+                    #         here).
+                    #
+                    #opt_inner.options['mipgap'] = self.options.get('mipgap', 0.001)
+                    results = opt_inner.solve(self._instance,
+                                              tee=self._tee,
+                                              timelimit=self._timelimit)
+                    self.results.append(results)
 
                 # Unfix variables
                 for v in tdata.fixed:
