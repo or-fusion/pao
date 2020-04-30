@@ -17,6 +17,7 @@ Declare the ld solver.
 import time
 import pyutilib.misc
 from pyomo.core.base.block import _BlockData
+from pyomo.core.base.constraint import IndexedConstraint
 from pyomo.core import TransformationFactory, Var, Constraint, Block, Objective, Set
 import pyomo.opt
 import pyomo.common
@@ -57,8 +58,14 @@ class BilevelSolver1(pyomo.opt.OptSolver):
         #
         nonlinear = False
         for odata in chain(self._instance.component_objects(Objective, active=True), \
-                           self._instance.component_objects(Constraint, active=True)):
-            nonlinear = odata.expr.polynomial_degree() != 1
+                           self._instance.component_objects(Constraint, active=True, descend_into=True)):
+            if type(odata) == IndexedConstraint:
+                for _name, _odata in odata.items():
+                    nonlinear = _odata.expr.polynomial_degree() != 1
+                    if nonlinear:
+                        break
+            else:
+                nonlinear = odata.expr.polynomial_degree() != 1
             if nonlinear:
                 # Stop after the first occurrence in the objective or one of the constraints
                 break
