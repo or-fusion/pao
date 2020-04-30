@@ -506,7 +506,6 @@ class BilevelSolver5(pyomo.opt.OptSolver):
             projections[k].projection6 = ComplementarityList()
             for _cid in sub_cons.keys():
                 projections[k].projection6.add(complements(m._iter_lambda[(k,_cid)] >= 0, rhs_expr_proj[_cid] - lhs_expr_proj[_cid] + m._iter_t[(k,_cid)] >= 0))
-                projections[k].projection6.add(complements(m._iter_lambda[(k,_cid)] >= 0, rhs_expr_proj[_cid] - lhs_expr_proj[_cid] + m._iter_t[(k,_cid)] >= 0))
 
             # Transform all the complementarity to be MILP representable
             TransformationFactory('mpec.simple_disjunction').apply_to(lower_bounding_master)
