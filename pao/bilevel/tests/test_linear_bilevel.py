@@ -30,7 +30,7 @@ except ImportError:
     yaml_available=False
 
 # only runs with no error when solvers = ['ipopt'] and pao_solvers = ['pao.bilevel.blp_local']
-solvers = pyomo.opt.check_available_solvers('cplex','glpk','gurobi','ipopt')
+solvers = solvers = ['ipopt'] #pyomo.opt.check_available_solvers('cplex','glpk','gurobi','ipopt')
 pao_solvers = ['pao.bilevel.blp_local']#,'pao.bilevel.blp_global']
 solvers2 = pyomo.opt.check_available_solvers('cplex','glpk','gurobi','ipopt')
 pao_solvers2 = ['pao.bilevel.ld']
