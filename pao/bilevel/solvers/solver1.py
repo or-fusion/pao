@@ -16,6 +16,7 @@ Declare the ld solver.
 
 import time
 import pyutilib.misc
+from pyomo.core.base.block import _BlockData
 from pyomo.core import TransformationFactory, Var, Constraint, Block, Objective, Set
 import pyomo.opt
 import pyomo.common
@@ -39,7 +40,7 @@ class BilevelSolver1(pyomo.opt.OptSolver):
     def _presolve(self, *args, **kwds):
         # TODO: Override _presolve to ensure that we are passing
         #   all options to the solver (e.g., the io_options)
-        self.resolve_subproblem = kwds.pop('resolve_subproblem', True)      # TODO: Change default to False
+        self.resolve_subproblem = kwds.pop('resolve_subproblem', True)
         self.use_dual_objective = kwds.pop('use_dual_objective', True)
         self._instance = args[0]
         pyomo.opt.OptSolver._presolve(self, *args, **kwds)
@@ -69,7 +70,6 @@ class BilevelSolver1(pyomo.opt.OptSolver):
             gdp_xfrm.apply_to(self._instance)
             mip_xfrm = TransformationFactory("gdp.bigm")
             mip_xfrm.apply_to(self._instance, bigM=self.options.get('bigM', 100000))
-        #self._instance.pprint()
         #
         # Solve with a specified solver
         #
@@ -81,7 +81,7 @@ class BilevelSolver1(pyomo.opt.OptSolver):
             self.results = []
             #
             #
-            opt.options['mipgap'] = self.options.get('mipgap', 0.001)
+            #opt.options['mipgap'] = self.options.get('mipgap', 0.001)
             self.results.append(opt.solve(self._instance,
                                           tee=self._tee,
                                           timelimit=self._timelimit))
@@ -117,12 +117,18 @@ class BilevelSolver1(pyomo.opt.OptSolver):
                         unfixed_tdata.append(v)
                 # Reclassify the SubModel components and resolve
                 for name_ in tdata.submodel:
-                    submodel = getattr(self._instance, name_)
+                    submodel = self._instance.find_component(name_)
                     submodel.activate()
                     for data in submodel.component_map(active=False).values():
                         if not isinstance(data, Var) and not isinstance(data, Set):
                             data.activate()
-                    dual_submodel = getattr(self._instance, name_+'_dual')
+                    _dual_name = name_+'_dual'
+                    _parent = submodel.parent_block()
+                    if type(_parent) == _BlockData:
+                        _dual_name = _dual_name.replace(_parent.name + ".", "")
+                        dual_submodel = getattr(_parent,_dual_name)
+                    else:
+                        dual_submodel = self._instance.find_component(_dual_name)
                     dual_submodel.deactivate()
                     pyomo.common.PyomoAPIFactory('pyomo.repn.compute_standard_repn')({}, model=submodel)
                     self._instance.reclassify_component_type(name_, Block)
@@ -140,7 +146,7 @@ class BilevelSolver1(pyomo.opt.OptSolver):
                         #         io_options are getting relayed to the subsolver
                         #         here).
                         #
-                        opt_inner.options['mipgap'] = self.options.get('mipgap', 0.001)
+                        #opt_inner.options['mipgap'] = self.options.get('mipgap', 0.001)
                         results = opt_inner.solve(self._instance,
                                                   tee=self._tee,
                                                   timelimit=self._timelimit)

@@ -13,6 +13,7 @@ pao.bilevel.plugins.dual
 """
 
 from pyomo.core import Objective, Block, Var, Set, Constraint
+from pyomo.core.base.block import _BlockData
 from pyomo.core import TransformationFactory
 from .transform import BaseBilevelTransformation
 import logging
@@ -51,12 +52,17 @@ class LinearDualBilevelTransformation(BaseBilevelTransformation):
             #
             if use_dual_objective:
                 #
-                # Deactivate the upper-level objective
+                # Deactivate the upper-level objective, and
+                # defaults to use the objective of the last SubModel iterated.
                 #
-                # TODO: Warn if there are multiple objectives?
-                #
-                for odata in sub._parent().component_map(Objective, active=True).values():
-                    odata.deactivate()
+
+                for odata in sub.component_objects(Objective, active=True):
+                    _oid = id(odata)
+                    break
+
+                for odata in model.component_objects(Objective, active=True):
+                    if id(odata) != _oid:
+                        odata.deactivate()
             else:
                 #
                 # Add a constraint that maps the dual objective to the primal objective
@@ -79,8 +85,19 @@ class LinearDualBilevelTransformation(BaseBilevelTransformation):
             #
             # Add the dual block
             #
-            setattr(model, key +'_dual', dual)
-            model.reclassify_component_type(key +'_dual', Block)
+
+            # first check if the submodel exists on a _BlockData,
+            # otherwise add the dual block to the model directly
+            _dual_name = key +'_dual'
+            _parent = sub.parent_block()
+            if type(_parent) == _BlockData:
+                _dual_name = _dual_name.replace(_parent.name+".","")
+                _parent.add_component(_dual_name, dual)
+                _parent.reclassify_component_type(_dual_name, Block)
+            else:
+                model.add_component(_dual_name, dual)
+                model.reclassify_component_type(_dual_name, Block)
+
             #
             # Unfix the upper variables
             #
