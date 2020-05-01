@@ -35,13 +35,18 @@ class LinearDualBilevelTransformation(BaseBilevelTransformation):
     def _apply_to(self, model, **kwds):
         submodel_name = kwds.pop('submodel', None)
         use_dual_objective = kwds.pop('use_dual_objective', False)
+        subproblem_objective_weights = kwds.pop('subproblem_objective_weights', None)
         #
         # Process options
         #
         self._preprocess('pao.bilevel.linear_dual', model)
         self._fix_all()
 
+        _dual_obj = 0.
+        _dual_sense = None
+        _primal_obj = 0.
         for key, sub in self.submodel.items():
+            _parent = sub.parent_block()
             #
             # Generate the dual block
             #
@@ -50,19 +55,21 @@ class LinearDualBilevelTransformation(BaseBilevelTransformation):
             #
             # Figure out which objective is being used
             #
+            for odata in dual.component_objects(Objective, active=True):
+                if subproblem_objective_weights:
+                    _dual_obj += subproblem_objective_weights[key] * odata.expr
+                else:
+                    _dual_obj += odata.expr
+                _dual_sense = odata.sense  # TODO: currently assumes all subproblems have same sense
+                odata.deactivate()
+
             if use_dual_objective:
                 #
                 # Deactivate the upper-level objective, and
-                # defaults to use the objective of the last SubModel iterated.
+                # defaults to use the aggregate objective of the SubModels.
                 #
-
-                for odata in sub.component_objects(Objective, active=True):
-                    _oid = id(odata)
-                    break
-
                 for odata in model.component_objects(Objective, active=True):
-                    if id(odata) != _oid:
-                        odata.deactivate()
+                    odata.deactivate()
             else:
                 #
                 # Add a constraint that maps the dual objective to the primal objective
@@ -72,16 +79,12 @@ class LinearDualBilevelTransformation(BaseBilevelTransformation):
                 # But that transformation would not be limited to the submodel.  If that's
                 # an issue for a user, they can make that change, and see the benefit.
                 #
-                dual_obj = None
-                for odata in dual.component_objects(Objective, active=True):
-                    dual_obj = odata
-                    dual_obj.deactivate()
-                    break
-                primal_obj = None
                 for odata in sub.component_objects(Objective, active=True):
-                    primal_obj = odata
-                    break
-                dual.equiv_objs = Constraint(expr=dual_obj.expr == primal_obj.expr)
+                    if subproblem_objective_weights:
+                        _primal_obj += subproblem_objective_weights[key]*odata.expr
+                    else:
+                        _primal_obj += odata.expr
+
             #
             # Add the dual block
             #
@@ -89,7 +92,6 @@ class LinearDualBilevelTransformation(BaseBilevelTransformation):
             # first check if the submodel exists on a _BlockData,
             # otherwise add the dual block to the model directly
             _dual_name = key +'_dual'
-            _parent = sub.parent_block()
             if type(_parent) == _BlockData:
                 _dual_name = _dual_name.replace(_parent.name+".","")
                 _parent.add_component(_dual_name, dual)
@@ -105,9 +107,13 @@ class LinearDualBilevelTransformation(BaseBilevelTransformation):
             #
             # Disable the original submodel
             #
-            # Q: Are the last steps redundant?  Will we recurse into deactivated blocks?
-            #
             sub.deactivate()
             for data in sub.component_map(active=True).values():
                 if not isinstance(data, Var) and not isinstance(data, Set):
                     data.deactivate()
+
+        # TODO: with multiple sub-problems, put the _obj or equiv_objs on a separate block
+        if use_dual_objective:
+            dual._obj = Objective(expr=_dual_obj, sense=_dual_sense)
+
+        dual.equiv_objs = Constraint(expr=_dual_obj == _primal_obj)

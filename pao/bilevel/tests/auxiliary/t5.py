@@ -18,7 +18,7 @@ from pao.bilevel import *
 def pyomo_create_model():
 
     model = ConcreteModel()
-    model.z = Var(bounds=(1,2))
+    model.z = Var(bounds=(1,2), initialize=1)
     model.x1 = Var(within=NonNegativeReals)
     model.x2 = Var(within=NonNegativeReals)
     model.o = Objective(expr=model.z*(3*model.x1 + 2.5*model.x2), sense=minimize)
@@ -33,3 +33,6 @@ def pyomo_create_model():
     model.sub.c4 = Constraint(expr=3*model.x1 + 6*model.x2 <= 100)
 
     return model
+
+if __name__ == "__main__":
+    m = pyomo_create_model()

@@ -30,7 +30,7 @@ except ImportError:
     yaml_available=False
 
 # only runs with no error when solvers = ['ipopt'] and pao_solvers = ['pao.bilevel.blp_local']
-solvers = solvers = ['ipopt'] #pyomo.opt.check_available_solvers('cplex','glpk','gurobi','ipopt')
+solvers = ['ipopt'] #pyomo.opt.check_available_solvers('cplex','glpk','gurobi','ipopt')
 pao_solvers = ['pao.bilevel.blp_local']#,'pao.bilevel.blp_global']
 solvers2 = pyomo.opt.check_available_solvers('cplex','glpk','gurobi','ipopt')
 pao_solvers2 = ['pao.bilevel.ld']
@@ -132,7 +132,6 @@ class TestBilevelSolve(unittest.TestCase):
         from importlib.machinery import SourceFileLoader
         namespace = SourceFileLoader(name,model).load_module()
         instance = namespace.pyomo_create_model()
-
         solver = SolverFactory(pao_solver)
         solver.options.solver = numerical_solver
         results = solver.solve(instance, tee=False)
