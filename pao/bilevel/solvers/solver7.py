@@ -43,6 +43,7 @@ class BilevelSolver7(pyomo.opt.OptSolver):
         # TODO: Override _presolve to ensure that we are passing
         #   all options to the solver (e.g., the io_options)
         self.resolve_subproblem = kwds.pop('resolve_subproblem', True)
+        self.use_dual_objective = kwds.pop('use_dual_objective', True)
         self.subproblem_objective_weights = kwds.pop('subproblem_objective_weights', None)
         self._instance = args[0]
         pyomo.opt.OptSolver._presolve(self, *args, **kwds)
@@ -53,7 +54,8 @@ class BilevelSolver7(pyomo.opt.OptSolver):
         # Cache the instance
         #
         xfrm = TransformationFactory('pao.bilevel.linear_dual')
-        xfrm.apply_to(self._instance, subproblem_objective_weights=self.subproblem_objective_weights)
+        xfrm.apply_to(self._instance, use_dual_objective=self.use_dual_objective, \
+                      subproblem_objective_weights=self.subproblem_objective_weights)
         #
         # Verify whether the model is linear
         #
@@ -149,6 +151,11 @@ class BilevelSolver7(pyomo.opt.OptSolver):
                     # solver plugin always occurs thereby avoiding memory
                     # leaks caused by plugins!
                     #
+                if self.use_dual_objective:
+                    for data in self._instance.component_map(active=False).values():
+                        if isinstance(data, Objective):
+                            data.activate()
+
                 with pyomo.opt.SolverFactory(solver) as opt_inner:
                     #
                     # **NOTE: It would be better to override _presolve on the

@@ -55,19 +55,19 @@ class LinearDualBilevelTransformation(BaseBilevelTransformation):
             #
             # Figure out which objective is being used
             #
+            for odata in dual.component_objects(Objective, active=True):
+                if subproblem_objective_weights:
+                    _dual_obj += subproblem_objective_weights[key] * odata.expr
+                else:
+                    _dual_obj += odata.expr
+                _dual_sense = odata.sense  # TODO: currently assumes all subproblems have same sense
+                odata.deactivate()
+
             if use_dual_objective:
                 #
                 # Deactivate the upper-level objective, and
                 # defaults to use the aggregate objective of the SubModels.
                 #
-                for odata in dual.component_objects(Objective, active=True):
-                    if subproblem_objective_weights:
-                        _dual_obj += subproblem_objective_weights[_parent.index()]*odata.expr
-                    else:
-                        _dual_obj += odata.expr
-                    _dual_sense = odata.sense # TODO: currently assumes all subproblems have same sense
-                    odata.deactivate()
-
                 for odata in model.component_objects(Objective, active=True):
                     odata.deactivate()
             else:
@@ -79,16 +79,9 @@ class LinearDualBilevelTransformation(BaseBilevelTransformation):
                 # But that transformation would not be limited to the submodel.  If that's
                 # an issue for a user, they can make that change, and see the benefit.
                 #
-                for odata in dual.component_objects(Objective, active=True):
-                    if subproblem_objective_weights:
-                        _dual_obj += subproblem_objective_weights[_parent.index()]*odata.expr
-                    else:
-                        _dual_obj += odata.expr
-                    odata.deactivate()
-
                 for odata in sub.component_objects(Objective, active=True):
                     if subproblem_objective_weights:
-                        _primal_obj += subproblem_objective_weights[_parent.index()]*odata.expr
+                        _primal_obj += subproblem_objective_weights[key]*odata.expr
                     else:
                         _primal_obj += odata.expr
 
@@ -122,5 +115,5 @@ class LinearDualBilevelTransformation(BaseBilevelTransformation):
         # TODO: with multiple sub-problems, put the _obj or equiv_objs on a separate block
         if use_dual_objective:
             dual._obj = Objective(expr=_dual_obj, sense=_dual_sense)
-        else:
-            dual.equiv_objs = Constraint(expr=_dual_obj == _primal_obj)
+
+        dual.equiv_objs = Constraint(expr=_dual_obj == _primal_obj)
