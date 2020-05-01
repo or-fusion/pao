@@ -127,7 +127,7 @@ class TestHighpointSolve(unittest.TestCase):
         for c in instance.component_objects(Block, descend_into=False):
             if 'hpr' in c.name:
                 c.activate()
-                results = solver.solve(c, tee=True, keepfiles=True)
+                results = solver.solve(c, tee=False, keepfiles=True)
                 c.deactivate()
 
         self.assertTrue(results.solver.termination_condition == pyomo.opt.TerminationCondition.optimal)

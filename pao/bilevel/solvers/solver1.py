@@ -131,9 +131,7 @@ class BilevelSolver1(pyomo.opt.OptSolver):
                     submodel = self._instance.find_component(name_)
                     submodel.activate()
                     for data in submodel.component_map(active=False).values():
-                        if not isinstance(data, Objective):
-                            data.activate()
-                        if isinstance(data, Objective) and self.use_dual_objective:
+                        if not isinstance(data, Var) and not isinstance(data, Set):
                             data.activate()
                     _dual_name = name_+'_dual'
                     _parent = submodel.parent_block()
