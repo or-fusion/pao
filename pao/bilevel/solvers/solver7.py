@@ -9,9 +9,9 @@
 #  ___________________________________________________________________________
 
 """
-pao.bilevel.plugins.solver1
+pao.bilevel.plugins.solver7
 
-Declare the ld solver.
+Declare the ld solver for a stochastic bilevel problem
 """
 
 import time
@@ -23,18 +23,19 @@ import pyomo.opt
 import pyomo.common
 from itertools import chain
 
-@pyomo.opt.SolverFactory.register('pao.bilevel.ld',
+@pyomo.opt.SolverFactory.register('pao.bilevel.stochastic_ld',
                                   doc=\
-'Solver for bilevel interdiction problems using linear duality')
-class BilevelSolver1(pyomo.opt.OptSolver):
+'Solver for stochastic bilevel interdiction problems using linear duality')
+class BilevelSolver7(pyomo.opt.OptSolver):
     """
     A solver that optimizes a bilevel program interdiction problem, where
-    (1) the upper objective is the opposite of the lower objective, and
-    (2) the lower problem is linear and continuous. There is only one subproblem.
+    (1) the upper objective is the opposite sense of the lower objectives
+    and is the weighted sum of these objectives, and
+    (2) the lower problems are linear and continuous.
     """
 
     def __init__(self, **kwds):
-        kwds['type'] = 'pao.bilevel.ld'
+        kwds['type'] = 'pao.bilevel.stochastic_ld'
         pyomo.opt.OptSolver.__init__(self, **kwds)
         self._metasolver = True
 
@@ -42,7 +43,7 @@ class BilevelSolver1(pyomo.opt.OptSolver):
         # TODO: Override _presolve to ensure that we are passing
         #   all options to the solver (e.g., the io_options)
         self.resolve_subproblem = kwds.pop('resolve_subproblem', True)
-        self.use_dual_objective = kwds.pop('use_dual_objective', True)
+        self.subproblem_objective_weights = kwds.pop('subproblem_objective_weights', None)
         self._instance = args[0]
         pyomo.opt.OptSolver._presolve(self, *args, **kwds)
 
@@ -52,7 +53,7 @@ class BilevelSolver1(pyomo.opt.OptSolver):
         # Cache the instance
         #
         xfrm = TransformationFactory('pao.bilevel.linear_dual')
-        xfrm.apply_to(self._instance, use_dual_objective=self.use_dual_objective)
+        xfrm.apply_to(self._instance, subproblem_objective_weights=self.subproblem_objective_weights)
         #
         # Verify whether the model is linear
         #
@@ -110,9 +111,6 @@ class BilevelSolver1(pyomo.opt.OptSolver):
                 # Transform the result back into the original model
                 #
                 tdata = self._instance._transformation_data['pao.bilevel.linear_dual']
-                if len(tdata.submodel) > 1:
-                    raise Exception('Problem encountered during solve, more than one subproblem provided.')
-
                 unfixed_tdata = list()
                 # Copy variable values and fix them
                 for v in tdata.fixed:
@@ -126,14 +124,11 @@ class BilevelSolver1(pyomo.opt.OptSolver):
                         v.fixed = True
                         unfixed_tdata.append(v)
                 # Reclassify the SubModel components and resolve
-
                 for name_ in tdata.submodel:
                     submodel = self._instance.find_component(name_)
                     submodel.activate()
                     for data in submodel.component_map(active=False).values():
                         if not isinstance(data, Objective):
-                            data.activate()
-                        if isinstance(data, Objective) and self.use_dual_objective:
                             data.activate()
                     _dual_name = name_+'_dual'
                     _parent = submodel.parent_block()
