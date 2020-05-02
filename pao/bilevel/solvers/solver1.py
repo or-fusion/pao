@@ -144,8 +144,6 @@ class BilevelSolver1(pyomo.opt.OptSolver):
                     for data in submodel.component_map(active=False).values():
                         if not isinstance(data, Var) and not isinstance(data, Set) and not isinstance(data, Objective):
                             data.activate()
-                        if self.use_dual_objective and isinstance(data, Objective):
-                            data.activate()
                     _dual_name = name_+'_dual'
                     _parent = submodel.parent_block()
                     if type(_parent) == _BlockData:
@@ -165,6 +163,11 @@ class BilevelSolver1(pyomo.opt.OptSolver):
                     # solver plugin always occurs thereby avoiding memory
                     # leaks caused by plugins!
                     #
+                if self.use_dual_objective:
+                    for data in self._instance.component_map(active=False).values():
+                        if isinstance(data, Objective):
+                            data.activate()
+
                 with pyomo.opt.SolverFactory(solver) as opt_inner:
                     #
                     # **NOTE: It would be better to override _presolve on the
