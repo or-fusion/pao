@@ -22,6 +22,7 @@ from pyomo.core import TransformationFactory, Var, Constraint, Block, Objective,
 import pyomo.opt
 import pyomo.common
 from itertools import chain
+from pao.bilevel.solvers.solver_utils import safe_termination_conditions
 
 @pyomo.opt.SolverFactory.register('pao.bilevel.ld',
                                   doc=\
@@ -89,9 +90,14 @@ class BilevelSolver1(pyomo.opt.OptSolver):
             #
             #
             #opt.options['mipgap'] = self.options.get('mipgap', 0.001)
-            self.results.append(opt.solve(self._instance,
+            results = opt.solve(self._instance,
                                           tee=self._tee,
-                                          timelimit=self._timelimit))
+                                          timelimit=self._timelimit)
+            self.results.append(results)
+
+            if results.solver.termination_condition not in safe_termination_conditions:
+                raise Exception('Problem encountered during solve, termination_condition {}'.format(
+                    results.solver.termination_condition))
             #
             # If the problem was bilinear, then reactivate the original data
             #
@@ -110,7 +116,12 @@ class BilevelSolver1(pyomo.opt.OptSolver):
                 # Transform the result back into the original model
                 #
                 tdata = self._instance._transformation_data['pao.bilevel.linear_dual']
-                if len(tdata.submodel) > 1:
+                count = 0
+                for name_ in tdata.submodel:
+                    submodel = self._instance.find_component(name_)
+                    if submodel.active:
+                        count += 1
+                if count > 1:
                     raise Exception('Problem encountered during solve, more than one subproblem provided.')
 
                 unfixed_tdata = list()
@@ -131,7 +142,9 @@ class BilevelSolver1(pyomo.opt.OptSolver):
                     submodel = self._instance.find_component(name_)
                     submodel.activate()
                     for data in submodel.component_map(active=False).values():
-                        if not isinstance(data, Var) and not isinstance(data, Set):
+                        if not isinstance(data, Var) and not isinstance(data, Set) and not isinstance(data, Objective):
+                            data.activate()
+                        if self.use_dual_objective and isinstance(data, Objective):
                             data.activate()
                     _dual_name = name_+'_dual'
                     _parent = submodel.parent_block()
