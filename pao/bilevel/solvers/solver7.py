@@ -22,6 +22,7 @@ from pyomo.core import TransformationFactory, Var, Constraint, Block, Objective,
 import pyomo.opt
 import pyomo.common
 from itertools import chain
+from pao.bilevel.solvers.solver_utils import safe_termination_conditions
 
 @pyomo.opt.SolverFactory.register('pao.bilevel.stochastic_ld',
                                   doc=\
@@ -92,9 +93,15 @@ class BilevelSolver7(pyomo.opt.OptSolver):
             #
             #
             #opt.options['mipgap'] = self.options.get('mipgap', 0.001)
-            self.results.append(opt.solve(self._instance,
+            results = opt.solve(self._instance,
                                           tee=self._tee,
-                                          timelimit=self._timelimit))
+                                          timelimit=self._timelimit)
+            self.results.append(results)
+
+            if results.solver.termination_condition not in safe_termination_conditions:
+                raise Exception('Problem encountered during solve, termination_condition {}'.format(
+                    results.solver.termination_condition))
+
             #
             # If the problem was bilinear, then reactivate the original data
             #
