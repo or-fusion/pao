@@ -115,5 +115,5 @@ class LinearDualBilevelTransformation(BaseBilevelTransformation):
         # TODO: with multiple sub-problems, put the _obj or equiv_objs on a separate block
         if use_dual_objective:
             dual._obj = Objective(expr=_dual_obj, sense=_dual_sense)
-
-        dual.equiv_objs = Constraint(expr=_dual_obj == _primal_obj)
+        else:
+            dual.equiv_objs = Constraint(expr=_dual_obj == _primal_obj)

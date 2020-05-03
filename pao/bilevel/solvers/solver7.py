@@ -43,8 +43,8 @@ class BilevelSolver7(pyomo.opt.OptSolver):
     def _presolve(self, *args, **kwds):
         # TODO: Override _presolve to ensure that we are passing
         #   all options to the solver (e.g., the io_options)
-        self.resolve_subproblem = kwds.pop('resolve_subproblem', True)
-        self.use_dual_objective = kwds.pop('use_dual_objective', True)
+        self.resolve_subproblem = True #kwds.pop('resolve_subproblem', True)
+        self.use_dual_objective = True #kwds.pop('use_dual_objective', True)
         self.subproblem_objective_weights = kwds.pop('subproblem_objective_weights', None)
         self._instance = args[0]
         pyomo.opt.OptSolver._presolve(self, *args, **kwds)
@@ -80,7 +80,7 @@ class BilevelSolver7(pyomo.opt.OptSolver):
             gdp_xfrm = TransformationFactory("gdp.bilinear")
             gdp_xfrm.apply_to(self._instance)
             mip_xfrm = TransformationFactory("gdp.bigm")
-            mip_xfrm.apply_to(self._instance, bigM=self.options.get('bigM', 100000))
+            mip_xfrm.apply_to(self._instance, bigM=self.options.get('bigM', 10))
         #
         # Solve with a specified solver
         #
@@ -162,6 +162,7 @@ class BilevelSolver7(pyomo.opt.OptSolver):
                     for data in self._instance.component_map(active=False).values():
                         if isinstance(data, Objective):
                             data.activate()
+                            data.sense = - data.sense
 
                 with pyomo.opt.SolverFactory(solver) as opt_inner:
                     #
@@ -183,6 +184,12 @@ class BilevelSolver7(pyomo.opt.OptSolver):
                     if v in unfixed_tdata:
                         v.fixed = False
 
+                # revert objective sense
+                if self.use_dual_objective:
+                    for data in self._instance.component_map(active=False).values():
+                        if isinstance(data, Objective):
+                            data.sense = - data.sense
+
             # check that the solutions list is not empty
             if self._instance.solutions.solutions:
                 self._instance.solutions.select(0, ignore_fixed_vars=True)
@@ -192,7 +199,6 @@ class BilevelSolver7(pyomo.opt.OptSolver):
             self.results_obj = self._setup_results_obj()
             #
             # Reactivate top level objective
-            # and reclassify the submodel
             #
             for odata in self._instance.component_map(Objective).values():
                 odata.activate()
