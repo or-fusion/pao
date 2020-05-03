@@ -42,8 +42,8 @@ class BilevelSolver1(pyomo.opt.OptSolver):
     def _presolve(self, *args, **kwds):
         # TODO: Override _presolve to ensure that we are passing
         #   all options to the solver (e.g., the io_options)
-        self.resolve_subproblem = kwds.pop('resolve_subproblem', True)
-        self.use_dual_objective = kwds.pop('use_dual_objective', True)
+        self.resolve_subproblem = True #kwds.pop('resolve_subproblem', True)
+        self.use_dual_objective = True #kwds.pop('use_dual_objective', True)
         self._instance = args[0]
         pyomo.opt.OptSolver._presolve(self, *args, **kwds)
 
@@ -77,7 +77,7 @@ class BilevelSolver1(pyomo.opt.OptSolver):
             gdp_xfrm = TransformationFactory("gdp.bilinear")
             gdp_xfrm.apply_to(self._instance)
             mip_xfrm = TransformationFactory("gdp.bigm")
-            mip_xfrm.apply_to(self._instance, bigM=self.options.get('bigM', 100000))
+            mip_xfrm.apply_to(self._instance, bigM=self.options.get('bigM', 10))
         #
         # Solve with a specified solver
         #
@@ -142,7 +142,7 @@ class BilevelSolver1(pyomo.opt.OptSolver):
                     submodel = self._instance.find_component(name_)
                     submodel.activate()
                     for data in submodel.component_map(active=False).values():
-                        if not isinstance(data, Var) and not isinstance(data, Set) and not isinstance(data, Objective):
+                        if not isinstance(data, Var) and not isinstance(data, Set):
                             data.activate()
                     _dual_name = name_+'_dual'
                     _parent = submodel.parent_block()
@@ -163,10 +163,6 @@ class BilevelSolver1(pyomo.opt.OptSolver):
                     # solver plugin always occurs thereby avoiding memory
                     # leaks caused by plugins!
                     #
-                if self.use_dual_objective:
-                    for data in self._instance.component_map(active=False).values():
-                        if isinstance(data, Objective):
-                            data.activate()
 
                 with pyomo.opt.SolverFactory(solver) as opt_inner:
                     #
