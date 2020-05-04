@@ -1,0 +1,34 @@
+# ==========================================================
+# = Solver Results                                         =
+# ==========================================================
+# ----------------------------------------------------------
+#   Problem Information
+# ----------------------------------------------------------
+Problem: 
+- Name: unknown
+  Lower bound: -inf
+  Upper bound: inf
+  Number of objectives: None
+  Number of constraints: None
+  Number of variables: None
+  Number of binary variables: None
+  Number of integer variables: None
+  Number of continuous variables: None
+  Sense: unknown
+# ----------------------------------------------------------
+#   Solver Information
+# ----------------------------------------------------------
+Solver: 
+- Name: None
+  Status: ok
+  Wallclock time: 287.3679401874542
+  Termination condition: optimal
+# ----------------------------------------------------------
+#   Solution Information
+# ----------------------------------------------------------
+Solution:
+- number of solutions: 0
+  number of solutions displayed: 0
+  Objective:
+    o:
+      Value: 0.07154947916666667
