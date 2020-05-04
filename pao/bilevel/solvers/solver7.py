@@ -54,6 +54,9 @@ class BilevelSolver7(pyomo.opt.OptSolver):
         #
         # Cache the instance
         #
+        if self.subproblem_objective_weights is None:
+            raise Exception('Problem encountered, expected probability weights.')
+
         xfrm = TransformationFactory('pao.bilevel.linear_dual')
         xfrm.apply_to(self._instance, use_dual_objective=self.use_dual_objective, \
                       subproblem_objective_weights=self.subproblem_objective_weights)

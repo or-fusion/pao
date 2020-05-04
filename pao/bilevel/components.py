@@ -29,9 +29,9 @@ def varref(model, origin=None, vars=None):
     a bilevel model exist only on the parent_block() for ConcreteModel()
     """
 
-    # default to parent block
+    # default to root block
     if not origin:
-        origin = model.parent_block()
+        origin = model.root_block()
 
     # intersection of 2 Pyomo var lists
     def _intersection(list1, list2):
@@ -62,7 +62,7 @@ def dataref(model, origin=None):
     """
     # default to parent block
     if not origin:
-        origin = model.parent_block()
+        origin = model.root_block()
 
     for p in origin.component_objects(Param, descend_into=False):
         model.add_component(p.name, Reference(p))
