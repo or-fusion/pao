@@ -1,4 +1,4 @@
-*DRAFT DOCUMENTATION*
+*PAO DRAFT DOCUMENTATION*
 
 [![Actions Status](https://github.com/pyomocommunity/pao/workflows/continuous-integration/github/pr/linux/badge.svg)](https://github.com/pyomocommunity/pao/actions)
 [![codecov](https://codecov.io/gh/pyomocommunity/pao/branch/master/graph/badge.svg)](https://codecov.io/gh/pyomocommunity/pao)
