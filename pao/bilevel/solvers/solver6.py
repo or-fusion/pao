@@ -79,6 +79,8 @@ class BilevelSolver5(pyomo.opt.OptSolver):
         if not self.options.solver:
             solver = 'gurobi'
 
+        bigm = TransformationFactory('gdp.bigm')
+
         # Step 1. Initialization
         LB = -inf
         UB = inf
@@ -86,6 +88,7 @@ class BilevelSolver5(pyomo.opt.OptSolver):
         xi = 10e-3
         k = 0
         epsilon = 10e-3
+        M = 1e6
 
         # matrix representation for bilevel problem
         matrix_repn = BilevelMatrixRepn(self._instance)
@@ -99,6 +102,11 @@ class BilevelSolver5(pyomo.opt.OptSolver):
         dataref(submodel)
 
         all_vars = {key: var for (key, var) in matrix_repn._all_vars.items()}
+        # for k,v in all_vars.items():
+        #     if v.ub is None:
+        #         v.setub(M)
+        #     if v.lb is None:
+        #         v.setlb(-M)
 
         # get the variables that are fixed for the submodel (lower-level block)
         fixed_vars = {key: var for (key, var) in matrix_repn._all_vars.items() if key in matrix_repn._fixed_var_ids[submodel.name]}
@@ -116,7 +124,7 @@ class BilevelSolver5(pyomo.opt.OptSolver):
         sub_cons = matrix_repn._cons_sense_rhs[submodel.name]
 
         while k <= self._k_max_iter:
-
+            print('k={}'.format(k))
             # Step 2. Lower Bounding
             # Solve problem (P5) master problem.
             # This includes equations (53), (12), (13), (15), and (54)
@@ -139,14 +147,102 @@ class BilevelSolver5(pyomo.opt.OptSolver):
                 lower_bounding_master._iter_b = Var(Any, within=Binary, dense=False)  # set (iter k, b_var_ids)
                 lower_bounding_master._iter_i = Var(Any, within=Integers, dense=False)  # set (iter k, i_var_ids)
 
-                lower_bounding_master._iter_pi_tilde = Var(sub_cons.keys(), bounds=(0, None))  # set (iter k, sub_cons_ids)
-                lower_bounding_master._iter_pi = Var(Any, bounds=(0, None), dense=False)  # set (iter k, sub_cons_ids)
-                lower_bounding_master._iter_t = Var(Any, bounds=(0, None), dense=False)  # set (iter k, sub_cons_ids)
-                lower_bounding_master._iter_lambda = Var(Any, bounds=(0, None), dense=False)  # set (iter k, sub_cons_ids)
+                lower_bounding_master._iter_pi_tilde = Var(sub_cons.keys(), bounds=(0, M))  # set (iter k, sub_cons_ids)
+                lower_bounding_master._iter_pi = Var(Any, bounds=(0, M), dense=False)  # set (iter k, sub_cons_ids)
+                lower_bounding_master._iter_t = Var(Any, bounds=(0, M), dense=False)  # set (iter k, sub_cons_ids)
+                lower_bounding_master._iter_lambda = Var(Any, bounds=(0, M), dense=False)  # set (iter k, sub_cons_ids)
                 m = lower_bounding_master # shorthand reference to model
+
+            # solution for all variable values
+            _fixed = array([var.value for (key, var) in matrix_repn._all_vars.items()])
+
+            if k == 0:
+                # constraint (74)
+                lhs_expr = 0.
+                rhs_expr = 0.
+                for _vid, var in c_vars.items():
+                    (C, C_q, C_constant) = matrix_repn.cost_vectors(submodel, var)
+                    coef = float(C)# + dot(C_q,_fixed))
+                    lhs_expr += coef*var
+                    rhs_expr += coef*m._iter_c_tilde[_vid]
+                expr = lhs_expr >= rhs_expr
+                if not type(expr) is bool:
+                    lower_bounding_master.KKT_tight1 = Constraint(expr=lhs_expr >= rhs_expr)
+
+                # constraint (75a)
+                lower_bounding_master.KKT_tight2a = Constraint(sub_cons.keys())
+                lhs_expr_a = {key: 0. for key in sub_cons.keys()}
+                rhs_expr_a = {key: 0. for key in sub_cons.keys()}
+                for _vid, var in c_vars.items():
+                    (A, A_q, sign, b) = matrix_repn.coef_matrices(submodel, var)
+                    coef = A #+ dot(A_q.toarray(), _fixed)
+                    for _cid in sub_cons.keys():
+                        idx = list(sub_cons.keys()).index(_cid)
+                        lhs_expr_a[_cid] += float(coef[idx])*m._iter_c_tilde[_vid]
+
+                for var in {**b_vars, **i_vars, **fixed_vars}.values():
+                    (A, A_q, sign, b) = matrix_repn.coef_matrices(submodel, var)
+                    coef = A #+ dot(A_q.toarray(), _fixed)
+                    for _cid in sub_cons.keys():
+                        idx = list(sub_cons.keys()).index(_cid)
+                        rhs_expr_a[_cid] += -float(coef[idx])*var
+
+                for _cid, b in sub_cons.items():
+                    (id,sign) = _cid
+                    rhs_expr_a[_cid] += b
+                    if sign=='l' or sign=='g->l':
+                        expr = lhs_expr_a[_cid] <= rhs_expr_a[_cid]
+                    if sign=='e' or sign=='g':
+                        raise Exception('Problem encountered, this problem is not in standard form.')
+                    if not type(expr) is bool:
+                        lower_bounding_master.KKT_tight2a[_cid] = expr
+                    else:
+                        lower_bounding_master.KKT_tight2a[_cid] = Constraint.Skip
+
+                # constraint (75b)
+                lower_bounding_master.KKT_tight2b = Constraint(c_vars.keys())
+                lhs_expr_b = {key: 0. for key in c_vars.keys()}
+                rhs_expr_b = {key: 0. for key in c_vars.keys()}
+                for _vid, var in c_vars.items():
+                    (A, A_q, sign, b) = matrix_repn.coef_matrices(submodel, var)
+                    coef = A + dot(A_q.toarray(), _fixed)
+                    lhs_expr_b[_vid] += float(sum(coef))*m._iter_pi_tilde[_vid]
+
+                    (C, C_q, C_constant) = matrix_repn.cost_vectors(submodel, var)
+                    rhs_expr_b[_vid] = float(C + dot(C_q,_fixed))
+
+                    expr = lhs_expr_b[_vid] >= rhs_expr_b[_vid]
+                    if not type(expr) is bool:
+                        lower_bounding_master.KKT_tight2b[_vid] = expr
+                    else:
+                        lower_bounding_master.KKT_tight2b[_vid] = Constraint.Skip
+
+                # constraint (76a)
+                lower_bounding_master.KKT_tight3a = ComplementarityList()
+                for _vid in c_vars.keys():
+                    lower_bounding_master.KKT_tight3a.add(complements(m._iter_c_tilde[_vid] >= 0, lhs_expr_b[_vid] - rhs_expr_b[_vid] >= 0))
+
+                # constraint (76b)
+                lower_bounding_master.KKT_tight3b = ComplementarityList()
+                for _cid in sub_cons.keys():
+                    lower_bounding_master.KKT_tight3b.add(complements(m._iter_pi_tilde[_cid] >= 0, rhs_expr_a[_cid] - lhs_expr_a[_cid] >= 0))
+
+                # constraint (77a)
+                lower_bounding_master.KKT_tight4a = Constraint(c_vars.keys())
+                for _vid in c_vars.keys():
+                    lower_bounding_master.KKT_tight4a[_vid] = m._iter_c_tilde[_vid] >= 0
+
+                # constraint (77b)
+                lower_bounding_master.KKT_tight4b = Constraint(sub_cons.keys())
+                for _cid in sub_cons.keys():
+                    lower_bounding_master.KKT_tight4b[_cid] = m._iter_pi_tilde[_cid] >= 0
+
+                # Transform all the complementarity to be MILP representable
+                TransformationFactory('mpec.simple_disjunction').apply_to(lower_bounding_master)
 
             # solve the HPR and check the termination condition
             lower_bounding_master.activate()
+            #bigm.apply_to(self._instance)
             with pyomo.opt.SolverFactory(solver) as opt:
                 self.results.append(opt.solve(lower_bounding_master,
                                               tee=self._tee,
@@ -252,89 +348,6 @@ class BilevelSolver5(pyomo.opt.OptSolver):
                 m._iter_i[(k, _vid)].fix(var.value)
 
             # Step 6. Tightening the Master Problem
-
-            if k == 0:
-                # constraint (74)
-                lhs_expr = 0.
-                rhs_expr = 0.
-                for _vid, var in c_vars.items():
-                    (C, C_q, C_constant) = matrix_repn.cost_vectors(submodel, var)
-                    lhs_expr += float(C + dot(C_q,_fixed))*var
-                    rhs_expr += float(C + dot(C_q,_fixed))*m._iter_c_tilde[_vid]
-                expr = lhs_expr >= rhs_expr
-                if not type(expr) is bool:
-                    lower_bounding_master.KKT_tight1 = Constraint(expr=lhs_expr >= rhs_expr)
-
-                # constraint (75a)
-                lower_bounding_master.KKT_tight2a = Constraint(sub_cons.keys())
-                lhs_expr_a = {key: 0. for key in sub_cons.keys()}
-                rhs_expr_a = {key: 0. for key in sub_cons.keys()}
-                for _vid, var in c_vars.items():
-                    (A, A_q, sign, b) = matrix_repn.coef_matrices(submodel, var)
-                    coef = A + dot(A_q.toarray(), _fixed)
-                    for _cid in sub_cons.keys():
-                        idx = list(sub_cons.keys()).index(_cid)
-                        lhs_expr_a[_cid] += float(coef[idx])*m._iter_c_tilde[_vid]
-
-                for var in {**b_vars, **i_vars, **fixed_vars}.values():
-                    (A, A_q, sign, b) = matrix_repn.coef_matrices(submodel, var)
-                    coef = A + dot(A_q.toarray(), _fixed)
-                    for _cid in sub_cons.keys():
-                        idx = list(sub_cons.keys()).index(_cid)
-                        rhs_expr_a[_cid] += -float(coef[idx])*var
-
-                for _cid, b in sub_cons.items():
-                    (id,sign) = _cid
-                    rhs_expr_a[_cid] += b
-                    if sign=='l' or sign=='g->l':
-                        expr = lhs_expr_a[_cid] <= rhs_expr_a[_cid]
-                    if sign=='e':
-                        expr = lhs_expr_a[_cid] == rhs_expr_a[_cid]
-                    if sign=='g':
-                        raise Exception('Problem encountered, this problem is not in standard form.')
-                    if not type(expr) is bool:
-                        lower_bounding_master.KKT_tight2a[_cid] = expr
-                    else:
-                        lower_bounding_master.KKT_tight2a[_cid] = Constraint.Skip
-
-                # constraint (75b)
-                lower_bounding_master.KKT_tight2b = Constraint(c_vars.keys())
-                lhs_expr_b = {key: 0. for key in c_vars.keys()}
-                rhs_expr_b = {key: 0. for key in c_vars.keys()}
-                for _vid, var in c_vars.items():
-                    (A, A_q, sign, b) = matrix_repn.coef_matrices(submodel, var)
-                    coef = A + dot(A_q.toarray(), _fixed)
-                    lhs_expr_b[_vid] += float(sum(coef))*m._iter_pi_tilde[_vid]
-
-                    (C, C_q, C_constant) = matrix_repn.cost_vectors(submodel, var)
-                    rhs_expr_b[_vid] = float(C + dot(C_q,_fixed))
-
-                    expr = lhs_expr_b[_vid] >= rhs_expr_b[_vid]
-                    if not type(expr) is bool:
-                        lower_bounding_master.KKT_tight2b[_vid] = expr
-                    else:
-                        lower_bounding_master.KKT_tight2b[_vid] = Constraint.Skip
-
-                # constraint (76a)
-                lower_bounding_master.KKT_tight3a = ComplementarityList()
-                for _vid in c_vars.keys():
-                    lower_bounding_master.KKT_tight3a.add(complements(m._iter_c_tilde[_vid] >= 0, lhs_expr_b[_vid] - rhs_expr_b[_vid] >= 0))
-
-                # constraint (76b)
-                lower_bounding_master.KKT_tight3b = ComplementarityList()
-                for _cid in sub_cons.keys():
-                    lower_bounding_master.KKT_tight3b.add(complements(m._iter_pi_tilde[_cid] >= 0, rhs_expr_a[_cid] - lhs_expr_a[_cid] >= 0))
-
-                # constraint (77a)
-                lower_bounding_master.KKT_tight4a = Constraint(c_vars.keys())
-                for _vid in c_vars.keys():
-                    lower_bounding_master.KKT_tight4a[_vid] = m._iter_c_tilde[_vid] >= 0
-
-                # constraint (77b)
-                lower_bounding_master.KKT_tight4b = Constraint(sub_cons.keys())
-                for _cid in sub_cons.keys():
-                    lower_bounding_master.KKT_tight4b[_cid] = m._iter_pi_tilde[_cid] >= 0
-
             projections = getattr(lower_bounding_master, 'projections', None)
             if projections is None:
                 lower_bounding_master.projections = Block(Any)
@@ -377,9 +390,7 @@ class BilevelSolver5(pyomo.opt.OptSolver):
                 rhs_expr_proj[_cid] += b
                 if sign=='l' or sign=='g->l':
                     projections[k].projection1[_cid] = lhs_expr_proj[_cid] - m._iter_t[(k,_cid)] <= rhs_expr_proj[_cid]
-                if sign=='e':
-                    projections[k].projection1[_cid] = lhs_expr_proj[_cid] - m._iter_t[(k,_cid)] == rhs_expr_proj[_cid]
-                if sign=='g':
+                if sign=='e' or sign=='g':
                     raise Exception('Problem encountered, this problem is not in standard form.')
 
             # constraint (80a)
@@ -424,9 +435,7 @@ class BilevelSolver5(pyomo.opt.OptSolver):
                 (id,sign) = _cid
                 if sign=='l' or sign=='g->l':
                     expr = lhs_expr_proj[_cid] <= rhs_expr_proj[_cid]
-                if sign=='e':
-                    expr = lhs_expr_proj[_cid] == rhs_expr_proj[_cid]
-                if sign=='g':
+                if sign=='e' or sign=='g':
                     raise Exception('Problem encountered, this problem is not in standard form.')
                 if not type(expr) is bool:
                     disjunction.projection3b[_cid] = expr
@@ -508,7 +517,7 @@ class BilevelSolver5(pyomo.opt.OptSolver):
                 projections[k].projection6.add(complements(m._iter_lambda[(k,_cid)] >= 0, rhs_expr_proj[_cid] - lhs_expr_proj[_cid] + m._iter_t[(k,_cid)] >= 0))
 
             # Transform all the complementarity to be MILP representable
-            TransformationFactory('mpec.simple_disjunction').apply_to(lower_bounding_master)
+            TransformationFactory('mpec.simple_disjunction').apply_to(projections[k].projection3.block)
 
             k = k + 1
             # Step 7. Loop
@@ -518,8 +527,7 @@ class BilevelSolver5(pyomo.opt.OptSolver):
                 return pyutilib.misc.Bunch(rc=getattr(opt, '_rc', None),
                                            log=getattr(opt, '_log', None))
 
-        print(UB)
-        print(LB)
+
     def _postsolve(self):
 
         # put problem back into original standard form

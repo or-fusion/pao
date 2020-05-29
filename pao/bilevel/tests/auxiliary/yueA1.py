@@ -20,8 +20,8 @@ from pao.bilevel import *
 
 def pyomo_create_model():
     M = ConcreteModel()
-    M.y_u = Var(within=PositiveIntegers)
-    M.y_l = Var(within=PositiveIntegers)
+    M.y_u = Var(within=PositiveIntegers, bounds=(0,10000))
+    M.y_l = Var(within=PositiveIntegers, bounds=(0,10000))
     M.o = Objective(expr=-M.y_u-10*M.y_l)
     
     M.sub = SubModel(fixed=(M.y_u))
