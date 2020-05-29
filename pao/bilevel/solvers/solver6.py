@@ -242,7 +242,7 @@ class BilevelSolver5(pyomo.opt.OptSolver):
 
             # solve the HPR and check the termination condition
             lower_bounding_master.activate()
-            #bigm.apply_to(self._instance)
+            #bigm.apply_to(self._instance, targets=lower_bounding_master)
             with pyomo.opt.SolverFactory(solver) as opt:
                 self.results.append(opt.solve(lower_bounding_master,
                                               tee=self._tee,
@@ -518,6 +518,7 @@ class BilevelSolver5(pyomo.opt.OptSolver):
 
             # Transform all the complementarity to be MILP representable
             TransformationFactory('mpec.simple_disjunction').apply_to(projections[k].projection3.block)
+            bigm.apply_to(self._instance, targets=lower_bounding_master)
 
             k = k + 1
             # Step 7. Loop
