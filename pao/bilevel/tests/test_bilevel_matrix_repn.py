@@ -116,8 +116,8 @@ class TestBilevelMatrixRepn(unittest.TestCase):
                     print('Rhs: ')
                     print(b)
 
-        from pao.bilevel.solvers.solver6 import BilevelSolver5
-        solver = BilevelSolver5()
+        from pao.bilevel.solvers.solver6 import BilevelSolver6
+        solver = BilevelSolver6()
         solver._presolve(instance)
         solver._apply_solver
         solver._postsolve

@@ -14,12 +14,14 @@ pao.bilevel.plugins.highpoint
 
 import six
 
+from pyomo.core.kernel.component_map import ComponentMap
 from pyomo.core import Block, Objective,\
                        Var, Constraint, ComponentUID, \
-                       TransformationFactory, Reference
+                       TransformationFactory, Reference, SimpleVar
 from pao.bilevel.components import SubModel
 from .transform import BaseBilevelTransformation
 import logging
+from pyomo.core.kernel.component_map import ComponentMap
 
 logger = logging.getLogger(__name__)
 
@@ -31,18 +33,34 @@ def create_submodel_hp_block(instance):
     """
     block = Block(concrete=True)
 
+    # create a component map to keep track of id() for the
+    # original object and the referenced object
+    block._map = ComponentMap()
+
     # get the objective for the master problem
     for c in instance.component_objects(Objective, descend_into=False):
-        block.add_component(c.name, Reference(c))
+        ref = Reference(c)
+        block.add_component(c.name, ref)
+        block._map[c] = ref
 
     # get the variables of the model (if there are more submodels, then
     # extraneous variables may be added to the block)
     for c in instance.component_objects(Var, sort=True, descend_into=True, active=True):
-        block.add_component(c.name, Reference(c[...]))
+        if c.is_indexed():
+            ref = Reference(c[...])
+        else:
+            ref = Reference(c,ctype=SimpleVar)
+        block.add_component(c.name, ref)
+        block._map[c] = ref
 
     # get the constraints from the main model
     for c in instance.component_objects(Constraint, sort=True, descend_into=True, active=True):
-        block.add_component(c.name, Reference(c[...]))
+        if c.is_indexed():
+            ref = Reference(c[...])
+        else:
+            ref = Reference(c,ctype=SimpleVar)
+        block.add_component(c.name, ref)
+        block._map[c] = ref
 
     # deactivate the highpoint relaxation
     # block.deactivate()
@@ -63,6 +81,7 @@ class LinearHighpointTransformation(BaseBilevelTransformation):
         submodel_name = kwds.pop('submodel_name', 'hpr')
         self._preprocess('pao.bilevel.highpoint', model)
 
+        map = ComponentMap()
         for key, sub in self.submodel.items():
             model.reclassify_component_type(sub, Block)
 
