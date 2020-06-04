@@ -177,7 +177,7 @@ class BilevelSolver6(pyomo.opt.OptSolver):
                     rhs_expr += coef*m._iter_c_tilde[_vid]
                 expr = lhs_expr >= rhs_expr
                 if not type(expr) is bool:
-                    lower_bounding_master.KKT_tight1 = Constraint(expr=lhs_expr >= rhs_expr)
+                   lower_bounding_master.KKT_tight1 = Constraint(expr=lhs_expr >= rhs_expr)
 
                 # constraint (75a)
                 lower_bounding_master.KKT_tight2a = Constraint(sub_cons.keys())
@@ -254,7 +254,7 @@ class BilevelSolver6(pyomo.opt.OptSolver):
             bigm.apply_to(self._instance, targets=lower_bounding_master)
 
             with pyomo.opt.SolverFactory(solver) as opt:
-                self.results.append(opt.solve(self._instance,
+                self.results.append(opt.solve(lower_bounding_master,
                                               tee=self._tee,
                                               timelimit=self._timelimit))
             _check_termination_condition(self.results[-1])

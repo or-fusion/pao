@@ -41,26 +41,30 @@ def create_submodel_hp_block(instance):
     for c in instance.component_objects(Objective, descend_into=False):
         ref = Reference(c)
         block.add_component(c.name, ref)
-        block._map[c] = ref
+        block._map[c] = ref[None]
 
     # get the variables of the model (if there are more submodels, then
     # extraneous variables may be added to the block)
     for c in instance.component_objects(Var, sort=True, descend_into=True, active=True):
         if c.is_indexed():
             ref = Reference(c[...])
+            block.add_component(c.name, ref)
+            block._map[c] = ref
         else:
-            ref = Reference(c,ctype=SimpleVar)
-        block.add_component(c.name, ref)
-        block._map[c] = ref
+            ref = Reference(c)
+            block.add_component(c.name, ref)
+            block._map[c] = ref[None]
 
     # get the constraints from the main model
     for c in instance.component_objects(Constraint, sort=True, descend_into=True, active=True):
         if c.is_indexed():
             ref = Reference(c[...])
+            block.add_component(c.name, ref)
+            block._map[c] = ref
         else:
-            ref = Reference(c,ctype=SimpleVar)
-        block.add_component(c.name, ref)
-        block._map[c] = ref
+            ref = Reference(c)
+            block.add_component(c.name, ref)
+            block._map[c] = ref[None]
 
     # deactivate the highpoint relaxation
     # block.deactivate()
