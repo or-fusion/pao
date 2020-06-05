@@ -129,6 +129,14 @@ class BilevelSolver6(pyomo.opt.OptSolver):
         # get constraint information related to constraint id, sign, and rhs value
         sub_cons = matrix_repn._cons_sense_rhs[submodel.name]
 
+        # lower bounding block name
+        _lower_model_name = '_p9'
+        _lower_model_name = unique_component_name(self._instance, _lower_model_name)
+
+        # upper bounding block name
+        _upper_model_name = '_p7'
+        _upper_model_name = unique_component_name(self._instance, _upper_model_name)
+
         while k <= self._k_max_iter:
             print('k={}'.format(k))
             # Step 2. Lower Bounding
@@ -137,16 +145,15 @@ class BilevelSolver6(pyomo.opt.OptSolver):
             # On iteration k = 0, (54) does not exist. Instead of implementing (54),
             # this approach applies problem (P9) which incorporates KKT-based tightening
             # constraints, and a projection and indicator constraint set.
-            model_name = '_p9'
-            model_name = unique_component_name(self._instance, model_name)
-            lower_bounding_master = getattr(self._instance, model_name, None)
+            # _lower_model_name = '_p9'
+            # _lower_model_name = unique_component_name(self._instance, _lower_model_name)
+            lower_bounding_master = getattr(self._instance, _lower_model_name, None)
             if lower_bounding_master is None:
                 xfrm = TransformationFactory('pao.bilevel.highpoint')
-                kwds = {'submodel_name': model_name}
+                kwds = {'submodel_name': _lower_model_name}
                 xfrm.apply_to(self._instance, **kwds)
-                lower_bounding_master = getattr(self._instance, model_name)
+                lower_bounding_master = getattr(self._instance, _lower_model_name)
                 algorithm_blocks.append(lower_bounding_master)
-                #self._instance.reclassify_component_type(submodel, Block)
 
                 _c_var_bounds_rule = lambda m, k: c_vars[k].bounds
                 _c_var_init_rule = lambda m, k: (c_vars[k].lb + c_vars[k].ub) / 2
@@ -291,19 +298,15 @@ class BilevelSolver6(pyomo.opt.OptSolver):
             # solution for all variable values
             _fixed = array([var.value for (key, var) in matrix_repn._all_vars.items()])
 
-
             # Step 5. Subproblem 2
             # Solve problem (P7) upper bounding problem for fixed upper-level optimal vars.
-            model_name = '_p7'
-            model_name = unique_component_name(self._instance, model_name)
-            upper_bounding_subproblem = getattr(self._instance, model_name, None)
+            upper_bounding_subproblem = getattr(self._instance, _upper_model_name, None)
             if upper_bounding_subproblem is None:
                 xfrm = TransformationFactory('pao.bilevel.highpoint')
-                kwds = {'submodel_name': model_name}
+                kwds = {'submodel_name': _upper_model_name}
                 xfrm.apply_to(self._instance, **kwds)
-                upper_bounding_subproblem = getattr(self._instance, model_name)
+                upper_bounding_subproblem = getattr(self._instance, _upper_model_name)
                 algorithm_blocks.append(upper_bounding_subproblem)
-                #self._instance.reclassify_component_type(submodel, Block)
 
                 for odata in upper_bounding_subproblem.component_objects(Objective):
                     upper_bounding_subproblem.del_component(odata)
