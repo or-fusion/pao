@@ -129,11 +129,11 @@ class BilevelSolver6(pyomo.opt.OptSolver):
         # get constraint information related to constraint id, sign, and rhs value
         sub_cons = matrix_repn._cons_sense_rhs[submodel.name]
 
-        # lower bounding block name
+        # lower bounding block name -- unique naming convention
         _lower_model_name = '_p9'
         _lower_model_name = unique_component_name(self._instance, _lower_model_name)
 
-        # upper bounding block name
+        # upper bounding block name -- unique naming convention
         _upper_model_name = '_p7'
         _upper_model_name = unique_component_name(self._instance, _upper_model_name)
 
@@ -145,8 +145,6 @@ class BilevelSolver6(pyomo.opt.OptSolver):
             # On iteration k = 0, (54) does not exist. Instead of implementing (54),
             # this approach applies problem (P9) which incorporates KKT-based tightening
             # constraints, and a projection and indicator constraint set.
-            # _lower_model_name = '_p9'
-            # _lower_model_name = unique_component_name(self._instance, _lower_model_name)
             lower_bounding_master = getattr(self._instance, _lower_model_name, None)
             if lower_bounding_master is None:
                 xfrm = TransformationFactory('pao.bilevel.highpoint')
@@ -157,20 +155,17 @@ class BilevelSolver6(pyomo.opt.OptSolver):
 
                 _c_var_bounds_rule = lambda m, k: c_vars[k].bounds
                 _c_var_init_rule = lambda m, k: (c_vars[k].lb + c_vars[k].ub) / 2
-                lower_bounding_master._iter_c = Var(Any, within=Reals, dense=False)  # set (iter k, c_var_ids)
+                lower_bounding_master._iter_c = Var(Any, bounds=(0, M), within=Reals, dense=False)  # set (iter k, c_var_ids)
                 lower_bounding_master._iter_c_tilde = Var(c_vars.keys(), bounds=_c_var_bounds_rule, initialize=_c_var_init_rule,
                                                    within=Reals)  # set (iter k, c_var_ids)
-                lower_bounding_master._iter_b = Var(Any, within=Binary, dense=False)  # set (iter k, b_var_ids)
-                lower_bounding_master._iter_i = Var(Any, within=Integers, dense=False)  # set (iter k, i_var_ids)
+                lower_bounding_master._iter_b = Var(Any, within=Binary, bounds=(0, M), dense=False)  # set (iter k, b_var_ids)
+                lower_bounding_master._iter_i = Var(Any, within=Integers, bounds=(0, M), dense=False)  # set (iter k, i_var_ids)
 
                 lower_bounding_master._iter_pi_tilde = Var(sub_cons.keys(), bounds=(0, M))  # set (iter k, sub_cons_ids)
                 lower_bounding_master._iter_pi = Var(Any, bounds=(0, M), dense=False)  # set (iter k, sub_cons_ids)
                 lower_bounding_master._iter_t = Var(Any, bounds=(0, M), dense=False)  # set (iter k, sub_cons_ids)
                 lower_bounding_master._iter_lambda = Var(Any, bounds=(0, M), dense=False)  # set (iter k, sub_cons_ids)
                 m = lower_bounding_master # shorthand reference to model
-
-            # solution for all variable values
-            _fixed = array([var.value for (key, var) in matrix_repn._all_vars.items()])
 
             if k == 0:
                 # constraint (74)
@@ -224,7 +219,9 @@ class BilevelSolver6(pyomo.opt.OptSolver):
                 for _vid, var in c_vars.items():
                     (A, A_q, sign, b) = matrix_repn.coef_matrices(submodel, var)
                     coef = A #+ dot(A_q.toarray(), _fixed)
-                    lhs_expr_b[_vid] += float(sum(coef))*m._iter_pi_tilde[_vid]
+                    for _cid in sub_cons.keys():
+                        idx = list(sub_cons.keys()).index(_cid)
+                        lhs_expr_b[_vid] += float(coef[idx])*m._iter_pi_tilde[_cid]
 
                     (C, C_q, C_constant) = matrix_repn.cost_vectors(submodel, var)
                     rhs_expr_b[_vid] = float(C) #+ dot(C_q,_fixed))
@@ -265,7 +262,9 @@ class BilevelSolver6(pyomo.opt.OptSolver):
                 self.results.append(opt.solve(lower_bounding_master,
                                               tee=self._tee,
                                               timelimit=self._timelimit))
-            _check_termination_condition(self.results[-1])
+            if not _check_termination_condition(self.results[-1]):
+                raise Exception('The lower-bounding master is infeasible or sub-optimal.')
+
             # the LB should be a sequence of non-decreasing lower-bounds
             _lb = [value(odata) for odata in self._instance.component_objects(Objective) if odata.parent_block() == self._instance][0]
             if _lb < LB:
@@ -292,11 +291,23 @@ class BilevelSolver6(pyomo.opt.OptSolver):
                 self.results.append(opt.solve(submodel,
                                               tee=self._tee,
                                               timelimit=self._timelimit))
-            _check_termination_condition(self.results[-1]) # check the last item appended to list
+            if not _check_termination_condition(self.results[-1]):
+                raise Exception('The lower-level subproblem with fixed upper-level variables is infeasible or sub-optimal.')
+
             theta = [value(odata) for odata in submodel.component_objects(Objective)][0]
 
             # solution for all variable values
             _fixed = array([var.value for (key, var) in matrix_repn._all_vars.items()])
+
+            # temporary dictionary for b_vars
+            _b_vars_subproblem1 = dict()
+            for _vid, var in b_vars.items():
+                _b_vars_subproblem1[_vid] = var.value
+
+            # temporary dictionary for b_vars
+            _i_vars_subproblem1 = dict()
+            for _vid, var in i_vars.items():
+                _i_vars_subproblem1[_vid] = var.value
 
             # Step 5. Subproblem 2
             # Solve problem (P7) upper bounding problem for fixed upper-level optimal vars.
@@ -337,31 +348,42 @@ class BilevelSolver6(pyomo.opt.OptSolver):
                 self.results.append(opt.solve(upper_bounding_subproblem,
                                               tee=self._tee,
                                               timelimit=self._timelimit))
-            _check_termination_condition(self.results[-1]) # check the last item appended to list
+            if _check_termination_condition(self.results[-1]):
+                # calculate new upper bound
+                obj_constant = 0.
+                obj_expr = 0.
+                for var in fixed_vars.values():
+                    (C, C_q, C_constant) = matrix_repn.cost_vectors(self._instance, var)
+                    if obj_constant == 0. and C_constant != 0.:
+                        obj_constant += C_constant # only add the constant once
+                    obj_expr += float(C + dot(C_q,_fixed))*var.value
+                # line 16 of decomposition algorithm
+                _ub = obj_expr + obj_constant + [value(odata) for odata in upper_bounding_subproblem.component_objects(Objective)][0]
+                UB = min(UB,_ub)
 
-            # calculate new upper bound
-            obj_constant = 0.
-            obj_expr = 0.
-            for var in fixed_vars.values():
-                (C, C_q, C_constant) = matrix_repn.cost_vectors(self._instance, var)
-                if obj_constant == 0. and C_constant != 0.:
-                    obj_constant += C_constant # only add the constant once
-                obj_expr += float(C + dot(C_q,_fixed))*var.value
-            # line 16 of decomposition algorithm
-            _ub = obj_expr + obj_constant + [value(odata) for odata in upper_bounding_subproblem.component_objects(Objective)][0]
-            UB = min(UB,_ub)
+                # unfix the upper-level variables
+                for var in fixed_vars.values():
+                    var.unfix()
 
-            # unfix the upper-level variables
-            for var in fixed_vars.values():
-                var.unfix()
+                # fix the solution for submodel binary variables
+                for _vid, var in b_vars.items():
+                    m._iter_b[(k, _vid)].fix(var.value)
 
-            # fix the solution for submodel binary variables
-            for _vid, var in b_vars.items():
-                m._iter_b[(k, _vid)].fix(var.value)
+                # fix the solution for submodel integer variables
+                for _vid, var in i_vars.items():
+                    m._iter_i[(k, _vid)].fix(var.value)
+            else: # infeasible problem
+                # unfix the upper-level variables
+                for var in fixed_vars.values():
+                    var.unfix()
 
-            # fix the solution for submodel integer variables
-            for _vid, var in i_vars.items():
-                m._iter_i[(k, _vid)].fix(var.value)
+                # retrieve b_vars from temporary dictionary for subproblem1
+                for _vid, var in b_vars.items():
+                    m._iter_b[(k, _vid)].fix(_b_vars_subproblem1[_vid])
+
+                # retrieve i_vars from temporary dictionary for subproblem1
+                for _vid, var in i_vars.items():
+                    m._iter_i[(k, _vid)].fix(_i_vars_subproblem1[_vid])
 
             # Step 6. Tightening the Master Problem
             projections = getattr(lower_bounding_master, 'projections', None)
@@ -411,8 +433,8 @@ class BilevelSolver6(pyomo.opt.OptSolver):
 
             # constraint (80a)
             projections[k].projection2a = Constraint(sub_cons.keys())
-            for _vid in c_vars.keys():
-                projections[k].projection2a[_vid] = m._iter_c[(k,_vid)] >= 0
+            for _cid in sub_cons.keys():
+                projections[k].projection2a[_cid] = m._iter_c[(k,_cid)] >= 0
 
             # constraint (80b)
             projections[k].projection2b = Constraint(sub_cons.keys())
@@ -465,7 +487,7 @@ class BilevelSolver6(pyomo.opt.OptSolver):
             for _vid, var in c_vars.items():
                 (A, A_q, sign, b) = matrix_repn.coef_matrices(submodel, var)
                 coef = A + dot(A_q.toarray(), _fixed)
-                lhs_expr[_vid] += float(sum(coef))*m._iter_pi_tilde[_vid]
+                lhs_expr[_vid] += float(sum(coef))*m._iter_pi[_vid]
 
                 (C, C_q, C_constant) = matrix_repn.cost_vectors(submodel, var)
                 rhs_expr[_vid] = float(C + dot(C_q,_fixed))
@@ -489,7 +511,7 @@ class BilevelSolver6(pyomo.opt.OptSolver):
             # constraint (82f)
             disjunction.projection3f = Constraint(c_vars.keys())
             for _vid in c_vars.keys():
-                disjunction.projection3f[_cid] = m._iter_c[(k,_vid)] >= 0
+                disjunction.projection3f[_vid] = m._iter_c[(k,_vid)] >= 0
 
             # constraint (82g)
             disjunction.projection3g = Constraint(sub_cons.keys())

@@ -23,10 +23,16 @@ safe_termination_conditions = [
     pyomo.opt.TerminationCondition.other
 ]
 
+optimal_termination_conditions = [
+    pyomo.opt.TerminationCondition.globallyOptimal,
+    pyomo.opt.TerminationCondition.locallyOptimal,
+    pyomo.opt.TerminationCondition.optimal
+]
 
 def _check_termination_condition(results):
     # do we want to be more restrictive of termination conditions?
     # do we want to have different behavior for sub-optimal termination?
-    if results.solver.termination_condition not in safe_termination_conditions:
-        raise Exception('Problem encountered during solve, termination_condition {}'.format(
-            results.solver.termination_condition))
+    if results.solver.termination_condition not in optimal_termination_conditions:
+        return False
+    else:
+        return True
