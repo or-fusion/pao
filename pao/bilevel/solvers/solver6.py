@@ -432,9 +432,9 @@ class BilevelSolver6(pyomo.opt.OptSolver):
                     raise Exception('Problem encountered, this problem is not in standard form.')
 
             # constraint (80a)
-            projections[k].projection2a = Constraint(sub_cons.keys())
-            for _cid in sub_cons.keys():
-                projections[k].projection2a[_cid] = m._iter_c[(k,_cid)] >= 0
+            projections[k].projection2a = Constraint(c_vars.keys())
+            for _vid in c_vars.keys():
+                projections[k].projection2a[_vid] = m._iter_c[(k,_vid)] >= 0
 
             # constraint (80b)
             projections[k].projection2b = Constraint(sub_cons.keys())
@@ -487,7 +487,9 @@ class BilevelSolver6(pyomo.opt.OptSolver):
             for _vid, var in c_vars.items():
                 (A, A_q, sign, b) = matrix_repn.coef_matrices(submodel, var)
                 coef = A + dot(A_q.toarray(), _fixed)
-                lhs_expr[_vid] += float(sum(coef))*m._iter_pi[_vid]
+                for _cid in sub_cons.keys():
+                    idx = list(sub_cons.keys()).index(_cid)
+                    lhs_expr[_vid] += float(coef[idx])*m._iter_pi[_cid]
 
                 (C, C_q, C_constant) = matrix_repn.cost_vectors(submodel, var)
                 rhs_expr[_vid] = float(C + dot(C_q,_fixed))
@@ -514,9 +516,9 @@ class BilevelSolver6(pyomo.opt.OptSolver):
                 disjunction.projection3f[_vid] = m._iter_c[(k,_vid)] >= 0
 
             # constraint (82g)
-            disjunction.projection3g = Constraint(sub_cons.keys())
-            for _cid in sub_cons.keys():
-                disjunction.projection3g[_cid] = m._iter_pi[(k,_cid)] >= 0
+            # disjunction.projection3g = Constraint(sub_cons.keys())
+            # for _cid in sub_cons.keys():
+            #     disjunction.projection3g[_cid] = m._iter_pi[(k,_cid)] >= 0
 
             # constraint (83a)
             projections[k].projection4a = Constraint(c_vars.keys())
