@@ -89,7 +89,7 @@ class BilevelSolver6(pyomo.opt.OptSolver):
         theta = 0.
         xi = 10e-3
         k = 0
-        epsilon = 10e-3
+        epsilon = 1e-4
         M = 1e6
 
         # matrix representation for bilevel problem
@@ -138,7 +138,6 @@ class BilevelSolver6(pyomo.opt.OptSolver):
         _upper_model_name = unique_component_name(self._instance, _upper_model_name)
 
         while k <= self._k_max_iter:
-            print('k={}'.format(k))
             # Step 2. Lower Bounding
             # Solve problem (P5) master problem.
             # This includes equations (53), (12), (13), (15), and (54)
@@ -240,7 +239,7 @@ class BilevelSolver6(pyomo.opt.OptSolver):
                 # constraint (76b)
                 lower_bounding_master.KKT_tight3b = ComplementarityList()
                 for _cid in sub_cons.keys():
-                    lower_bounding_master.KKT_tight3b.add(complements(m._iter_pi_tilde[_cid] >= 0, rhs_expr_a[_cid]  - lhs_expr_a[_cid] >= 0))
+                    lower_bounding_master.KKT_tight3b.add(complements(m._iter_pi_tilde[_cid] >= 0, rhs_expr_a[_cid] - lhs_expr_a[_cid] >= 0))
 
                 # constraint (77a)
                 lower_bounding_master.KKT_tight4a = Constraint(c_vars.keys())
@@ -256,7 +255,6 @@ class BilevelSolver6(pyomo.opt.OptSolver):
             lower_bounding_master.activate()
             TransformationFactory('mpec.simple_disjunction').apply_to(lower_bounding_master)
             bigm.apply_to(lower_bounding_master)
-            # bigm.apply_to(self._instance, targets=lower_bounding_master)
 
             with pyomo.opt.SolverFactory(solver) as opt:
                 self.results.append(opt.solve(lower_bounding_master,
@@ -304,7 +302,7 @@ class BilevelSolver6(pyomo.opt.OptSolver):
             for _vid, var in b_vars.items():
                 _b_vars_subproblem1[_vid] = var.value
 
-            # temporary dictionary for b_vars
+            # temporary dictionary for i_vars
             _i_vars_subproblem1 = dict()
             for _vid, var in i_vars.items():
                 _i_vars_subproblem1[_vid] = var.value
@@ -489,7 +487,7 @@ class BilevelSolver6(pyomo.opt.OptSolver):
                 coef = A + dot(A_q.toarray(), _fixed)
                 for _cid in sub_cons.keys():
                     idx = list(sub_cons.keys()).index(_cid)
-                    lhs_expr[_vid] += float(coef[idx])*m._iter_pi[_cid]
+                    lhs_expr[_vid] += float(coef[idx])*m._iter_pi[(k,_cid)]
 
                 (C, C_q, C_constant) = matrix_repn.cost_vectors(submodel, var)
                 rhs_expr[_vid] = float(C + dot(C_q,_fixed))
@@ -516,9 +514,9 @@ class BilevelSolver6(pyomo.opt.OptSolver):
                 disjunction.projection3f[_vid] = m._iter_c[(k,_vid)] >= 0
 
             # constraint (82g)
-            # disjunction.projection3g = Constraint(sub_cons.keys())
-            # for _cid in sub_cons.keys():
-            #     disjunction.projection3g[_cid] = m._iter_pi[(k,_cid)] >= 0
+            disjunction.projection3g = Constraint(sub_cons.keys())
+            for _cid in sub_cons.keys():
+                disjunction.projection3g[_cid] = m._iter_pi[(k,_cid)] >= 0
 
             # constraint (83a)
             projections[k].projection4a = Constraint(c_vars.keys())
@@ -544,7 +542,7 @@ class BilevelSolver6(pyomo.opt.OptSolver):
             # constraint (84a)
             projections[k].projection5a = Constraint(sub_cons.keys())
             for _cid in sub_cons.keys():
-                projections[k].projection5a[_cid] = 1-m._iter_lambda[(k,_cid)] >= 0
+                projections[k].projection5a[_cid] = 1 - m._iter_lambda[(k,_cid)] >= 0
 
             # constraint (84b)
             projections[k].projection5b = ComplementarityList()
