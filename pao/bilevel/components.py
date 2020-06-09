@@ -71,6 +71,22 @@ def dataref(model, origin=None):
         model.add_component(s.name, Reference(s))
 
 
+def deactivate_submodels(model):
+    """
+    This is a helper function to deactivate all SubModel blocks
+    """
+    for b in model.component_objects(SubModel):
+        b.deactivate()
+
+
+def activate_submodels(model):
+    """
+    This is a helper function to activate all SubModel blocks
+    """
+    for b in model.component_objects(SubModel):
+        b.activate()
+
+
 @ModelComponentFactory.register("A submodel in a bilevel program")
 class SubModel(SimpleBlock):
     """

@@ -1,0 +1,52 @@
+9 Var Declarations
+    c1 : Size=1, Index=None
+        Key  : Lower : Value : Upper : Fixed : Stale : Domain
+        None :  None :  None :     0 : False :  True : NonPositiveReals
+    c2 : Size=1, Index=None
+        Key  : Lower : Value : Upper : Fixed : Stale : Domain
+        None :     0 :  None :  None : False :  True : NonNegativeReals
+    c3 : Size=1, Index=None
+        Key  : Lower : Value : Upper : Fixed : Stale : Domain
+        None :  None :  None :  None : False :  True :  Reals
+    c4_lb_ : Size=1, Index=None
+        Key  : Lower : Value : Upper : Fixed : Stale : Domain
+        None :     0 :  None :  None : False :  True : NonNegativeReals
+    c4_ub_ : Size=1, Index=None
+        Key  : Lower : Value : Upper : Fixed : Stale : Domain
+        None :  None :  None :     0 : False :  True : NonPositiveReals
+    x2_upper_ : Size=1, Index=None
+        Key  : Lower : Value : Upper : Fixed : Stale : Domain
+        None :  None :  None :     0 : False :  True : NonPositiveReals
+    y1_lower_ : Size=1, Index=None
+        Key  : Lower : Value : Upper : Fixed : Stale : Domain
+        None :     0 :  None :  None : False :  True : NonNegativeReals
+    y2_lower_ : Size=1, Index=None
+        Key  : Lower : Value : Upper : Fixed : Stale : Domain
+        None :     0 :  None :  None : False :  True : NonNegativeReals
+    y2_upper_ : Size=1, Index=None
+        Key  : Lower : Value : Upper : Fixed : Stale : Domain
+        None :  None :  None :     0 : False :  True : NonPositiveReals
+
+1 Objective Declarations
+    o : Size=1, Index=None, Active=True
+        Key  : Active : Sense    : Expression
+        None :   True : minimize : -19.0*c1 - 20.0*c2 - 32.0*c3 - 22.0*c4_lb_ - 28.0*c4_ub_ - x2_upper_ - 2*y2_upper_ + 100*y2_lower_ - y1_lower_
+
+5 Constraint Declarations
+    x1 : Size=1, Index=None, Active=True
+        Key  : Lower : Body                                   : Upper : Active
+        None :  -Inf : c1 + 2*c2 + 4*c3 + 3*c4_lb_ + 3*c4_ub_ :   0.0 :   True
+    x2 : Size=1, Index=None, Active=True
+        Key  : Lower : Body           : Upper : Active
+        None :  -Inf : x2_upper_ - 11 :   0.0 :   True
+    y1 : Size=1, Index=None, Active=True
+        Key  : Lower : Body                                                 : Upper : Active
+        None :   0.0 : 5*c1 + 6*c2 + 8*c3 + 7*c4_lb_ + 7*c4_ub_ + y1_lower_ :   0.0 :   True
+    y2 : Size=1, Index=None, Active=True
+        Key  : Lower : Body                      : Upper : Active
+        None :   0.0 : y2_upper_ + y2_lower_ - 1 :   0.0 :   True
+    y3 : Size=1, Index=None, Active=True
+        Key  : Lower : Body      : Upper : Active
+        None :   0.0 : 10*c2 - 9 :   0.0 :   True
+
+15 Declarations: c1 c2 c3 c4_lb_ c4_ub_ x2_upper_ y2_upper_ y2_lower_ y1_lower_ o x1 y1 y3 x2 y2

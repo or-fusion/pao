@@ -30,7 +30,8 @@ def read(*rnames):
 
 requires = [
     'Pyomo',
-    'parameterized'
+    'parameterized',
+    'scipy'
     ]
 
 from setuptools import setup

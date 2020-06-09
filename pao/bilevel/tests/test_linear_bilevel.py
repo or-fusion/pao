@@ -29,10 +29,13 @@ try:
 except ImportError:
     yaml_available=False
 
+# TODO: Add more reformulation and solution tests
+
 # only runs with no error when solvers = ['ipopt'] and pao_solvers = ['pao.bilevel.blp_local']
 solvers = ['ipopt'] #pyomo.opt.check_available_solvers('cplex','glpk','gurobi','ipopt')
 pao_solvers = ['pao.bilevel.blp_local']#,'pao.bilevel.blp_global']
-solvers2 = pyomo.opt.check_available_solvers('cplex','glpk','gurobi','ipopt')
+# TODO: Add glpk in solvers2 list
+solvers2 = pyomo.opt.check_available_solvers('cplex','gurobi','ipopt')
 pao_solvers2 = ['pao.bilevel.ld']
 
 current_dir = dirname(abspath(__file__))
@@ -41,7 +44,7 @@ aux_dir = join(dirname(abspath(__file__)),'auxiliary')
 # models for bilevel reformulation tests
 reformulation_model_names = ['bqp_example1','bqp_example2']
 reformulation_models = [join(current_dir, 'auxiliary', '{}.py'.format(i)) for i in reformulation_model_names]
-reformulations = [join(current_dir, 'auxiliary','reformulation','{}.txt'.format(i)) for i in reformulation_model_names]
+reformulations = [join(current_dir, 'auxiliary','reformulation','{}_mpec.txt'.format(i)) for i in reformulation_model_names]
 
 # models for bilevel solution tests
 solution_model_names = ['bard511']
@@ -57,7 +60,7 @@ cartesian_solutions = [elem for elem in itertools.product(*[solvers,pao_solvers,
 cartesian_solutions2 = [elem for elem in itertools.product(*[solvers2,pao_solvers2,zip(solution_model_names2,solution_models2,solutions2)])]
 cartesian_solutions = cartesian_solutions2#cartesian_solutions + cartesian_solutions2
 
-class TestBilevelReformulate():#unittest.TestCase):
+class TestBilevelReformulate(unittest.TestCase):
     """
     Testing for bilevel reformulations that use the pao.bilevel.linear_mpec transformation
 
@@ -76,7 +79,7 @@ class TestBilevelReformulate():#unittest.TestCase):
     @parameterized.expand(zip(reformulation_model_names, reformulation_models, reformulations))
     def test_reformulation(self, name, model, reformulation):
         """ Tests bilevel reformulation and checks whether the derivation is equivalent
-        to the known solution in the reformulation/*.out file
+        to the known solution in the reformulation/*_mpec.out file
 
         Parameters
         ----------
@@ -95,8 +98,8 @@ class TestBilevelReformulate():#unittest.TestCase):
         with open(join(aux_dir, name + '_linear_mpec.out'), 'w') as ofile:
             instance.pprint(ostream=ofile)
 
-        # self.assertFileEqualsBaseline(join(aux_dir, name + '_linear_mpec.out'),
-        #                               reformulation, tolerance=1e-5)
+        self.assertFileEqualsBaseline(join(aux_dir, name + '_linear_mpec.out'),
+                                      reformulation, tolerance=1e-5)
 
 
 class TestBilevelSolve(unittest.TestCase):
