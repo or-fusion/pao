@@ -27,6 +27,7 @@ import time
 import pyutilib.misc
 import pyomo.opt
 import pyomo.common
+from pyomo.opt import TerminationCondition
 from pyomo.core import TransformationFactory, Var, Set, Block
 from .solver3 import BilevelSolver3
 from .solver_helpers import *
