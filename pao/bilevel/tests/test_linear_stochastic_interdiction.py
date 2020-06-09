@@ -29,7 +29,9 @@ try:
 except ImportError:
     yaml_available=False
 
-solvers = pyomo.opt.check_available_solvers('cplex','glpk','gurobi')
+# TODO: Add glpk in solvers list
+
+solvers = pyomo.opt.check_available_solvers('cplex','gurobi')
 pao_solvers = ['pao.bilevel.stochastic_ld']
 
 current_dir = dirname(abspath(__file__))

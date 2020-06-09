@@ -34,7 +34,8 @@ except ImportError:
 # only runs with no error when solvers = ['ipopt'] and pao_solvers = ['pao.bilevel.blp_local']
 solvers = ['ipopt'] #pyomo.opt.check_available_solvers('cplex','glpk','gurobi','ipopt')
 pao_solvers = ['pao.bilevel.blp_local']#,'pao.bilevel.blp_global']
-solvers2 = pyomo.opt.check_available_solvers('cplex','glpk','gurobi','ipopt')
+# TODO: Add glpk in solvers2 list
+solvers2 = pyomo.opt.check_available_solvers('cplex','gurobi','ipopt')
 pao_solvers2 = ['pao.bilevel.ld']
 
 current_dir = dirname(abspath(__file__))

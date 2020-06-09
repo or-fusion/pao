@@ -29,6 +29,8 @@ try:
 except ImportError:
     yaml_available=False
 
+# TODO: Add glpk in solvers list
+
 solvers = pyomo.opt.check_available_solvers('cplex','gurobi')
 pao_solvers = ['pao.bilevel.ccg']
 

@@ -35,6 +35,7 @@ reformulation_model_names = ['besancon27']
 reformulation_models = [join(current_dir, 'auxiliary', '{}.py'.format(i)) for i in reformulation_model_names]
 reformulations = [join(current_dir, 'auxiliary','reformulation','{}_hpr.txt'.format(i)) for i in reformulation_model_names]
 
+# TODO: Add glpk in solvers list
 solvers = pyomo.opt.check_available_solvers('cplex','glpk','gurobi','ipopt')
 
 # models for bilevel solution tests
