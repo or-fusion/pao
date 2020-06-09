@@ -51,6 +51,7 @@ class BilevelSolver6(pyomo.opt.OptSolver):
         pyomo.opt.OptSolver.__init__(self, **kwds)
         self._metasolver = True
         self._k_max_iter = 10
+        self.results_obj = None
 
     def _presolve(self, *args, **kwds):
         self._instance = args[0]
