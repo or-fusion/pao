@@ -27,4 +27,6 @@ def load():
     import pao.bilevel.solvers.solver2
     import pao.bilevel.solvers.solver3
     import pao.bilevel.solvers.solver4
+    import pao.bilevel.solvers.solver5
+    import pao.bilevel.solvers.solver6
 

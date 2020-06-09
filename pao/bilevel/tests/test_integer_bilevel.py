@@ -2,8 +2,8 @@
 #
 #  Pyomo: Python Optimization Modeling Objects
 #  Copyright 2017 National Technology and Engineering Solutions of Sandia, LLC
-#  Under the terms of Contract DE-NA0003525 with National Technology and 
-#  Engineering Solutions of Sandia, LLC, the U.S. Government retains certain 
+#  Under the terms of Contract DE-NA0003525 with National Technology and
+#  Engineering Solutions of Sandia, LLC, the U.S. Government retains certain
 #  rights in this software.
 #  This software is distributed under the 3-clause BSD License.
 #  ___________________________________________________________________________
@@ -29,77 +29,19 @@ try:
 except ImportError:
     yaml_available=False
 
-# TODO: Add more reformulation and solution tests
-
-# only runs with no error when solvers = ['ipopt'] and pao_solvers = ['pao.bilevel.blp_local']
 solvers = pyomo.opt.check_available_solvers('cplex','glpk','gurobi')
-pao_solvers = ['pao.bilevel.blp_local','pao.bilevel.blp_global']
-solvers2 = pyomo.opt.check_available_solvers('cplex','glpk','gurobi')
-pao_solvers2 = ['pao.bilevel.ld']
+pao_solvers = ['pao.bilevel.ccg']
 
 current_dir = dirname(abspath(__file__))
 aux_dir = join(dirname(abspath(__file__)),'auxiliary')
 
-# models for bilevel reformulation tests
-reformulation_model_names = ['bqp_example1','bqp_example2']
-reformulation_models = [join(current_dir, 'auxiliary', '{}.py'.format(i)) for i in reformulation_model_names]
-reformulations = [join(current_dir, 'auxiliary','reformulation','{}_mpec.txt'.format(i)) for i in reformulation_model_names]
-
-# models for bilevel solution tests
-solution_model_names = ['bard511']
+# models for integer bilevel solution tests
+solution_model_names = ['yueA1','yueA2','yueA3']
 solution_models = [join(current_dir, 'auxiliary', '{}.py'.format(i)) for i in solution_model_names]
-solutions = [join(current_dir, 'auxiliary','solution','{}.txt'.format(i)) for i in solution_model_names]
-
-solution_model_names2 = ['t5','t1','t1b']
-solution_models2 = [join(current_dir, 'auxiliary', '{}.py'.format(i)) for i in solution_model_names2]
-solutions2 = [join(current_dir, 'auxiliary','solution','{}.txt'.format(i)) for i in solution_model_names2]
+solutions = [-22, -20, -243.500]
 
 # cartesian product of lists for a full coverage unittest run
 cartesian_solutions = [elem for elem in itertools.product(*[solvers,pao_solvers,zip(solution_model_names,solution_models,solutions)])]
-cartesian_solutions2 = [elem for elem in itertools.product(*[solvers2,pao_solvers2,zip(solution_model_names2,solution_models2,solutions2)])]
-cartesian_solutions = cartesian_solutions2#cartesian_solutions + cartesian_solutions2
-
-class TestBilevelReformulate(unittest.TestCase):
-    """
-    Testing for bilevel reformulations that use the pao.bilevel.linear_mpec transformation
-
-    """
-    show_output = True
-
-    @classmethod
-    def setUpClass(self): pass
-
-    @classmethod
-    def setUp(self): pass
-
-    @classmethod
-    def tearDown(self): pass
-
-    @parameterized.expand(zip(reformulation_model_names, reformulation_models, reformulations))
-    def test_reformulation(self, name, model, reformulation):
-        """ Tests bilevel reformulation and checks whether the derivation is equivalent
-        to the known solution in the reformulation/*_mpec.out file
-
-        Parameters
-        ----------
-        name : `string`
-        model: `string`
-        reformulation: `string`
-
-        """
-        from importlib.machinery import SourceFileLoader
-        namespace = SourceFileLoader(name,model).load_module()
-        instance = namespace.pyomo_create_model()
-
-        xfrm = TransformationFactory('pao.bilevel.linear_mpec')
-        xfrm.apply_to(instance, deterministic=True)
-
-        with open(join(aux_dir, name + '_linear_mpec.out'), 'w') as ofile:
-            instance.pprint(ostream=ofile)
-
-        self.assertFileEqualsBaseline(join(aux_dir, name + '_linear_mpec.out'),
-                                      reformulation, tolerance=1e-5)
-
 
 class TestBilevelSolve(unittest.TestCase):
     """
@@ -142,12 +84,8 @@ class TestBilevelSolve(unittest.TestCase):
         self.assertTrue(results.solver.termination_condition == pyomo.opt.TerminationCondition.optimal)
 
         test_objective = self.getObjectiveInstance(instance)
-        solution_objective = self.getObjectiveSolution(solution, test_objective.keys())
-        for key,val in test_objective.items():
-            if key in solution_objective.keys():
-                solution_val = solution_objective[key]
-                comparison = math.isclose(val,solution_val,rel_tol=1e-3)
-                self.assertTrue(comparison)
+        comparison = math.isclose(test_objective,solution,rel_tol=1e-3)
+        self.assertTrue(comparison)
 
     def getObjectiveSolution(self, filename, keys):
         """ Gets the objective solutions from the known solution file that maps to
@@ -177,29 +115,22 @@ class TestBilevelSolve(unittest.TestCase):
                         ans[key] = val
         return ans
 
-    def getObjectiveInstance(self, instance, root_name=None, ans=dict()):
-        """ Gets the objective solutions from the unittest instance
+    def getObjectiveInstance(self, instance):
+        """ Gets the master problem objective solution from the unittest instance
 
         Parameters
         ----------
         instance : `string`
-        root_name: `string`
-        ans: `dict`
+        ans: `float`
 
         Returns
         -------
-        `dict`
+        `float`
         """
 
         for (name, data) in instance.component_map(active=True).items():
             if isinstance(data, Objective):
-                if not root_name is None:
-                    name = ("%s.%s" % (root_name, name))
-                ans[name] = value(data)
-            if isinstance(data, SubModel):
-                root_name = name
-                self.getObjectiveInstance(data, root_name, ans)
-        return ans
+                return value(data)
 
 
 

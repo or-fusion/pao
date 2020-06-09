@@ -54,8 +54,6 @@ class BilevelSolver6(pyomo.opt.OptSolver):
 
     def _presolve(self, *args, **kwds):
         self._instance = args[0]
-        self.results = []
-        pyomo.opt.OptSolver._presolve(self, *args, **kwds)
         self._upper_level_sense = minimize
         self._lower_level_sense = maximize
 
@@ -72,8 +70,11 @@ class BilevelSolver6(pyomo.opt.OptSolver):
                     odata.set_value(-odata.expr)
                     odata.set_sense(maximize)
 
-    @property
+        pyomo.opt.OptSolver._presolve(self, *args, **kwds)
+
     def _apply_solver(self):
+        self.results = []
+        start_time = time.time()
         #
         # Solve with a specified solver
         #
@@ -272,8 +273,13 @@ class BilevelSolver6(pyomo.opt.OptSolver):
 
             # Step 3. Termination
             if UB - LB < xi:
-                print(UB)
-                print(LB)
+                # print(UB)
+                # print(LB)
+                if self._instance.solutions.solutions:
+                    self._instance.solutions.select(0, ignore_fixed_vars=True)
+                stop_time = time.time()
+                self.wall_time = stop_time - start_time
+                self.results_obj = self._setup_results_obj()
                 return pyutilib.misc.Bunch(rc=getattr(opt, '_rc', None),
                                            log=getattr(opt, '_log', None))
 
@@ -285,11 +291,11 @@ class BilevelSolver6(pyomo.opt.OptSolver):
             # Solve problem (P6) lower-level problem for fixed upper-level optimal vars.
             # In iteration k=0, this first subproblem is always feasible; furthermore, the
             # optimal solution to (P5), alternatively (P9), will also be feasible to (P6).
-            with pyomo.opt.SolverFactory(solver) as opt:
-                self.results.append(opt.solve(submodel,
-                                              tee=self._tee,
-                                              timelimit=self._timelimit))
-            if not _check_termination_condition(self.results[-1]):
+            with pyomo.opt.SolverFactory(solver) as _opt:
+                _results = _opt.solve(submodel,
+                                      tee=self._tee,
+                                      timelimit=self._timelimit)
+            if not _check_termination_condition(_results):
                 raise Exception('The lower-level subproblem with fixed upper-level variables is infeasible or sub-optimal.')
 
             theta = [value(odata) for odata in submodel.component_objects(Objective)][0]
@@ -557,11 +563,15 @@ class BilevelSolver6(pyomo.opt.OptSolver):
             k = k + 1
             # Step 7. Loop
             if UB - LB < xi:
-                print(UB)
-                print(LB)
+                # print(UB)
+                # print(LB)
+                if self._instance.solutions.solutions:
+                    self._instance.solutions.select(0, ignore_fixed_vars=True)
+                stop_time = time.time()
+                self.wall_time = stop_time - start_time
+                self.results_obj = self._setup_results_obj()
                 return pyutilib.misc.Bunch(rc=getattr(opt, '_rc', None),
                                            log=getattr(opt, '_log', None))
-
 
     def _postsolve(self):
 
@@ -576,3 +586,14 @@ class BilevelSolver6(pyomo.opt.OptSolver):
                     odata.set_value(-odata.expr)
                     odata.set_sense(minimize)
 
+        self._instance = None
+
+        return self.results_obj
+
+    def _setup_results_obj(self):
+        #
+        # Create a results object
+        #
+        results = self.results[-1]
+        results.wallclock_time = self.wall_time
+        return results

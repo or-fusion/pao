@@ -20,6 +20,7 @@ Nov, 2019.
 
 TODO: Currently handling linear subproblem; need to extend to
 convex subproblem duality
+TODO: This is incomplete, currently worked on by She'ifa
 """
 
 import time

@@ -28,7 +28,7 @@
         1 Objective Declarations
             o : Size=1, Index=None, Active=False
                 Key  : Active : Sense    : Expression
-                None :  False : maximize : -11*x2 - 12*x2*y1 - y2 - 9*y3
+                None :  False : minimize : 11*x2 + 12*x2*y1 + y2 + 9*y3
 
         4 Constraint Declarations
             c1 : Size=1, Index=None, Active=False
@@ -47,16 +47,21 @@
         5 Declarations: o c1 c2 c3 c4
     sub_kkt : Size=1, Index=None, Active=True
         5 Set Declarations
-            c1_index : Dim=0, Dimen=1, Size=4, Domain=None, Ordered=False, Bounds=None
-                [1, 2, 3, 4]
-            c2_index : Dim=0, Dimen=1, Size=4, Domain=None, Ordered=False, Bounds=None
-                [1, 2, 3, 4]
-            c3_index : Dim=0, Dimen=1, Size=5, Domain=None, Ordered=False, Bounds=None
-                [1, 2, 3, 4, 5]
-            u_index : Dim=0, Dimen=1, Size=5, Domain=None, Ordered=False, Bounds=None
-                [1, 2, 3, 4, 5]
-            v_index : Dim=0, Dimen=1, Size=5, Domain=None, Ordered=False, Bounds=None
-                [1, 2, 3, 4, 5]
+            c1_index : Size=1, Index=None, Ordered=Insertion
+                Key  : Dimen : Domain : Size : Members
+                None :     1 :    Any :    4 : {1, 2, 3, 4}
+            c2_index : Size=1, Index=None, Ordered=Insertion
+                Key  : Dimen : Domain : Size : Members
+                None :     1 :    Any :    4 : {1, 2, 3, 4}
+            c3_index : Size=1, Index=None, Ordered=Insertion
+                Key  : Dimen : Domain : Size : Members
+                None :     1 :    Any :    5 : {1, 2, 3, 4, 5}
+            u_index : Size=1, Index=None, Ordered=Insertion
+                Key  : Dimen : Domain : Size : Members
+                None :     1 :    Any :    5 : {1, 2, 3, 4, 5}
+            v_index : Size=1, Index=None, Ordered=Insertion
+                Key  : Dimen : Domain : Size : Members
+                None :     1 :    Any :    5 : {1, 2, 3, 4, 5}
 
         2 Var Declarations
             u : Size=5, Index=sub_kkt.u_index

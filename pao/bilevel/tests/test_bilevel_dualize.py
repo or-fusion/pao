@@ -30,9 +30,9 @@ current_dir = dirname(abspath(__file__))
 aux_dir = join(dirname(abspath(__file__)),'auxiliary')
 
 # models for bilevel reformulation tests
-reformulation_model_names = ['barguel']#['bqp_example1','bqp_example2']
+reformulation_model_names = ['bqp_example1','bqp_example2']
 reformulation_models = [join(current_dir, 'auxiliary', '{}.py'.format(i)) for i in reformulation_model_names]
-reformulations = [join(current_dir, 'auxiliary','reformulation','{}.txt'.format(i)) for i in reformulation_model_names]
+reformulations = [join(current_dir, 'auxiliary','reformulation','{}_dual.txt'.format(i)) for i in reformulation_model_names]
 
 class TestBilevelDualize(unittest.TestCase):
     """
@@ -69,20 +69,14 @@ class TestBilevelDualize(unittest.TestCase):
         xfrm = TransformationFactory('pao.duality.linear_dual')
         for submodel in instance.component_objects(SubModel, descend_into=True):
             instance.reclassify_component_type(submodel, Block)
-            dualmodel = xfrm._create_using(instance, block=submodel.name,fixed=[instance.u])
-        # dualmodel = xfrm._create_using(instance)
+            dualmodel = xfrm._create_using(instance, block=submodel.name)
+            break
 
+        with open(join(aux_dir, name + '_linear_mpec.out'), 'w') as ofile:
+            dualmodel.pprint(ostream=ofile)
 
-        # with open(join(aux_dir, name + '_linear_mpec.out'), 'w') as ofile:
-        #     instance.pprint(ostream=ofile)
-        #
-        # self.assertFileEqualsBaseline(join(aux_dir, name + '_linear_mpec.out'),
-        #                               reformulation, tolerance=1e-5)
-            print('-----------')
-            print(name)
-            print('-----------')
-            instance.pprint()
-            dualmodel.pprint()
-            print('-----------')
+        self.assertFileEqualsBaseline(join(aux_dir, name + '_linear_mpec.out'),
+                                      reformulation, tolerance=1e-5)
+
 if __name__ == "__main__":
     unittest.main()

@@ -11,7 +11,12 @@
 from pyomo.environ import *
 from pao.bilevel import *
 
-# Yue et al... Toy Example 2
+# Example Appendix C: Toy example 3 from
+#
+# A projection-base reformulation and decomposition
+# algorithm for global optimization of a class of mixed integer
+# bilevel linear programs
+# By D. Yue, J. Gao, B. Zeng and F. You
 
 def pyomo_create_model():
     M = ConcreteModel()
