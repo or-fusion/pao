@@ -29,7 +29,7 @@ try:
 except ImportError:
     yaml_available=False
 
-solvers = pyomo.opt.check_available_solvers('cplex','glpk','gurobi')
+solvers = pyomo.opt.check_available_solvers('cplex','gurobi')
 pao_solvers = ['pao.bilevel.ccg']
 
 current_dir = dirname(abspath(__file__))
