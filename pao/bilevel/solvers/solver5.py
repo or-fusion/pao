@@ -39,7 +39,7 @@ from pyomo.gdp import Disjunct, Disjunction
 from pao.bilevel.solvers.solver_helpers import _check_termination_condition
 from pao.bilevel.plugins.collect import BilevelMatrixRepn
 from pao.bilevel.components import SubModel, varref, dataref
-from pao.bilevel.solvers.solver1 import BilevelSolver1
+from pao.bilevel.solvers.solver2 import BilevelSolver2
 from pyomo.core import TransformationFactory, minimize, maximize, Block, Constraint, Objective, Var, Reals, Binary, Integers, Any, Param, NonNegativeIntegers, NonNegativeReals
 from pyomo.core.expr.numvalue import value
 import numpy as np
@@ -75,8 +75,8 @@ class BilevelSolver5(pyomo.opt.OptSolver):
         if len(submodel) != 1:
             raise Exception('Problem encountered, this is not a valid bilevel model for the solver.')
         self._instance.reclassify_component_type(submodel, Block)
-        varref(submodel)
-        dataref(submodel)
+        #varref(submodel)
+        #dataref(submodel)
 
         all_vars = {key: var for (key, var) in matrix_repn._all_vars.items()}
 
@@ -92,14 +92,16 @@ class BilevelSolver5(pyomo.opt.OptSolver):
         b_vars = {key: var for (key, var) in matrix_repn._all_vars.items() if key in matrix_repn._b_var_ids - fixed_vars.keys()}
         if len(b_vars)!= 0:
             raise Exception('Problem encountered, this is not a valid bilevel model for the solver. Binary variables present!')
+            
         # integer variables in SubModel SHOULD BE EMPTY FOR THIS SOLVER
         i_vars = {key: var for (key, var) in matrix_repn._all_vars.items() if key in matrix_repn._i_var_ids - fixed_vars.keys()}
         if len(i_vars) != 0:
             raise Exception('Problem encountered, this is not a valid bilevel model for the solver. Integer variables present!')
+            
         # get constraint information related to constraint id, sign, and rhs value
         sub_cons = matrix_repn._cons_sense_rhs[submodel.name]
         
-        cons= matrix_repn._cons_sense_rhs[self._instance.name] #ERROR
+        cons= matrix_repn._cons_sense_rhs[self._instance.name]
         
         # construct the high-point problem (LL feasible, no LL objective)
         # s0 <- solve the high-point
@@ -114,57 +116,88 @@ class BilevelSolver5(pyomo.opt.OptSolver):
             solver = 'gurobi'
 
         for c in self._instance.component_objects(Block, descend_into=False): 
-            if '_hp' in c.name:
+            if 'hp' in c.name:
+            #if '_hp' in c.name:
                 c.activate()
                 with pyomo.opt.SolverFactory(solver) as opt:
                     self.results.append(opt.solve(c,
                                               tee=self._tee,
                                               timelimit=self._timelimit))
-                _check_termination_condition(self.results[-1]) 
+                _check_termination_condition(self.results[-1])
                 c.deactivate()
-        #Mostly debugged to here...
-        '''
+        print('Solution to the Highpoint Relaxation')
+        for _, var in all_vars.items():
+             var.pprint()
+        
         # s1 <- solve the optimistic bilevel (linear/linear) problem (call solver3)
         # if s1 infeasible then return optimistic_infeasible'
-        with pyomo.opt.SolverFactory('pao.bilevel.ld') as opt:
+        with pyomo.opt.SolverFactory('pao.bilevel.blp_global') as opt:
             opt.options.solver = solver
-            #ANYA HELP
             self.results.append(opt.solve(self._instance,tee=self._tee,timelimit=self._timelimit))
         _check_termination_condition(self.results[-1])
-        '''
+        
+        print('Solution to the Optimistic Bilevel')
+        for _, var in all_vars.items():
+             var.pprint()
+        #debugged to here, solving toy problem correctly 
+        # sk <- solve the dual adversarial  problem
+        # if infeasible then return dual_adversarial_infeasible
+
+        # Collect the vertices solutions for the dual adversarial problem
+        
         #Collect up the matrix B and the vector d for use in all adversarial feasibility problems 
         B=np.array([])
     
-        for _vid, var in c_vars.items():
-            (A, A_q, sign, b) = matrix_repn.coef_matrices(submodel, var) #HOW DOES b WORK on a per-variable basis?
+        for _, var in c_vars.items():
+            (A, A_q, sign, b) = matrix_repn.coef_matrices(submodel, var)
             B=np.hstack((B,np.transpose(np.array(A))))
-        d=np.array(b)
-        #Like halfway debugged to here...
+        d=...
         self._instance.Vertices=Param(cons.keys()*NonNegativeIntegers*cons.keys()) #(k-th subproblem,l-th vertex, dimension of alpha)
         self._instance.VerticesB=Param(cons.keys()*NonNegativeIntegers) #(k-th subproblem, l-th vertex)
         self._instance.adversarial=Block(Any)
         #Add Adversarial blocks
         for _cid in cons.items(): # <for each constraint in the upper-level problem>
-            ad=self._instance.adversarial[_cid] #shorthand? 
+            ad=self._instance.adversarial[_cid] #shorthand
             ad.alpha=Var(cons.keys(),within=NonNegativeReals) #cons.keys() because it's a dual variable on the upper level
             ad.beta=Var(within=NonNegativeReals)
             Hk=np.array([])
             
-            for var in c_vars.items():    
-                (A,A_q,sign,b) = matrix_repn.coef_matrices(self._instance,var)
-                Hk=np.vstack(Hk,np.array(A[_cid]))
+            for _,var in c_vars.items():    
+                (A,A_q,sign,b) = matrix_repn.coef_matrices(self._instance,var) #ERROR
+                Hk=np.vstack((Hk,np.array(A[_cid])))
+            '''    
             ad.cons=Constraint(c_vars.keys()) #B^Talpha+beta*d>= H_k, v-dimension constraints so index by c_vars
             lhs_expr = {key: 0. for key in c_vars.keys()}
             rhs_expr = {key: 0. for key in c_vars.keys()}
-            #...
-            
-            #WIP: Finish writing the actual constraint using the dictionary (integrate the loops?)
-            
-            #...
-            ad.Obj=Objective(expr=0) #THIS IS A FEASIBILITY PROBLEM ONLY
-            opt=SolverFactory("gurobi")
-            opt.solve(self._instance.ad)
-            
+            for _vid, var in c_vars.items():
+                (A, A_q, sign, b) = matrix_repn.coef_matrices(submodel, var)
+                coef = A #+ dot(A_q.toarray(), _fixed)
+                
+                (C, C_q, C_constant) = matrix_repn.cost_vectors(submodel, var)
+                d=np.array(C)
+                lhs_expr[_vid] =float(C[_vid])*ad.beta #LHS=beta*d
+                
+                (A,A_q,sign,b)=matrix_repon.coef_matrices(self._instance,var)
+                Hk=np.vstack((Hk,np.array(A[_cid])))
+                
+                for _cid2 in cons.keys():
+                    idx = list(sub_cons.keys()).index(_cid2)
+                    lhs_expr[_vid] += float(coef[idx])*ad.alpha[_cid2]  #Is this giving me B^Talpha or B*alpha??
+                
+                rhs_expr[_vid] = float(Hk[_vid])
+                expr = lhs_expr[_vid] >= rhs_expr[_vid]
+                if not type(expr) is bool:
+                    ad.cons[_vid] = expr
+                else:
+                    ad.cons[_vid] = Constraint.Skip
+                    
+            ad.Obj=Objective(expr=0) #THIS IS A FEASIBILITY PROBLEM
+            with pyomo.opt.SolverFactory(solver) as opt:
+                    self.results.append(opt.solve(ad,
+                                              tee=self._tee,
+                                              timelimit=self._timelimit))
+            _check_termination_condition(self.results[-1]) 
+            '''
             Bd=np.hstack((np.transpose(B),d))
             mat=cdd.Matrix(np.hstack((-Hk,Bd)),number_type='float')
             
@@ -211,10 +244,7 @@ class BilevelSolver5(pyomo.opt.OptSolver):
                     else:
                         lower_bounding_master.KKT_tight2a[_cid] = Constraint.Skip
         '''
-        # sk <- solve the dual adversarial  problem
-        # if infeasible then return dual_adversarial_infeasible
-
-        # Collect the vertices solutions for the dual adversarial problem
+        
         # Solving the full problem sn0
         # Return the sn0 solution
     '''
