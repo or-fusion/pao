@@ -34,3 +34,4 @@ def pyomo_create_model():
     M.sub.c4 = Constraint(expr=9*M.xu + 2*M.xl + M.yl <= 28)
 
     return M
+
