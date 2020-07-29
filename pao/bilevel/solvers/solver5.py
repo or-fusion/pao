@@ -183,17 +183,24 @@ class BilevelSolver5(pyomo.opt.OptSolver):
             (A, A_q, sign, b) = matrix_repn.coef_matrices(submodel, var)
             B[:,i]=np.transpose(np.array(A))
             i+=1
-        #WIP: unique_component_name for adversarial and Vertices Parameters...
-       # _ad_block_name='_adversarial'
-       # self.instance.add_component(_ad_block_name, Block(Any))
-        self._instance.Vertices=Param(cons.keys()*NonNegativeIntegers*sub_cons.keys(),mutable=True) #(k-th subproblem,l-th vertex, dimension of alpha)
-        self._instance.VerticesB=Param(cons.keys()*NonNegativeIntegers,mutable=True) #(k-th subproblem, l-th vertex)
-        self._instance.adversarial=Block(Any)
+        
+        _ad_block_name='_adversarial'
+        self._instance.add_component(_ad_block_name, Block(Any))
+        _Vertices_name='_Vertices'
+        _Vertices_B_name='_VerticesB'
+        self._instance.add_component(_Vertices_name,Param(cons.keys()*NonNegativeIntegers*sub_cons.keys(),mutable=True))
+        Vertices=getattr(self._instance,_Vertices_name)
+        self._instance.add_component(_Vertices_B_name,Param(cons.keys()*NonNegativeIntegers,mutable=True))
+        VerticesB=getattr(self._instance,_Vertices_B_name)
+        #self._instance.Vertices=Param(cons.keys()*NonNegativeIntegers*sub_cons.keys(),mutable=True) #(k-th subproblem,l-th vertex, dimension of alpha)
+        #self._instance.VerticesB=Param(cons.keys()*NonNegativeIntegers,mutable=True) #(k-th subproblem, l-th vertex)
+        #self._instance.adversarial=Block(Any)
+        adversarial=getattr(self._instance,_ad_block_name)
         #Add Adversarial blocks
         #for _cidS in cons.keys():
         for _cidS, _ in cons.items(): # <for each constraint in the upper-level problem>
             (_cid,_)=_cidS
-            ad=self._instance.adversarial[_cid] #shorthand
+            ad=adversarial[_cid] #shorthand
             ad.alpha=Var(sub_cons.keys(),within=NonNegativeReals) #sub_cons.keys() because it's a dual variable on the lower level constraints
             ad.beta=Var(within=NonNegativeReals)
             Hk=np.empty([n,1])
@@ -257,15 +264,15 @@ class BilevelSolver5(pyomo.opt.OptSolver):
                 if extreme[0,i]==1:
                     for _scid in sub_cons.keys():  
                     #for j in range(1,t-1): #Need to loop over extreme 1 to t-1 and link those to the cons.keys for alpha? 
-                        self._instance.Vertices[(_cidS,l,_scid)]=extreme[i,j] #Vertex l of the k-th polytope
+                        Vertices[(_cidS,l,_scid)]=extreme[i,j] #Vertex l of the k-th polytope
                         j+=1
-                    self._instance.VerticesB[(_cidS,l)]=extreme[i,t-1]                    
+                    VerticesB[(_cidS,l)]=extreme[i,t-1]                    
                     l+=1
             L[p,0]=l-1  
             p+=1
         #vertex enumeration goes from 1 to L
         
-        #debugged to here 6/16 3:57pm7 12:45 pm
+        
         # Solving the full problem sn0
         _model_name = '_extended'
         _model_name = unique_component_name(self._instance, _model_name)
@@ -312,7 +319,7 @@ class BilevelSolver5(pyomo.opt.OptSolver):
         extended.f = ComplementarityList()
         for _vid,var in c_vars.items():
             extended.f.add(complements(extended.sigma[_vid]>=0,var>=0))
-        #"debugged" to here 6/29/2020 2:45pm
+        
         #Replace 5.h-5.j with 5.7 Disjunction
         extended.disjunction=Block(cons.keys()) #One disjunction per adversarial problem, one adversarial problem per upper level constraint
         k=0
@@ -328,7 +335,7 @@ class BilevelSolver5(pyomo.opt.OptSolver):
                     (C, C_q, C_constant) = matrix_repn.cost_vectors(submodel, var)
                     l_expr+=float(C)*var #d^Tv 
                 l_expr+=delta
-                l_expr=self._instance.VerticesB[(_cidS,i)]*l_expr #beta(d^Tv+delta)
+                l_expr=VerticesB[(_cidS,i)]*l_expr #beta(d^Tv+delta)
             
                 for _cid, Scons in sub_cons.items(): #SUM over i to ml
                     Ax=0
@@ -336,7 +343,7 @@ class BilevelSolver5(pyomo.opt.OptSolver):
                     for _vid, var in fixed_vars.items():
                         (A, A_q, sign, b) = matrix_repn.coef_matrices(submodel, var)
                         Ax += float(A[idx])*var
-                    l_expr+=self._instance.Vertices[(_cidS,i,_cid)]*(float(b[idx])-Ax)
+                    l_expr+=Vertices[(_cidS,i,_cid)]*(float(b[idx])-Ax)
                          
                 r_expr=0
                 for _vid,var in fixed_vars.items():
