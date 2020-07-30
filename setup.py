@@ -32,6 +32,7 @@ requires = [
     'Pyomo',
     'parameterized',
     'scipy'
+    'cddlib'
     ]
 
 from setuptools import setup
