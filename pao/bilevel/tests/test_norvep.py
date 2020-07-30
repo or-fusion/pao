@@ -45,6 +45,10 @@ M.v.pprint()
 opt=BilevelSolver5()
 opt.options.solver="gurobi"
 opt.options.delta=1
+opt.options.do_print=False
 opt.solve(M)
+
+M.x.pprint()
+M.v.pprint()
 #'''
 

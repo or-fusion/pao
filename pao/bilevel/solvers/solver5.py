@@ -150,9 +150,10 @@ class BilevelSolver5(pyomo.opt.OptSolver):
                                               timelimit=self._timelimit))
                 _check_termination_condition(self.results[-1])
                 c.deactivate()
-        print('Solution to the Highpoint Relaxation')
-        for _, var in all_vars.items():
-             var.pprint()
+        if self.options.do_print==True:
+            print('Solution to the Highpoint Relaxation')
+            for _, var in all_vars.items():
+                var.pprint()
         
         # s1 <- solve the optimistic bilevel (linear/linear) problem (call solver3)
         # if s1 infeasible then return optimistic_infeasible'
@@ -160,10 +161,10 @@ class BilevelSolver5(pyomo.opt.OptSolver):
             opt.options.solver = solver
             self.results.append(opt.solve(self._instance,tee=self._tee,timelimit=self._timelimit))
         _check_termination_condition(self.results[-1])
-        
-        print('Solution to the Optimistic Bilevel')
-        for _, var in all_vars.items():
-             var.pprint()
+        if self.options.do_print==True:
+            print('Solution to the Optimistic Bilevel')
+            for _, var in all_vars.items():
+                var.pprint()
         #self._instance.pprint() #checking for active blocks left over from previous solves
         
         # sk <- solve the dual adversarial  problem
@@ -192,12 +193,8 @@ class BilevelSolver5(pyomo.opt.OptSolver):
         Vertices=getattr(self._instance,_Vertices_name)
         self._instance.add_component(_Vertices_B_name,Param(cons.keys()*NonNegativeIntegers,mutable=True))
         VerticesB=getattr(self._instance,_Vertices_B_name)
-        #self._instance.Vertices=Param(cons.keys()*NonNegativeIntegers*sub_cons.keys(),mutable=True) #(k-th subproblem,l-th vertex, dimension of alpha)
-        #self._instance.VerticesB=Param(cons.keys()*NonNegativeIntegers,mutable=True) #(k-th subproblem, l-th vertex)
-        #self._instance.adversarial=Block(Any)
         adversarial=getattr(self._instance,_ad_block_name)
         #Add Adversarial blocks
-        #for _cidS in cons.keys():
         for _cidS, _ in cons.items(): # <for each constraint in the upper-level problem>
             (_cid,_)=_cidS
             ad=adversarial[_cid] #shorthand
@@ -225,7 +222,7 @@ class BilevelSolver5(pyomo.opt.OptSolver):
                 
                 for _cid2 in sub_cons.keys():
                     idx = list(sub_cons.keys()).index(_cid2)
-                    lhs_expr[_vid] += float(coef[idx])*ad.alpha[_cid2]  #Is this giving me B^Talpha or B*alpha??
+                    lhs_expr[_vid] += float(coef[idx])*ad.alpha[_cid2]
                 
                 rhs_expr[_vid] = float(A[idx])
                 expr = lhs_expr[_vid] >= rhs_expr[_vid]
@@ -255,7 +252,8 @@ class BilevelSolver5(pyomo.opt.OptSolver):
             poly=cdd.Polyhedron(mat)
             ext=poly.get_generators()
             extreme=np.array(ext)
-            print(ext)
+            if self.options.do_print==True:
+                print(ext)
             
             (s,t)=extreme.shape
             l=1
@@ -352,108 +350,36 @@ class BilevelSolver5(pyomo.opt.OptSolver):
                 r_expr+=float(b[idxS])
                         
                 disjunction.disjuncts[i].cons=Constraint(expr= l_expr<=r_expr)
-                
-            #if L[k,0]<=1:
-            #    disjunction.seven=Constraint(expr=l_expr<=r_expr)
-            #    disjunction.disjuncts.deactivate()
-            #else:
-                #disjunction.seven=Disjunction(expr=[disjunction.disjuncts[i] for i in disjunction.Lset],xor=False)
+    
             disjunction.seven=Disjunction(expr=[disjunction.disjuncts[i] for i in disjunction.Lset],xor=False)    
             k+=1
         #extended.pprint()
         TransformationFactory('mpec.simple_disjunction').apply_to(extended)
         bigm = TransformationFactory('gdp.bigm')
         bigm.apply_to(extended)
-        #check_model_algebraic(extended)
         with pyomo.opt.SolverFactory(solver) as opt:
             self.results.append(opt.solve(extended,
                                              tee=self._tee,
                                              timelimit=self._timelimit))
             _check_termination_condition(self.results[-1]) 
         # Return the sn0 solution
-        print('Robust Solution')
-        for _vid, _ in fixed_vars.items():
-            fixed_vars[_vid].pprint()
-        for _vid, _ in c_vars.items():
-            c_vars[_vid].pprint()
-        extended.lam.pprint()
-        extended.sigma.pprint()
+        if self.options.do_print==True:
+            print('Robust Solution')
+            for _vid, _ in fixed_vars.items():
+                fixed_vars[_vid].pprint()
+            for _vid, _ in c_vars.items():
+                c_vars[_vid].pprint()
+                extended.lam.pprint()
+                extended.sigma.pprint()
         stop_time = time.time()
         self.wall_time = stop_time - start_time
-
+        return pyutilib.misc.Bunch(rc=getattr(opt, '_rc', None),
+                                           log=getattr(opt, '_log', None))
+        
 
     def _postsolve(self):
-        '''
-        # put problem back into original standard form
-        for odata in self._instance.component_objects(Objective):
-            if odata.parent_block() == self._instance:
-                if self._upper_level_sense == maximize:
-                    odata.set_value(-odata.expr)
-                    odata.set_sense(maximize)
-            if type(odata.parent_block()) == SubModel:
-                if self._lower_level_sense == minimize:
-                    odata.set_value(-odata.expr)
-                    odata.set_sense(minimize)
-        '''
-        self._instance = None
-
-        return self.results_obj
-
-    def _setup_results_obj(self):
-        #
-        # Create a results object
-        #
         results = self.results[-1]
+        
         results.wallclock_time = self.wall_time
+        
         return results
-    '''
-    def _postsolve(self):
-        #
-        # Create a results object
-        #
-        results = pyomo.opt.SolverResults()
-        #
-        # SOLVER
-        #
-        solv = results.solver
-        solv.name = self.options.subsolver
-        solv.wallclock_time = self.wall_time
-        cpu_ = []
-        for res in self.results:
-            if not getattr(res.solver, 'cpu_time', None) is None:
-                cpu_.append(res.solver.cpu_time)
-        if cpu_:
-            solv.cpu_time = sum(cpu_)
-        #
-        # TODO: detect infeasibilities, etc
-        #
-        solv.termination_condition = pyomo.opt.TerminationCondition.optimal
-        #
-        # PROBLEM
-        #
-        prob = results.problem
-        prob.name = self._instance.name
-        prob.number_of_constraints = self._instance.statistics.number_of_constraints
-        prob.number_of_variables = self._instance.statistics.number_of_variables
-        prob.number_of_binary_variables = self._instance.statistics.number_of_binary_variables
-        prob.number_of_integer_variables =\
-            self._instance.statistics.number_of_integer_variables
-        prob.number_of_continuous_variables =\
-            self._instance.statistics.number_of_continuous_variables
-        prob.number_of_objectives = self._instance.statistics.number_of_objectives
-        #
-        ##from pyomo.core import maximize
-        ##if self._instance.sense == maximize:
-            ##prob.sense = pyomo.opt.ProblemSense.maximize
-        ##else:
-            ##prob.sense = pyomo.opt.ProblemSense.minimize
-        #
-        # SOLUTION(S)
-        #
-        self._instance.solutions.store_to(results)
-        #
-        # Uncache the instance
-        #
-        self._instance = None
-        return results
-'''
