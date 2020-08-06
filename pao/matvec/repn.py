@@ -5,8 +5,12 @@ class LevelVariable(object):
 
     def __init__(self, num, lb=None, ub=None):
         self.num = num
+        self.values = [None]*num
         self.lower_bounds = lb
         self.upper_bounds = ub
+
+    def __len__(self):
+        return self.num
 
     def print(self, type):
         print("  %s Variables:" % type)
@@ -119,7 +123,7 @@ class LevelRepn(object):
             print("   ",self.b)
 
 
-class BilevelProblem(object):
+class LinearBilevelProblem(object):
 
     def __init__(self, name=None):
         self.name = name
@@ -135,9 +139,9 @@ class BilevelProblem(object):
 
     def print(self):
         if self.name:
-            print("# BilevelProblem: "+name)
+            print("# LinearBilevelProblem: "+name)
         else:
-            print("# BilevelProblem: unknown")
+            print("# LinearBilevelProblem: unknown")
         print("")
         print("## Upper Level")
         print("")
@@ -151,8 +155,10 @@ class BilevelProblem(object):
         # Perform sanity checks
         pass
 
+
+
 if __name__ == "__main__":
-    prob = BilevelProblem()
+    prob = LinearBilevelProblem()
     U = prob.add_upper(3,2,1)
     U.xR.upper_bounds = np.array([1.5, 2.4, 3.1])
     L = prob.add_lower(1,2,3)

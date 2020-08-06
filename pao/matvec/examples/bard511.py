@@ -4,7 +4,7 @@ from scipy.sparse import coo_matrix
 from pao.matvec import *
 
 
-M = BilevelProblem()
+M = LinearBilevelProblem()
 
 U = M.add_upper(nxR=1)
 U.xR.lower_bounds = np.array([0])
@@ -22,6 +22,10 @@ L.A.L.xR = coo_matrix((np.array([1, 1, 1, 2]),
                       (np.array([0, 1, 2, 3]),
                        np.array([0, 0, 0, 0]))))
 L.b = np.array([-3, 0, 12, -4])
+
+
+opt = BilevelSolver('pao.bilevel.ld')
+opt.solve(M)
 
 
 M.print()
