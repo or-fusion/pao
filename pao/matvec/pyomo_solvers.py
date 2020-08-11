@@ -44,7 +44,7 @@ class PyomoSolverBase(object):
     def _create_constraints(self, repn, M):
         pass
 
-    def create_model(self, repn):
+    def create_pyomo_model(self, repn):
         M = pe.ConcreteModel()
         self.model = M
         self.repn = repn
@@ -99,13 +99,16 @@ class PyomoSolverBase_LinearBilevelProblem(PyomoSolverBase):
             e = e + dot(A.xB, level.xB.var)
         return e
 
-    def _linear_objective(self, c, U, L, block):
+    def _linear_objective(self, c, U, L, block, minimize):
         e = self._linear_expression(1, c.U, U) + self._linear_expression(1, c.L, L)
-        block.o = pe.Objective(expr=e[0])
+        if minimize:
+            block.o = pe.Objective(expr=e[0])
+        else:
+            block.o = pe.Objective(expr=e[0], sense=pe.maximize)
 
     def _create_objectives(self, repn, M):
-        self._linear_objective(repn.U.c, repn.U, repn.L, M.U)
-        self._linear_objective(repn.L.c, repn.U, repn.L, M.L)
+        self._linear_objective(repn.U.c, repn.U, repn.L, M.U, repn.U.minimize)
+        self._linear_objective(repn.L.c, repn.U, repn.L, M.L, repn.L.minimize)
         
     def _linear_constraints(self, inequalities, A, U, L, b, block):
         if b is None:
@@ -130,9 +133,8 @@ class PyomoSolverBase_LinearBilevelProblem(PyomoSolverBase):
         self._linear_constraints(repn.U.inequalities, repn.U.A, repn.U, repn.L, repn.U.b, M.U)
         self._linear_constraints(repn.L.inequalities, repn.L.A, repn.U, repn.L, repn.L.b, M.L)
         
-    def create_model(self, repn):
-        assert (type(repn) is LinearBilevelProblem), "ERROR: Solver '%s' can only solve a LinearBilevelProblem" % self.solver_type
-        PyomoSolverBase.create_model(self,repn)
+    def create_pyomo_model(self, repn):
+        PyomoSolverBase.create_pyomo_model(self,repn)
 
 
 #
@@ -145,8 +147,24 @@ class BilevelSolver1_LinearBilevelProblem(PyomoSolverBase_LinearBilevelProblem):
         self.solver_type = 'pao.bilevel.ld'
         self.solver = pe.SolverFactory('pao.bilevel.ld', **kwds)
 
+    def check_model(self, M):
+        #
+        # Confirm that the LinearBilevelProblem is well-formed
+        #
+        assert (type(M) is LinearBilevelProblem), "Solver '%s' can only solve a LinearBilevelProblem" % self.solver_type
+        M.check()
+        #
+        # No binary or integer lower level variables
+        #
+        assert (len(M.L.xZ) == 0), "Cannot use solver %s with model with integer lower-level variables" % self.solver_type
+        assert (len(M.L.xB) == 0), "Cannot use solver %s with model with binary lower-level variables" % self.solver_type
+        #
+        # Upper and lower objectives are the opposite of each other
+        #
+
     def solve(self, *args, **kwds):
-        self.create_model(args[0])
+        self.check_model(args[0])
+        self.create_pyomo_model(args[0])
         self.model.pprint()
         newargs = [self.model]
         self.solver.solve(*newargs, **kwds)
