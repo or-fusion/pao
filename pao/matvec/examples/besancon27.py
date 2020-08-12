@@ -33,7 +33,7 @@ L.b = [1]
 
 
 
-opt = BilevelSolver('pao.bilevel.ld')
+opt = BilevelSolver('pao.bilevel.blp_global')
 opt.solve(M)
 
 
