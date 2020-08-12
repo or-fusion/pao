@@ -104,10 +104,10 @@ class LevelValues(object):
         self.xB = xB
         self.xZ = xZ
 
-    def print(self):
-        self._print_value(self.xR, 'xR')
-        self._print_value(self.xB, 'xB')
-        self._print_value(self.xZ, 'xZ')
+    def print(self, prefix):
+        self._print_value(self.xR, prefix+'.xR')
+        self._print_value(self.xB, prefix+'.xB')
+        self._print_value(self.xZ, prefix+'.xZ')
 
     def __len__(self):
         n = 0
@@ -185,6 +185,7 @@ class LevelValueWrapper(object):
 
     def print(self, *args, nL=0):
         _values = getattr(self, '_values')
+        first = True
         for name in args:
             v = _values.get(name,None)
             if v is None:
@@ -192,17 +193,23 @@ class LevelValueWrapper(object):
             if name == 'L':
                 if nL == 1:
                     if len(v) > 0:
-                        print("  "+self._prefix+"."+name+":")
-                        v.print()
+                        if first:
+                            print("  "+self._prefix+":")
+                            first = False
+                        v.print(name)
                 else:
                     for i,L in enumerate(v):
                         if len(L) > 0:
-                            print("  "+self._prefix+"."+name+"[%d]:" % i)
-                            L.print()
+                            if first:
+                                print("  "+self._prefix+":")
+                                first = False
+                            L.print(name+"[%d]"%i)
             else:
                 if len(v) > 0:
-                    print("  "+self._prefix+"."+name+":")
-                    v.print()
+                    if first:
+                        print("  "+self._prefix+":")
+                        first = False
+                    v.print(name)
             
 
 class LinearLevelRepn(object):
