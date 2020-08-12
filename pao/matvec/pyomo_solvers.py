@@ -184,10 +184,15 @@ class BilevelSolver2_LinearBilevelProblem(PyomoSolverBase_LinearBilevelProblem):
         assert (type(M) is LinearBilevelProblem), "Solver '%s' can only solve a LinearBilevelProblem" % self.solver_type
         M.check()
         #
+        # Confirm that we only have one lower-level problem (for now)
+        #
+        assert (len(M.L) == 1), "Solver '%s' can only solve a LinearBilevelProblem with one lower-level problem" % self.solver_type
+        #
         # No binary or integer lower level variables
         #
-        assert (len(M.L.xZ) == 0), "Cannot use solver %s with model with integer lower-level variables" % self.solver_type
-        assert (len(M.L.xB) == 0), "Cannot use solver %s with model with binary lower-level variables" % self.solver_type
+        for L in M.L:
+            assert (len(L.xZ) == 0), "Cannot use solver %s with model with integer lower-level variables" % self.solver_type
+            assert (len(L.xB) == 0), "Cannot use solver %s with model with binary lower-level variables" % self.solver_type
         #
         # Upper and lower objectives are the opposite of each other
         #
@@ -195,7 +200,6 @@ class BilevelSolver2_LinearBilevelProblem(PyomoSolverBase_LinearBilevelProblem):
     def solve(self, *args, **kwds):
         self.check_model(args[0])
         self.create_pyomo_model(args[0])
-        #self.model.pprint()
         newargs = [self.model]
         self.solver.solve(*newargs, **kwds)
         self.collect_values()
@@ -214,6 +218,10 @@ class BilevelSolver3_LinearBilevelProblem(PyomoSolverBase_LinearBilevelProblem):
         assert (type(M) is LinearBilevelProblem), "Solver '%s' can only solve a LinearBilevelProblem" % self.solver_type
         M.check()
         #
+        # Confirm that we only have one lower-level problem (for now)
+        #
+        assert (len(M.L) == 1), "Solver '%s' can only solve a LinearBilevelProblem with one lower-level problem" % self.solver_type
+        #
         # No binary or integer lower level variables
         #
         assert (len(M.L.xZ) == 0), "Cannot use solver %s with model with integer lower-level variables" % self.solver_type
@@ -225,7 +233,6 @@ class BilevelSolver3_LinearBilevelProblem(PyomoSolverBase_LinearBilevelProblem):
     def solve(self, *args, **kwds):
         self.check_model(args[0])
         self.create_pyomo_model(args[0])
-        #self.model.pprint()
         newargs = [self.model]
         self.solver.solve(*newargs, **kwds)
         self.collect_values()
