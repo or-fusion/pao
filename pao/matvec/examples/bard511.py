@@ -24,7 +24,7 @@ L.A.L.xR = coo_matrix((np.array([1, 1, 1, 2]),
 L.b = np.array([-3, 0, 12, -4])
 
 
-opt = BilevelSolver('pao.bilevel.ld')
+opt = BilevelSolver('pao.bilevel.blp_global')
 opt.solve(M)
 
 

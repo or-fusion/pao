@@ -74,17 +74,17 @@ class PyomoSolverBase(object):
     def _collect_values(self, level, block):
         if len(level.xR) > 0:
             for i,v in block.xR.items():
-                level.xR.value[i] = value(v)
+                level.xR.values[i] = pe.value(v)
         if len(level.xZ) > 0:
             for i,v in block.xZ.items():
-                level.xZ.value[i] = value(v)
+                level.xZ.values[i] = pe.value(v)
         if len(level.xB) > 0:
             for i,v in block.xB.items():
-                level.xB.value[i] = value(v)
+                level.xB.values[i] = pe.value(v)
 
     def collect_values(self):
-        self._collect_values(self.repn.U, M.U)
-        self._collect_values(self.repn.L, M.L)
+        self._collect_values(self.repn.U, self.model.U)
+        self._collect_values(self.repn.L, self.model.L)
 
 
 class PyomoSolverBase_LinearBilevelProblem(PyomoSolverBase):
@@ -165,10 +165,73 @@ class BilevelSolver1_LinearBilevelProblem(PyomoSolverBase_LinearBilevelProblem):
     def solve(self, *args, **kwds):
         self.check_model(args[0])
         self.create_pyomo_model(args[0])
-        self.model.pprint()
+        #self.model.pprint()
         newargs = [self.model]
         self.solver.solve(*newargs, **kwds)
         self.collect_values()
 
+
+class BilevelSolver2_LinearBilevelProblem(PyomoSolverBase_LinearBilevelProblem):
+
+    def __init__(self, **kwds):
+        self.solver_type = 'pao.bilevel.blp_global'
+        self.solver = pe.SolverFactory('pao.bilevel.blp_global', **kwds)
+
+    def check_model(self, M):
+        #
+        # Confirm that the LinearBilevelProblem is well-formed
+        #
+        assert (type(M) is LinearBilevelProblem), "Solver '%s' can only solve a LinearBilevelProblem" % self.solver_type
+        M.check()
+        #
+        # No binary or integer lower level variables
+        #
+        assert (len(M.L.xZ) == 0), "Cannot use solver %s with model with integer lower-level variables" % self.solver_type
+        assert (len(M.L.xB) == 0), "Cannot use solver %s with model with binary lower-level variables" % self.solver_type
+        #
+        # Upper and lower objectives are the opposite of each other
+        #
+
+    def solve(self, *args, **kwds):
+        self.check_model(args[0])
+        self.create_pyomo_model(args[0])
+        #self.model.pprint()
+        newargs = [self.model]
+        self.solver.solve(*newargs, **kwds)
+        self.collect_values()
+
+
+class BilevelSolver3_LinearBilevelProblem(PyomoSolverBase_LinearBilevelProblem):
+
+    def __init__(self, **kwds):
+        self.solver_type = 'pao.bilevel.blp_local'
+        self.solver = pe.SolverFactory('pao.bilevel.blp_local', **kwds)
+
+    def check_model(self, M):
+        #
+        # Confirm that the LinearBilevelProblem is well-formed
+        #
+        assert (type(M) is LinearBilevelProblem), "Solver '%s' can only solve a LinearBilevelProblem" % self.solver_type
+        M.check()
+        #
+        # No binary or integer lower level variables
+        #
+        assert (len(M.L.xZ) == 0), "Cannot use solver %s with model with integer lower-level variables" % self.solver_type
+        assert (len(M.L.xB) == 0), "Cannot use solver %s with model with binary lower-level variables" % self.solver_type
+        #
+        # Upper and lower objectives are the opposite of each other
+        #
+
+    def solve(self, *args, **kwds):
+        self.check_model(args[0])
+        self.create_pyomo_model(args[0])
+        #self.model.pprint()
+        newargs = [self.model]
+        self.solver.solve(*newargs, **kwds)
+        self.collect_values()
+
+
 register_solver('pao.bilevel.ld', BilevelSolver1_LinearBilevelProblem)
+register_solver('pao.bilevel.blp_global', BilevelSolver2_LinearBilevelProblem)
+register_solver('pao.bilevel.blp_local', BilevelSolver3_LinearBilevelProblem)
 

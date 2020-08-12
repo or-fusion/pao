@@ -2,7 +2,9 @@ import pprint
 from scipy.sparse import coo_matrix
 import numpy as np
 
+
 class LevelVariable(object):
+
 
     def __init__(self, num, lb=None, ub=None):
         self.num = num
@@ -20,6 +22,11 @@ class LevelVariable(object):
             print("    lower bounds: "+str(self.lower_bounds))
         if self.upper_bounds is not None:
             print("    upper bounds: "+str(self.upper_bounds))
+        print("    nonzero values:")
+        for i,v in enumerate(self.values):
+            if v is not None and v != 0:
+                print("      %d: %f" % (i, v))
+            
 
     def __setattr__(self, name, value):
         if name == 'lower_bounds' and value is not None:
@@ -56,6 +63,24 @@ class LevelValues(object):
         self._print_value(self.xB, 'xB')
         self._print_value(self.xZ, 'xZ')
 
+    def __len__(self):
+        n = 0
+        if self._matrix:
+            if self.xR is not None:
+                n += self.xR.shape[0]
+            if self.xZ is not None:
+                n += self.xZ.shape[0]
+            if self.xB is not None:
+                n += self.xB.shape[0]
+        else:
+            if self.xR is not None:
+                n += self.xR.size
+            if self.xZ is not None:
+                n += self.xZ.size
+            if self.xB is not None:
+                n += self.xB.size
+        return n
+
     def __setattr__(self, name, value):
         if name in ['xR', 'xZ', 'xB'] and value is not None:
             if type(value) is list:
@@ -76,12 +101,12 @@ class LevelValues(object):
 
     def _print_value(self, value, name):
         if value is not None:
-            if type(value) is np.ndarray:
-                print("    %s:" % name, value)
-            else:
+            if self._matrix:
                 print("    %s:" % name)
                 for row in str(value).split('\n'):
                     print("      "+row)
+            else:
+                print("    %s:" % name, value)
 
 
 class LevelValueWrapper(object):
@@ -92,7 +117,11 @@ class LevelValueWrapper(object):
         setattr(self, '_prefix', prefix)
 
     def __len__(self):
-        return len(self._values)
+        _values = getattr(self, '_values')
+        n = 0
+        for val in _values.values():
+            n += len(val)
+        return n
 
     def __getattr__(self, name):
         if name.startswith('_'):
@@ -107,9 +136,10 @@ class LevelValueWrapper(object):
     def print(self, *args):
         _values = getattr(self, '_values')
         for name in args:
-            if name in _values:
+            v = _values.get(name,None)
+            if v is not None and len(v) > 0:
                 print("  "+self._prefix+"."+name+":")
-                _values[name].print()
+                v.print()
             
 
 class LinearLevelRepn(object):
@@ -141,8 +171,8 @@ class LinearLevelRepn(object):
             print("  Maximize:")
         self.c.print(*args)
 
-        if len(self.A) > 0:
-            print("\nConstraints:")
+        if self.b is not None and self.b.size > 0:
+            print("\nConstraints: ")
             self.A.print(*args)
             if self.inequalities:
                 print("  <=")
