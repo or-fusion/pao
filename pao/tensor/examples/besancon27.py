@@ -5,7 +5,7 @@
 #   M. Besancon, M. F. Anjos and L. Brotcorne
 #   arXiv:1908.04040v5 (2019)
 
-from pao.matvec import *
+from pao.tensor import *
 
 
 M = LinearBilevelProblem()

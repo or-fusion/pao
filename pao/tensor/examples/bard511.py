@@ -1,7 +1,7 @@
 
 import numpy as np
 from scipy.sparse import coo_matrix
-from pao.matvec import *
+from pao.tensor import *
 
 
 M = LinearBilevelProblem()

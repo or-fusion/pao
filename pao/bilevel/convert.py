@@ -1,7 +1,7 @@
 import itertools
 import pyomo.environ as pe
 from pyomo.core.base import SortComponents
-from pao.matvec import LinearBilevelProblem
+from pao.tensor import LinearBilevelProblem
 from .components import SubModel
 
 

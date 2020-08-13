@@ -1,5 +1,5 @@
 
-from pao.matvec import *
+from pao.tensor import *
 
 
 M = LinearBilevelProblem()
