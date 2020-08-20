@@ -8,47 +8,133 @@
 #  This software is distributed under the 3-clause BSD License.
 #  ___________________________________________________________________________
 
+from os.path import abspath, dirname, join
+import math
+from parameterized import parameterized
+import pyutilib.th as unittest
+
+import pyomo.opt
 from pyomo.environ import *
-from pao.bilevel import *
-from pao.bilevel.solvers.solver5 import BilevelSolver5
-
-# Bounded Example (p17)
-#
-# Near Optimal Robust Bilevel Optimization
-# By M. Besancon, M. Anjos, L. Brotcorne
+import itertools
+from pyomo.core import Objective
+from pao.bilevel.components import SubModel
 
 
-M = ConcreteModel()
-M.x=Var(within=NonNegativeReals,bounds=(0,10000))
-#M.xI=Var(within=NonNegativeIntegers,bounds=(0,10000))
-M.v=Var(within=NonNegativeReals,bounds=(0,10000))
-#M.vI=Var(within=NonNegativeIntegers,bounds=(0,10000))
-M.c1 = Constraint(expr=-M.x+4*M.v <= 11)
-M.c2 = Constraint(expr= M.x+2*M.v <= 13)
-M.o = Objective(expr=M.x-10*M.v)
-    
-M.sub = SubModel(fixed=(M.x))
-#M.sub.o  = Objective(expr=-M.v, sense=maximize)
-M.sub.o  = Objective(expr=M.v, sense=minimize)
-M.sub.c3 = Constraint(expr=-2*M.x - M.v <= -5)
-M.sub.c4 = Constraint(expr= 5*M.x - 4*M.v <= 30)
+try:
+    import yaml
+    yaml_available=True
+except ImportError:
+    yaml_available=False
+
+# TODO: Add glpk in solvers list
+
+solvers = pyomo.opt.check_available_solvers('cplex','gurobi')
+tolerances = [0.5]
+pao_solvers = ['pao.bilevel.norvep']
+
+current_dir = dirname(abspath(__file__))
+aux_dir = join(dirname(abspath(__file__)),'auxiliary')
+
+# models for integer bilevel solution tests
+solution_model_names = ['besancon17']
+solution_models = [join(current_dir, 'auxiliary', '{}.py'.format(i)) for i in solution_model_names]
+solutions = [-19.66666666666788]
+ 
+cartesian_solutions = [elem for elem in itertools.product(*[solvers,pao_solvers,zip(solution_model_names,solution_models,solutions,tolerances)])]
+
+class TestBilevelMatrixRepn(unittest.TestCase):
+    """
+    Testing for bilevel matrix representation of models
+
+    """
+    show_output = True
+
+    @classmethod
+    def setUpClass(self): pass
+
+    @classmethod
+    def setUp(self): pass
+
+    @classmethod
+    def tearDown(self): pass
+
+    @parameterized.expand(cartesian_solutions)
+    def test_solution(self, numerical_solver, pao_solver, solution_zip):
+        """ Tests bilevel solution and checks whether the derivation is equivalent
+        to the known solution in the solution/*.txt file by checking for optimality and
+        then comparing the value of the objective in the upper-level and all lower-levels
+
+        Parameters
+        ----------
+        numerical_solver : `string`
+        pao_solver: `string`
+        solution_zip: tuple of three parameters (all of type `string`)
+
+        """
+        (name, model, solution, tolerances) = solution_zip
+        from importlib.machinery import SourceFileLoader
+        namespace = SourceFileLoader(name,model).load_module()
+        instance = namespace.pyomo_create_model()
+
+        solver = SolverFactory(pao_solver)
+        solver.options.solver = numerical_solver
+        solver.options.delta = tolerances
+        results = solver.solve(instance, tee=False)
+
+        self.assertTrue(results.solver.termination_condition == pyomo.opt.TerminationCondition.optimal)
+
+        test_objective = self.getObjectiveInstance(instance)
+        comparison = math.isclose(test_objective,solution,rel_tol=1e-3)
+        self.assertTrue(comparison)
+
+    def getObjectiveSolution(self, filename, keys):
+        """ Gets the objective solutions from the known solution file that maps to
+        the objective keys from the unittest run
+
+        Parameters
+        ----------
+        filename : `string`
+        keys: `dict_keys`
+
+        Returns
+        -------
+        `dict`
+        """
+
+        FILE = open(filename,'r')
+        data = yaml.load(FILE, Loader=yaml.SafeLoader)
+        FILE.close()
+        solutions = data.get('Solution', [])
+        ans = dict()
+        for x in solutions:
+            tmp = x.get('Objective', {})
+            if tmp != {}:
+                for key in keys:
+                    if key in tmp.keys():
+                        val = tmp.get(key).get('Value')
+                        ans[key] = val
+        return ans
+
+    def getObjectiveInstance(self, instance):
+        """ Gets the master problem objective solution from the unittest instance
+
+        Parameters
+        ----------
+        instance : `string`
+        ans: `float`
+
+        Returns
+        -------
+        `float`
+        """
+
+        for (name, data) in instance.component_map(active=True).items():
+            if isinstance(data, Objective):
+                return value(data)
 
 
-'''
-from pao.bilevel.solvers.solver2 import BilevelSolver2
-opt=BilevelSolver2() # use_dual_objective=True
-opt.options.solver="gurobi"
-opt.solve(M)
-M.x.pprint()
-M.v.pprint()
-'''
-opt=BilevelSolver5()
-opt.options.solver="gurobi"
-opt.options.delta=1
-opt.options.do_print=False
-opt.solve(M)
 
-M.x.pprint()
-M.v.pprint()
-#'''
+if __name__ == "__main__":
+    unittest.main()
+
 

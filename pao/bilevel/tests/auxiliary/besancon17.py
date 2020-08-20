@@ -31,10 +31,12 @@ def pyomo_create_model():
     M.sub.o = Objective(expr=M.v, sense=minimize)
     M.sub.c3 = Constraint(expr=-2 * M.x - M.v <= -5)
     M.sub.c4 = Constraint(expr=5 * M.x - 4 * M.v <= 30)
+    
+    
 
     return M
 # unique optimal solution (x,v) = (1,3)
-
+'''
 if __name__ == "__main__":
     from pao.bilevel.solvers.solver2 import BilevelSolver2
 
@@ -44,5 +46,5 @@ if __name__ == "__main__":
     opt.solve(M, tee=True)
     M.x.pprint()
     M.v.pprint()
-
+'''
 
