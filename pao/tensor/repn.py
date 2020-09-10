@@ -17,13 +17,19 @@ class SimplifiedList(collections.abc.MutableSequence):
         self._clone = clone
         self._data = []
 
+    def insert(self, i, val):
+        self._data.insert(i, val)
+
     def __iter__(self):
         for v in self._data:
             yield v
 
     def __getitem__(self, i):
         if i >= len(self._data):
-            self.insert(i, copy.copy(self._clone))
+            if self._clone is None:
+                raise IndexError
+            for i in range(len(self._data), i+1):
+                self.insert(i, copy.copy(self._clone))
         return self._data[i]
 
     def __setitem__(self, i, val):
@@ -34,9 +40,6 @@ class SimplifiedList(collections.abc.MutableSequence):
 
     def __len__(self):
         return len(self._data)
-
-    def insert(self, i, val):
-        self._data.insert(i, val)
 
     def __getattr__(self, name):
         if not name.startswith('_'):
@@ -113,11 +116,11 @@ class LevelValues(object):
         n = 0
         if self._matrix:
             if self.xR is not None:
-                n += self.xR.shape[0]
+                n = max(n, self.xR.shape[0])
             if self.xZ is not None:
-                n += self.xZ.shape[0]
+                n = max(n, self.xZ.shape[0])
             if self.xB is not None:
-                n += self.xB.shape[0]
+                n = max(n, self.xB.shape[0])
         else:
             if self.xR is not None:
                 n += self.xR.size
@@ -219,10 +222,11 @@ class LinearLevelRepn(object):
         self.xZ = LevelVariable(nxZ)    # integer variables at this level
         self.xB = LevelVariable(nxB)    # binary variables at this level
         self.minimize = True            # sense of the objective at this level
-        self.c = LevelValueWrapper("c") # linear coefficients at this level
+        self.c = LevelValueWrapper("c") # objective coefficients at this level
+        self.d = 0                      # constant in objective at this level
         self.A = LevelValueWrapper("A",
                         matrix=True)    # constraint matrices at this level
-        self.b = None                   # RHS of the constraints
+        self.b = np.ndarray(0)          # RHS of the constraints
         self.inequalities = True        # If True, the constraints are inequalities
 
     def print(self, *args, nL=0):
@@ -241,7 +245,7 @@ class LinearLevelRepn(object):
             print("  Maximize:")
         self.c.print(*args, nL=nL)
 
-        if self.b is not None and self.b.size > 0:
+        if self.b.size > 0:
             print("\nConstraints: ")
             self.A.print(*args, nL=nL)
             if self.inequalities:
@@ -258,39 +262,6 @@ class LinearLevelRepn(object):
             super().__setattr__(name, value)
 
 
-class QuadraticLevelRepn(object):
-
-    def __init__(self, nxR, nxZ, nxB):
-        super().__init__(nxR, nxZ, nxB)
-        self.B = LevelValueWrapper("B") # Quadratic term in objective
-
-    def print(self, *args, nL=0):
-        print("Variables:")
-        if self.xR.num > 0:
-            self.xR.print("Real")
-        if self.xZ.num > 0:
-            self.xZ.print("Integer")
-        if self.xB.num > 0:
-            self.xB.print("Binary")
-
-        print("\nObjective:")
-        if self.minimize:
-            print("  Minimize:")
-        else:
-            print("  Maximize:")
-        self.c.print(*args, nL=nL)
-        self.B.print(*args)
-
-        if len(self.A) > 0:
-            print("\nConstraints:")
-            self.A.print(*args)
-            if self.inequalities:
-                print("  <=")
-            else:
-                print("  ==")
-            print("   ",self.b)
-
-
 class LinearBilevelProblem(object):
     """
     Let
@@ -300,25 +271,25 @@ class LinearBilevelProblem(object):
         U.A = [U.A.U.xR, U.A.U.xZ, U.A.U.xB, U.A.L.xR, U.A.L.xZ, U.A.L.xB]  # sparse matrix
         L.A = [L.A.U.xR, L.A.U.xZ, L.A.U.xB, L.A.L.xR, L.A.L.xZ, L.A.L.xB]  # sparse matrix
 
-    min_{U.x}   U.c * x
+    min_{U.x}   U.c * x + U.d
     s.t.        U.A * x <= U.b                      # Or ==
 
                 where L.x satisifies
 
-                    min_{L.x}   L.c * x
+                    min_{L.x}   L.c * x + L.d
                     s.t.        L.A * x <= L.b      # Or ==
     """
 
     def __init__(self, name=None):
         self.name = name
-        self.model = None
+        #self.model = None
         self.L = SimplifiedList()
 
-    def add_upper(self, nxR=0, nxZ=0, nxB=0):
+    def add_upper(self, *, nxR=0, nxZ=0, nxB=0):
         self.U = LinearLevelRepn(nxR, nxZ, nxB)
         return self.U
 
-    def add_lower(self, nxR=0, nxZ=0, nxB=0):
+    def add_lower(self, *, nxR=0, nxZ=0, nxB=0):
         self.L.append( LinearLevelRepn(nxR, nxZ, nxB) )
         return self.L
 
@@ -468,6 +439,39 @@ class LinearBilevelProblem(object):
             if math.fabs(U[i]*U_coef + L[i]*L_ceof) > 1e-16:
                 return False
         return True
+
+
+class QuadraticLevelRepn(object):
+
+    def __init__(self, nxR, nxZ, nxB):
+        super().__init__(nxR, nxZ, nxB)
+        self.B = LevelValueWrapper("B") # Quadratic term in objective
+
+    def print(self, *args, nL=0):
+        print("Variables:")
+        if self.xR.num > 0:
+            self.xR.print("Real")
+        if self.xZ.num > 0:
+            self.xZ.print("Integer")
+        if self.xB.num > 0:
+            self.xB.print("Binary")
+
+        print("\nObjective:")
+        if self.minimize:
+            print("  Minimize:")
+        else:
+            print("  Maximize:")
+        self.c.print(*args, nL=nL)
+        self.B.print(*args)
+
+        if len(self.A) > 0:
+            print("\nConstraints:")
+            self.A.print(*args)
+            if self.inequalities:
+                print("  <=")
+            else:
+                print("  ==")
+            print("   ",self.b)
 
 
 class QuadraticBilevelProblem(LinearBilevelProblem):

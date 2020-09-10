@@ -13,8 +13,6 @@ U.c.L[0].xR = np.array([-4])
 U.c.L[1].xR = np.array([-5])
 
 L = M.add_lower(nxR=1)
-L = M.add_lower(nxR=1)
-
 L[0].xR.lower_bounds = np.array([0])
 L[0].c.L[0].xR = np.array([1])
 
@@ -26,6 +24,7 @@ L[0].A.L[0].xR = coo_matrix((np.array([-1, 1, 1, 2]),
                        np.array([0, 0, 0, 0]))))
 L[0].b = np.array([-3, 0, 12, -4])
 
+L = M.add_lower(nxR=1)
 L[1].xR.lower_bounds = np.array([-1])
 L[1].c.L[1].xR = np.array([2])
 
@@ -39,7 +38,7 @@ L[1].b = np.array([-3, 0, 12, -4])
 
 
 M.print()
-opt = BilevelSolver('pao.bilevel.blp_global')
+opt = LinearBilevelSolver('pao.bilevel.blp_global')
 opt.solve(M)
 
 

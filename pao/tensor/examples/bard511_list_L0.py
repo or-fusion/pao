@@ -19,7 +19,7 @@ L[0].A.L[0].xR = [(0,0,-1),  (1,0,1),  (2,0,1), (3,0,2)]
 L[0].b = [-3, 0, 12, -4]
 
 
-opt = BilevelSolver('pao.bilevel.blp_global')
+opt = LinearBilevelSolver('pao.bilevel.blp_global')
 opt.solve(M)
 
 
