@@ -118,6 +118,29 @@ class Test_SimplifiedList(unittest.TestCase):
         except:
             pass
 
+        self.assertEqual( getattr(l, '_foo', None), None )
+
+    def test_setattr(self):
+        class A(object):
+            def __init__(self, i=0):
+                self.i = i
+        l = SimplifiedList()
+        try:
+            l.i = 0
+            self.fail("Expected AssertionError")
+        except:
+            pass
+
+        l.append(A(1))
+        l.i = 0
+
+        l.append(A(1))
+        try:
+            l.i = 0
+            self.fail("Expected AssertionError")
+        except:
+            pass
+
 
 class Test_LevelVariable(unittest.TestCase):
 
@@ -175,9 +198,9 @@ class Test_LevelValues(unittest.TestCase):
         
     def test_len_matrix(self):
         l = LevelValues(matrix=True)
-        l.set_values(xR=[(0,1,2),(3,4,5)], xB=[(0,0,5),(1,0,6)])
+        l.set_values(xR=[(0,1,2),(3,4,5)], xB=[(0,0,5),(1,0,6)], xZ=[(1,1,1)])
         self.assertEqual(len(l), 4)
-        l.set_values(xB=[(0,1,2),(3,4,5)], xR=[(0,0,5),(1,0,6)])
+        l.set_values(xB=[(0,1,2),(3,4,5)], xR=[(0,0,5),(1,0,6)], xZ=[(1,1,1)])
         self.assertEqual(len(l), 4)
         
     def test_setattr(self):
@@ -194,6 +217,7 @@ class Test_LevelValues(unittest.TestCase):
         l.xR = [(0,1,2),(3,4,5)]
         self.assertEqual(type(l.xR),scipy.sparse.coo.coo_matrix)
 
+
 class Test_LevelValueWrapper(unittest.TestCase):
 
     def test_init(self):
@@ -208,6 +232,11 @@ class Test_LevelValueWrapper(unittest.TestCase):
         self.assertEqual(l._values, {})
         self.assertEqual(l._prefix, 'foo')
 
+    def test_len(self):
+        l = LevelValueWrapper('foo', matrix=True)
+        l.L
+        self.assertEqual(len(l), 1)
+
     def test_getattr(self):
         l = LevelValueWrapper('foo', matrix=True)
         l.foo
@@ -216,7 +245,10 @@ class Test_LevelValueWrapper(unittest.TestCase):
         l.L
         self.assertEqual(len(l.L),1)
         self.assertEqual(set(l._values.keys()), set(['foo','L']))
+        #
+        getattr(l, "_foo", False)
         
+
 class Test_LinearLevelRepn(unittest.TestCase):
 
     def test_init(self):
@@ -272,6 +304,76 @@ class Test_LinearBilevelProblem(unittest.TestCase):
         self.assertEqual(len(L[1].xB), 3)
         self.assertEqual(id(L[0]), id(blp.L[0]))
         self.assertEqual(id(L[1]), id(blp.L[1]))
+
+    def test_check_opposite_objectives(self):
+        blp = LinearBilevelProblem()
+        U = blp.add_upper(nxR=1, nxZ=1, nxB=1)
+        U.c.U.xR = [1]
+        U.c.U.xZ = [2]
+        U.c.U.xB = [3]
+        U.c.L.xR = [4]
+        U.c.L.xZ = [5]
+        U.c.L.xB = [6]
+        U.d = 7
+        L = blp.add_lower(nxR=1, nxZ=1, nxB=1)
+        L.c.U.xR = [-1]
+        L.c.U.xZ = [-2]
+        L.c.U.xB = [-3]
+        L.c.L.xR = [-4]
+        L.c.L.xZ = [-5]
+        L.c.L.xB = [-6]
+        U.d = -7
+        self.assertEqual( blp.check_opposite_objectives(U,L), True )
+
+        L.c.U.xR = [1]
+        self.assertEqual( blp.check_opposite_objectives(U,L), False )
+        L.c.U.xR = [-1]
+        self.assertEqual( blp.check_opposite_objectives(U,L), True )
+
+        L.c.U.xZ = [2]
+        self.assertEqual( blp.check_opposite_objectives(U,L), False )
+        L.c.U.xZ = [-2]
+        self.assertEqual( blp.check_opposite_objectives(U,L), True )
+
+        L.c.U.xB = [3]
+        self.assertEqual( blp.check_opposite_objectives(U,L), False )
+        L.c.U.xB = [-3]
+        self.assertEqual( blp.check_opposite_objectives(U,L), True )
+
+        L.c.L.xR = [4]
+        self.assertEqual( blp.check_opposite_objectives(U,L), False )
+        L.c.L.xR = [-4]
+        self.assertEqual( blp.check_opposite_objectives(U,L), True )
+
+        L.c.L.xZ = [5]
+        self.assertEqual( blp.check_opposite_objectives(U,L), False )
+        L.c.L.xZ = [-5]
+        self.assertEqual( blp.check_opposite_objectives(U,L), True )
+
+        L.c.L.xB = [6]
+        self.assertEqual( blp.check_opposite_objectives(U,L), False )
+        L.c.L.xB = [-6]
+        self.assertEqual( blp.check_opposite_objectives(U,L), True )
+
+        L.c.L.xB = None
+        self.assertEqual( blp.check_opposite_objectives(U,L), False )
+        U.c.L.xB = None
+        self.assertEqual( blp.check_opposite_objectives(U,L), True )
+
+        blp = LinearBilevelProblem()
+        U = blp.add_upper(nxR=1, nxZ=1, nxB=1)
+        U.c.U.xR = [1]
+        U.c.U.xZ = [2]
+        U.c.U.xB = [3]
+        U.c.L.xR = [4]
+        U.c.L.xZ = [5]
+        U.c.L.xB = [6]
+        U.d = 7
+        L = blp.add_upper(nxR=1, nxZ=1, nxB=1)
+        L.c = U.c
+        L.minimize = False
+        self.assertEqual( blp.check_opposite_objectives(U,L), True )
+
 
 if __name__ == "__main__":
     unittest.main()

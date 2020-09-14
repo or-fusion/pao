@@ -1,3 +1,4 @@
+import math
 import pprint
 from scipy.sparse import coo_matrix
 import numpy as np
@@ -65,7 +66,14 @@ class LevelVariable(object):
     def __len__(self):
         return self.num
 
-    def print(self, type):
+    def resize(self, num):
+        if self.num != num:
+            self.lower_bounds = None
+            self.upper_bounds = None
+        self.num = num
+        self.values = [None]*num
+
+    def print(self, type):                  # pragma: no cover
         print("  %s Variables:" % type)
         print("    num: "+str(self.num))
         if self.lower_bounds is not None:
@@ -107,10 +115,10 @@ class LevelValues(object):
         self.xB = xB
         self.xZ = xZ
 
-    def print(self, prefix):
+    def print(self, prefix):                        # pragma: no cover
         self._print_value(self.xR, prefix+'.xR')
-        self._print_value(self.xB, prefix+'.xB')
         self._print_value(self.xZ, prefix+'.xZ')
+        self._print_value(self.xB, prefix+'.xB')
 
     def __len__(self):
         n = 0
@@ -148,7 +156,7 @@ class LevelValues(object):
         else:
             super().__setattr__(name, value)
 
-    def _print_value(self, value, name):
+    def _print_value(self, value, name):            # pragma: no cover
         if value is not None:
             if self._matrix:
                 print("    %s:" % name)
@@ -174,7 +182,7 @@ class LevelValueWrapper(object):
 
     def __getattr__(self, name):
         if name.startswith('_'):
-            return getattr(self, name)
+            return super().__getattr__(name)
         else:
             _values = getattr(self, '_values')
             if name in _values:
@@ -186,7 +194,7 @@ class LevelValueWrapper(object):
                 _values[name] = LevelValues(self._matrix)
             return _values[name]
 
-    def print(self, *args, nL=0):
+    def print(self, *args, nL=0):               # pragma: no cover
         _values = getattr(self, '_values')
         first = True
         for name in args:
@@ -229,7 +237,7 @@ class LinearLevelRepn(object):
         self.b = np.ndarray(0)          # RHS of the constraints
         self.inequalities = True        # If True, the constraints are inequalities
 
-    def print(self, *args, nL=0):
+    def print(self, *args, nL=0):       # pragma: no cover
         print("Variables:")
         if self.xR.num > 0:
             self.xR.print("Real")
@@ -244,15 +252,15 @@ class LinearLevelRepn(object):
         else:
             print("  Maximize:")
         self.c.print(*args, nL=nL)
+        print("  d:",self.d)
 
         if self.b.size > 0:
             print("\nConstraints: ")
             self.A.print(*args, nL=nL)
             if self.inequalities:
-                print("  <=")
+                print("  <=", self.b)
             else:
-                print("  ==")
-            print("   ",self.b)
+                print("  ==", self.b)
 
     def __setattr__(self, name, value):
         if name == 'b' and value is not None:
@@ -283,9 +291,11 @@ class LinearBilevelProblem(object):
     def __init__(self, name=None):
         self.name = name
         #self.model = None
+        self.U = None
         self.L = SimplifiedList()
 
     def add_upper(self, *, nxR=0, nxZ=0, nxB=0):
+        assert (self.U is None), "Cannot create a second upper-level in a LinearBilevelProblem"
         self.U = LinearLevelRepn(nxR, nxZ, nxB)
         return self.U
 
@@ -293,7 +303,7 @@ class LinearBilevelProblem(object):
         self.L.append( LinearLevelRepn(nxR, nxZ, nxB) )
         return self.L
 
-    def print(self):
+    def print(self):                            # pragma: no cover
         nL = len(self.L)
         if self.name:
             print("# LinearBilevelProblem: "+name)
@@ -316,12 +326,13 @@ class LinearBilevelProblem(object):
                 L.print("U", "L", nL=nL)
                 print("")
 
-    def check(self):
+    def check(self):                    # pragma: no cover
         U = self.U
         L = self.L
         #
         # Coefficients for upper-level objective
         #
+        #print(U.c.U.xR.size, U.xR.num, U.xR.values)
         assert ((U.c.U.xR is None) or (U.c.U.xR.size == len(U.xR)) or (U.c.U.xR.size == 0)), "Incompatible specification of upper-level coefficients for U.xR"
         assert ((U.c.U.xZ is None) or (U.c.U.xZ.size == len(U.xZ)) or (U.c.U.xZ.size == 0)), "Incompatible specification of upper-level coefficients for U.xZ"
         assert ((U.c.U.xB is None) or (U.c.U.xB.size == len(U.xB)) or (U.c.U.xB.size == 0)), "Incompatible specification of upper-level coefficients for U.xB"
@@ -333,6 +344,7 @@ class LinearBilevelProblem(object):
         # Coefficients for lower-level objective
         #
         for i in range(len(L)):
+            #print("HERE", i, L[i].c.U.xR.size, len(U.xR))
             assert ((L[i].c.U.xR is None) or (L[i].c.U.xR.size == len(U.xR)) or (L[i].c.U.xR.size == 0)), "Incompatible specification of lower-level coefficients for U.xR" 
             assert ((L[i].c.U.xZ is None) or (L[i].c.U.xZ.size == len(U.xZ)) or (L[i].c.U.xZ.size == 0)), "Incompatible specification of lower-level coefficients for U.xZ"
             assert ((L[i].c.U.xB is None) or (L[i].c.U.xB.size == len(U.xB)) or (L[i].c.U.xB.size == 0)), "Incompatible specification of lower-level coefficients for U.xB"
@@ -342,23 +354,23 @@ class LinearBilevelProblem(object):
         #
         # Ncols of upper-level constraints
         #
-        assert ((U.A.U.xR is None) or (U.A.U.xR.shape[1] == len(U.xR)) or (U.c.U.xR.shape[1] == 0)), "Incompatible specification of U.A.U.xR and U.xR"
-        assert ((U.A.U.xZ is None) or (U.A.U.xZ.shape[1] == len(U.xZ)) or (U.c.U.xZ.shape[1] == 0)), "Incompatible specification of U.A.U.xZ and U.xZ"
-        assert ((U.A.U.xB is None) or (U.A.U.xB.shape[1] == len(U.xB)) or (U.c.U.xB.shape[1] == 0)), "Incompatible specification of U.A.U.xB and U.xB"
+        assert ((U.A.U.xR is None) or (U.A.U.xR.shape[1] == len(U.xR)) or len(U.xR) == 0), "Incompatible specification of U.A.U.xR and U.xR"
+        assert ((U.A.U.xZ is None) or (U.A.U.xZ.shape[1] == len(U.xZ)) or len(U.xZ) == 0), "Incompatible specification of U.A.U.xZ and U.xZ"
+        assert ((U.A.U.xB is None) or (U.A.U.xB.shape[1] == len(U.xB)) or len(U.xB) == 0), "Incompatible specification of U.A.U.xB and U.xB"
         for i in range(len(L)):
-            assert ((U.A.L[i].xR is None) or (U.A.L[i].xR.shape[1] == len(L[i].xR)) or (U.c.L[i].xR.shape[1] == 0)), "Incompatible specification of U.A.L[%d].xR and L[%d].xR" % (i,i)
-            assert ((U.A.L[i].xZ is None) or (U.A.L[i].xZ.shape[1] == len(L[i].xZ)) or (U.c.L[i].xZ.shape[1] == 0)), "Incompatible specification of U.A.L[%d].xZ and L[%d].xZ" % (i,i)
-            assert ((U.A.L[i].xB is None) or (U.A.L[i].xB.shape[1] == len(L[i].xB)) or (U.c.L[i].xB.shape[1] == 0)), "Incompatible specification of U.A.L[%d].xB and L[%d].xB" % (i,i)
+            assert ((L[i].A.U.xR is None) or (L[i].A.U.xR.shape[1] == len(U.xR)) or len(U.xR) == 0), "Incompatible specification of L[%d].A.U.xR and U.xR" % i
+            assert ((L[i].A.U.xZ is None) or (L[i].A.U.xZ.shape[1] == len(U.xZ)) or len(U.xZ) == 0), "Incompatible specification of L[%d].A.U.xZ and U.xZ" % i
+            assert ((L[i].A.U.xB is None) or (L[i].A.U.xB.shape[1] == len(U.xB)) or len(U.xB) == 0), "Incompatible specification of L[%d].A.U.xB and U.xB" % i
         #
         # Ncols of lower-level constraints
         #
         for i in range(len(L)):
-            assert ((L[i].A.U.xR is None) or (L[i].A.U.xR.shape[1] == len(U.xR)) or (L[i].c.U.xR.shape[1] == 0)), "Incompatible specification of L[%d].A.U.xR and U.xR" % i
-            assert ((L[i].A.U.xZ is None) or (L[i].A.U.xZ.shape[1] == len(U.xZ)) or (L[i].c.U.xZ.shape[1] == 0)), "Incompatible specification of L[%d].A.U.xZ and U.xZ" % i
-            assert ((L[i].A.U.xB is None) or (L[i].A.U.xB.shape[1] == len(U.xB)) or (L[i].c.U.xB.shape[1] == 0)), "Incompatible specification of L[%d].A.U.xB and U.xB" % i
-            assert ((L[i].A.L[i].xR is None) or (L[i].A.L[i].xR.shape[1] == len(L[i].xR)) or (L[i].c.L[i].xR.shape[1] == 0)), "Incompatible specification of L[%d].A.L[%d].xR and L[%d].xR" % (i,i,i)
-            assert ((L[i].A.L[i].xZ is None) or (L[i].A.L[i].xZ.shape[1] == len(L[i].xZ)) or (L[i].c.L[i].xZ.shape[1] == 0)), "Incompatible specification of L[%d].A.L[%d].xZ and L[%d].xZ" % (i,i,i)
-            assert ((L[i].A.L[i].xB is None) or (L[i].A.L[i].xB.shape[1] == len(L[i].xB)) or (L[i].c.L[i].xB.shape[1] == 0)), "Incompatible specification of L[%d].A.L[%d].xB and L[%d].xB" % (i,i,i)
+            assert ((U.A.L[i].xR is None) or (U.A.L[i].xR.shape[1] == len(L[i].xR)) or len(L[i].xR) == 0), "Incompatible specification of U.A.L[%d].xR and L[%d].xR" % (i,i)
+            assert ((U.A.L[i].xZ is None) or (U.A.L[i].xZ.shape[1] == len(L[i].xZ)) or len(L[i].xZ) == 0), "Incompatible specification of U.A.L[%d].xZ and L[%d].xZ" % (i,i)
+            assert ((U.A.L[i].xB is None) or (U.A.L[i].xB.shape[1] == len(L[i].xB)) or len(L[i].xB) == 0), "Incompatible specification of U.A.L[%d].xB and L[%d].xB" % (i,i)
+            assert ((L[i].A.L[i].xR is None) or (L[i].A.L[i].xR.shape[1] == len(L[i].xR)) or len(L[i].xR) == 0), "Incompatible specification of L[%d].A.L[%d].xR and L[%d].xR" % (i,i,i)
+            assert ((L[i].A.L[i].xZ is None) or (L[i].A.L[i].xZ.shape[1] == len(L[i].xZ)) or len(L[i].xZ) == 0), "Incompatible specification of L[%d].A.L[%d].xZ and L[%d].xZ" % (i,i,i)
+            assert ((L[i].A.L[i].xB is None) or (L[i].A.L[i].xB.shape[1] == len(L[i].xB)) or len(L[i].xB) == 0), "Incompatible specification of L[%d].A.L[%d].xB and L[%d].xB" % (i,i,i)
         #
         # Nrows of upper-level constraints
         #
@@ -436,7 +448,7 @@ class LinearBilevelProblem(object):
         if U is None or L is None:
             return False
         for i in range(U.size):
-            if math.fabs(U[i]*U_coef + L[i]*L_ceof) > 1e-16:
+            if math.fabs(U[i]*U_coef + L[i]*L_coef) > 1e-16:
                 return False
         return True
 

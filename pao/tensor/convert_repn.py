@@ -1,28 +1,32 @@
-from scipy.sparse import coo_matrix, dok_matrix
+import copy
+from scipy.sparse import coo_matrix, dok_matrix, csc_matrix
 import numpy as np
+from .repn import LinearBilevelProblem
 
 
 def _find_nonpositive_variables(xR, inequalities):
     changes = []
     nxR = len(xR)
+    nRbounded=0     # no. variable added, which are slacks added later
     nR = nxR
     if xR.upper_bounds is None:
         if xR.lower_bounds is None:
-            # Variables are unbounded
+            # real variable unbounded
             changes = [(i,4,nxR+i) for i in range(nxR)]
             nR = 2*nxR
         else:
-            # Variables are unbounded above
+            # real variable bounded below
             for i in range(nxR):
                 lb = xR.lower_bounds[i]
                 if lb == 0:
                     # Ignore non-negative variables
                     continue
                 elif lb == np.NINF:
-                    # Unbounded variable
+                    # bound is -infinity
                     changes.append( (i,4,nR) )
                     nR += 1
                 else:
+                    # bound is constant
                     changes.append( (i,1,lb) )
     else:
         if xR.lower_bounds is None:
@@ -54,46 +58,130 @@ def _find_nonpositive_variables(xR, inequalities):
                 elif inequalities:
                     # Can create an inequality constraint
                     changes.append( (i,3,lb,ub,None) )
+                    nRbounded += 1     # slack variable
                 else:
                     changes.append( (i,3,lb,ub,nR) )
                     nR += 1
-    return changes, nR
+    return changes, nR+nRbounded
 
 
-def _process_changes(changes, c, A, b):
-    c = copy.copy(lbp.U.c.U.xR)
-    Acsc = lbp.U.A.U.xR.tocsc()
-    b = ans.U.b
-    nrows = A.size[0]
-    A = {}
-    for chg in changes_U:
+def _process_changes(changes, nxR, c, d, A, b, level_vars=True):
+    #assert (A is not None), "Only process changes when we have constraints"
+    #if A is None:
+    #    c = copy.copy(c)
+    #    d = copy.copy(d)
+    #    b = copy.copy(b)
+    #    return c, d, A, b
+
+    c = copy.copy(c)
+    d = copy.copy(d)
+    #if b is None:
+    #    b = np.ndarray(0)
+    #else:
+    b = copy.copy(b)
+
+    if A is None:
+        Acsc = csc_matrix(0)
+        nrows = 0
+    else:
+        Acsc = A.tocsc()
+        nrows = A.shape[0]
+
+    B = {}
+    for chg in changes:
         v = chg[0]
         if chg[1] == 1:     # real variable bounded below
             lb = chg[2]
-            ans.U.d += c[v]*lb
+            if c is not None:
+                d += c[v]*lb
+            if A is not None:
+                i = Acsc.indptr[v]      # index of the vth column in the A matrix
+                inext = Acsc.indptr[v+1]
+                while i<inext:
+                    row = Acsc.indices[i]
+                    b[row] -= Acsc[row, v]*lb
+                    i += 1
         elif chg[1] == 2:   # real variable bounded above
             ub = chg[2]
-            ans.U.d += c[v]*ub
-            c[v] *= -1
+            if c is not None:
+                d += c[v]*ub
+                c[v] *= -1
+            if A is not None:
+                i = Acsc.indptr[v]      # index of the vth column in the A matrix
+                inext = Acsc.indptr[v+1]
+                while i<inext:
+                    row = Acsc.indices[i]
+                    b[row] -= Acsc[row, v]*ub
+                    Acsc[row, v] *= -1
+                    i += 1
         elif chg[1] == 3:   # real variable bounded
             lb = chg[2]
             ub = chg[3]
             w = chg[4]
-            ans.U.d += c[v]*lb
-            b.append(ub-lb)
-            A[nrows, v] = 1
-            nrows += 1
-            if w is not None:
-                c.append(0)
+            if c is not None:
+                d += c[v]*lb
+                if w is not None:
+                    c = np.append(c, 0)
+            if A is not None:
+                i = Acsc.indptr[v]      # index of the vth column in the A matrix
+                inext = Acsc.indptr[v+1]
+                while i<inext:
+                    row = Acsc.indices[i]
+                    b[row] -= Acsc[row, v]*lb
+                    i += 1
+            if level_vars:
+                # Add new constraint
+                # If w is not None, then we are adding an associated slack variable
+                # NOTE: We only add the constraint to the level that "owns" the variables
+                b = np.append(b, ub-lb)
+                B[nrows, v] = 1
+                if w is not None:
+                    B[nrows, w] = 1
+                nrows += 1
         else:               # real variable unbounded
             w = chg[2]
-            i = Acsc.indptr[v]      # index of the vth column in the A matrix
-            inext = Acsc.indptr[v+1]
-            while i<inext:
-                row = Acsc.indices[i]
-                A[w, row] = - Acsc[v, row]
-            c.append(0)
-    return c, A.tocoo(), b
+            if c is not None:
+                c = np.append(c, -c[v])
+            if A is not None:
+                i = Acsc.indptr[v]      # index of the vth column in the A matrix
+                inext = Acsc.indptr[v+1]
+                while i<inext:
+                    row = Acsc.indices[i]
+                    B[row, w] = - Acsc[row, v]
+                    i += 1
+    if nrows == 0:
+        return c, d, None, b
+    Bdok = dok_matrix((nrows, nxR))
+    for k,v in B.items():
+        Bdok[k] = v
+    A = combine_matrices(Acsc, Bdok)
+    return c, d, A.tocoo(), b
+
+
+def combine_matrices(A, B):
+    """
+    Combining matrices with different shapes
+
+    Matrix A may be None
+    """
+    if A is None:
+        if B.size > 0:          # pragma: no cover
+            return B
+        return None
+
+    #print("A")
+    #print(A)
+    #print("B")
+    #print(B)
+    x=A.tocoo()
+    y=B.tocoo()
+    d = np.concatenate((x.data, y.data))
+    r = np.concatenate((x.row, y.row))
+    c = np.concatenate((x.col, y.col))
+    ans = coo_matrix((d,(r,c)))
+    #print("A + B")
+    #print(ans)
+    return ans
 
 
 def convert_LinearBilevelProblem_to_standard_form(lbp):
@@ -108,10 +196,14 @@ def convert_LinearBilevelProblem_to_standard_form(lbp):
     # Setup converted problem
     #
     ans = LinearBilevelProblem(name=lbp.name)
-    U.minimize = lbp.U.minimize
-    U.d = lbp.U.d
+    ans.add_upper(nxZ=len(lbp.U.xZ), nxB=len(lbp.U.xB))
+    ans.U.inequalities = False
+    ans.U.minimize = lbp.U.minimize
+    ans.U.d = lbp.U.d
     ans.U.b = copy.copy(lbp.U.b)
     for i,L in enumerate(lbp.L):
+        ans.add_lower(nxZ=len(L.xZ), nxB=len(L.xB))
+        ans.L[i].inequalities = False
         ans.L[i].d = L.d
         ans.L[i].b = copy.copy(L.b)
     #
@@ -133,17 +225,24 @@ def convert_LinearBilevelProblem_to_standard_form(lbp):
     #
     # Collect real variables that are changing
     #
-    changes_U, nR = _find_nonpositive_variables(lbp.U.xR, lbp.U.inequalities)
-    nR += lbp.U.inequalities*len(lbp.U.b)
-    U = ans.add_upper(nxR=nR, nxZ=len(lbp.U.xZ), nxB=len(lbp.U.xB))
-    U.xR.lower_bounds = np.zeros(nR)
-    changes_L = []
-    for L in lbp.L:
-        changes_L_, nR = _find_nonpositive_variables(L.xR, L.inequalities)
-        nR += L.inequalities*len(L.b)
-        LL = ans.add_lower(nxR=nR, nxZ=len(L.xZ), nxB=len(L.xB))
-        LL.xR.lower_bounds = np.zeros(nR)
-        changes_L.append(changes_L_)
+    if lbp.U.A.U.xR is not None and lbp.U.A.U.xR.shape[0] > 0:
+        changes_U, nR = _find_nonpositive_variables(lbp.U.xR, lbp.U.inequalities)
+        nR += lbp.U.inequalities*len(lbp.U.b)
+        ans.U.xR.resize(nR)
+        ans.U.xR.lower_bounds = np.zeros(nR)
+    else:
+        changes_U = []
+        ans.U.xR.resize(len(lbp.U.xR))
+    changes_L = {}
+    for i,L in enumerate(lbp.L):
+        if L.A.L[i].xR is not None and L.A.L[i].xR.shape[0] > 0:
+            changes_L_, nR = _find_nonpositive_variables(L.xR, L.inequalities)
+            nR += L.inequalities*len(L.b)
+            ans.L[i].xR.resize(nR)
+            ans.L[i].xR.lower_bounds = np.zeros(nR)
+            changes_L[i] = changes_L_
+        else:
+            ans.L[i].xR.resize(len(L.xR))
     #
     # Process changes related to upper-level variables
     #
@@ -154,27 +253,28 @@ def convert_LinearBilevelProblem_to_standard_form(lbp):
             ans.L[i].c.U.xR = copy.copy(L.c.U.xR)
             ans.L[i].A.U.xR = copy.copy(L.A.U.xR)
     else:
-        ans.U.c.U.xR, ans.U.A.U.xR, ans.U.b = \
-                _process_changes(changes, lbp.U.c.U.xR, lbp.U.A.U.xR, lbp.U.b)
+        ans.U.c.U.xR, ans.U.d, ans.U.A.U.xR, ans.U.b = \
+                _process_changes(changes_U, len(ans.U.xR), lbp.U.c.U.xR, lbp.U.d, lbp.U.A.U.xR, lbp.U.b)
         for i,L in enumerate(lbp.L):
-            ans.L[i].c.U.xR, ans.L[i].A.U.xR, ans.L[i].b = \
-                _process_changes(changes, L.c.U.xR, L.A.U.xR, L.b)
+            ans.L[i].c.U.xR, ans.L[i].d, ans.L[i].A.U.xR, ans.L[i].b = \
+                _process_changes(changes_U, len(ans.U.xR), L.c.U.xR, L.d, L.A.U.xR, L.b, level_vars=False)
     #
     # Process changes related to lower-level variables
     #
     for i,L in enumerate(lbp.L):
+        if not i in changes_L:
+            continue
         if len(changes_L[i]) == 0:
-            ans.U.c.L.xR = copy.copy(lbp.U.c.L.xR)
-            ans.U.A.L.xR = copy.copy(lbp.U.A.L.xR)
+            ans.U.c.L[i].xR = copy.copy(lbp.U.c.L[i].xR)
+            ans.U.A.L[i].xR = copy.copy(lbp.U.A.L[i].xR)
             for i,L in enumerate(lbp.L):
-                ans.L[i].c.L.xR = copy.copy(L.c.L.xR)
-                ans.L[i].A.L.xR = copy.copy(L.A.L.xR)
+                ans.L[i].c.L.xR = copy.copy(L.c.L[i].xR)
+                ans.L[i].A.L.xR = copy.copy(L.A.L[i].xR)
         else:
-            ans.U.c.L.xR, ans.U.A.L.xR, ans.L.b = \
-                    _process_changes(changes, lbp.U.c.L.xR, lbp.U.A.L.xR, lbp.L.b)
-            for i,L in enumerate(lbp.L):
-                ans.L[i].c.L.xR, ans.L[i].A.L.xR, ans.L[i].b = \
-                    _process_changes(changes, L.c.L.xR, L.A.L.xR, L.b)
+            ans.U.c.L[i].xR, ans.U.d, ans.U.A.L[i].xR, ans.U.b = \
+                    _process_changes(changes_L[i], len(ans.L[i].xR), lbp.U.c.L[i].xR, ans.U.d, lbp.U.A.L[i].xR, ans.U.b, level_vars=False)
+            ans.L[i].c.L[i].xR, ans.L[i].d, ans.L[i].A.L[i].xR, ans.L[i].b = \
+                    _process_changes(changes_L[i], len(ans.L[i].xR), L.c.L[i].xR, ans.L[i].d, L.A.L[i].xR, ans.L[i].b)
     #
     # Add slack variables if the constraints are defined with inequalities
     #
@@ -186,14 +286,23 @@ def convert_LinearBilevelProblem_to_standard_form(lbp):
         j = len(ans.U.xR)-len(ans.U.b)
         for i in range(len(ans.U.b)):
             B[i,j] = 1
-        ans.U.A.U.xR = ans.U.A.U.xR + B
-    ans.U.inequalities = False
+            j += 1
+            if ans.U.c.U.xR is not None:
+                ans.U.c.U.xR = np.append(ans.U.c.U.xR, 0)
+            for k,L in enumerate(ans.L):
+                if ans.L[k].c.U.xR is not None:
+                    ans.L[k].c.U.xR = np.append(ans.L[k].c.U.xR, 0)
+        ans.U.A.U.xR = combine_matrices(ans.U.A.U.xR, B)
     for i,L in enumerate(lbp.L):
         if L.inequalities:
-            B = dok_matrix((len(ans.L.b), len(ans.L.xR)))
-            j = len(ans.L.xR)-len(ans.L.b)
-            for i in range(len(ans.L.b)):
-                B[i,j] = 1
-            ans.L.A.L.xR = ans.L.A.L.xR + B
-        ans.L[i].inequalities = False
+            B = dok_matrix((len(ans.L[i].b), len(ans.L[i].xR)))
+            j = len(ans.L[i].xR)-len(ans.L[i].b)
+            for k in range(len(ans.L[i].b)):
+                B[k,j] = 1
+                j += 1
+                if ans.L[i].c.L[i].xR is not None:
+                    ans.L[i].c.L[i].xR = np.append(ans.L[i].c.L[i].xR, 0)
+            ans.L[i].A.L[i].xR = combine_matrices(ans.L[i].A.L[i].xR, B)
+    #
+    return ans
 
