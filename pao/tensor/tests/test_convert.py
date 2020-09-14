@@ -1056,6 +1056,103 @@ class Test_Lower(unittest.TestCase):
         self.assertEqual(len(ans.L.xR), len(blp.L.xR)+3)
 
 
+class Test_NonTrivial(unittest.TestCase):
+
+    def test_test1(self):
+        blp = LinearBilevelProblem()
+
+        U = blp.add_upper(nxR=4)
+        blp.add_lower(nxR=5)
+        L = blp.add_lower(nxR=6)
+
+        U.xR.lower_bounds    = [3,       np.NINF, 7, np.NINF]
+        U.xR.upper_bounds    = [np.PINF, 5,       11, np.PINF]
+
+        L[0].xR.lower_bounds = [5,       np.NINF, 11, np.NINF, 0]
+        L[0].xR.upper_bounds = [np.PINF, 7,       13, np.PINF, np.PINF]
+
+        L[1].xR.lower_bounds = [0,       7,       np.NINF, 13, np.NINF, 0]
+        L[1].xR.upper_bounds = [np.PINF, np.PINF, 11,      17, np.PINF, np.PINF]
+
+
+        U.c.U.xR    = [2, 3, 4, 5]
+        U.c.L[0].xR = [3, 4, 5, 6, 7]
+        U.c.L[1].xR = [4, 5, 6, 7, 8, 9]
+
+        U.inequalities = True
+        U.A.U.xR =    [(0,0,1), (0,1,1), (0,2,1), (0,3,1),
+                       (1,0,2),          (1,2,2),
+                                (2,1,3),          (2,3,3)
+                      ]
+        U.A.L[0].xR = [(0,0,1), (0,1,1), (0,2,1), (0,3,1), (0,4,1),
+                       (1,0,2),          (1,2,2),
+                                (2,1,3),          (2,3,3)
+                      ]
+        U.A.L[1].xR = [(0,0,1), (0,1,1), (0,2,1), (0,3,1), (0,4,1), (0,5,1),
+                       (1,0,2),          (1,2,2),
+                                (2,1,3),          (2,3,3)
+                      ]
+        U.b = [2,3,5]
+
+
+        L[0].c.U.xR    = [5, 6, 7, 8]
+        L[0].c.L[0].xR = [6, 7, 8, 9, 10]
+
+        L[0].inequalities = True
+        L[0].A.U.xR =    [(0,0,2), (0,1,2), (0,2,2), (0,3,2),
+                          (1,0,3),          (1,2,3),
+                                   (2,1,4),          (2,3,4),
+                                            (3,2,5)
+                         ]
+        L[0].A.L[0].xR = [(0,0,2), (0,1,2), (0,2,2), (0,3,2), (0,4,2),
+                          (1,0,3),          (1,2,3),
+                                   (2,1,4),          (2,3,4),
+                                            (3,2,5),          (3,4,5)
+                         ]
+        L[0].b = [2,3,5,7]
+
+        L[1].c.U.xR    = [5, 6, 7, 8]
+        L[1].c.L[1].xR = [7, 8, 9, 10, 11, 12]
+
+        L[1].inequalities = False
+        L[1].A.U.xR =    [(1,0,3),          (1,2,3),
+                                   (2,1,4),          (2,3,4),
+                                            (3,2,5)
+                         ]
+        L[1].A.L[1].xR = [(0,0,2), (0,1,2), (0,2,2), (0,3,2), (0,4,2), (0,5,2),
+                          (1,0,3),          (1,2,3),
+                                   (2,1,4),          (2,3,4),
+                                            (3,2,5),          (3,4,5)
+                         ]
+        L[1].b = [1,2,3,5]
+
+        #blp.print()
+        blp.check()
+
+        #print("-"*80)
+
+        ans = convert_LinearBilevelProblem_to_standard_form(blp)
+        #ans.print()
+        ans.check()
+
+        # Just some sanity checks here
+        self.assertEqual(ans.U.d, 339)
+        self.assertEqual(ans.L[0].d, 261)
+        self.assertEqual(ans.L[1].d, 379)
+
+        self.assertEqual(list(ans.U.c.U.xR),        [ 2, -3,  4,  5, -5,  0, 0,  0, 0])
+        self.assertEqual(list(ans.U.c.L[0].xR),     [ 3, -4,  5,  6,  7, -6, 0,  0, 0, 0, 0])
+        self.assertEqual(list(ans.U.c.L[1].xR),     [ 4,  5, -6,  7,  8,  9, 0, -8])
+        self.assertEqual(list(ans.L[0].c.U.xR),     [ 5, -6,  7,  8, -8,  0, 0,  0, 0])
+        self.assertEqual(list(ans.L[0].c.L[0].xR),  [ 6, -7,  8,  9, 10, -9, 0,  0, 0, 0, 0])
+        self.assertEqual(list(ans.L[1].c.U.xR),     [ 5, -6,  7,  8, -8,  0, 0,  0, 0])
+        self.assertEqual(list(ans.L[1].c.L[1].xR),  [ 7,  8, -9, 10, 11, 12, 0, -11])
+
+        self.assertEqual(list(ans.U.b),       [-67, -71, -91, 4.])
+        self.assertEqual(list(ans.L[0].b),    [-74, -75, -43, -83, 2])
+        self.assertEqual(list(ans.L[1].b),    [-61, -61, -97, -85,  4])
+
+
 class Test_Examples(unittest.TestCase):
 
     def test_simple1(self):

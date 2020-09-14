@@ -369,7 +369,7 @@ class Test_LinearBilevelProblem(unittest.TestCase):
         U.c.L.xZ = [5]
         U.c.L.xB = [6]
         U.d = 7
-        L = blp.add_upper(nxR=1, nxZ=1, nxB=1)
+        L = blp.add_lower(nxR=1, nxZ=1, nxB=1)
         L.c = U.c
         L.minimize = False
         self.assertEqual( blp.check_opposite_objectives(U,L), True )

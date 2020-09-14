@@ -169,6 +169,7 @@ def combine_matrices(A, B):
             return B
         return None
 
+    shape = [max(A.shape[0], B.shape[0]), max(A.shape[1], B.shape[1])]
     #print("A")
     #print(A)
     #print("B")
@@ -178,7 +179,7 @@ def combine_matrices(A, B):
     d = np.concatenate((x.data, y.data))
     r = np.concatenate((x.row, y.row))
     c = np.concatenate((x.col, y.col))
-    ans = coo_matrix((d,(r,c)))
+    ans = coo_matrix((d,(r,c)), shape=shape)
     #print("A + B")
     #print(ans)
     return ans
@@ -234,10 +235,10 @@ def convert_LinearBilevelProblem_to_standard_form(lbp):
         changes_U = []
         ans.U.xR.resize(len(lbp.U.xR))
     changes_L = {}
-    for i,L in enumerate(lbp.L):
-        if L.A.L[i].xR is not None and L.A.L[i].xR.shape[0] > 0:
-            changes_L_, nR = _find_nonpositive_variables(L.xR, L.inequalities)
-            nR += L.inequalities*len(L.b)
+    for i in range(len(lbp.L)):
+        if lbp.L[i].A.L[i].xR is not None and lbp.L[i].A.L[i].xR.shape[0] > 0:
+            changes_L_, nR = _find_nonpositive_variables(lbp.L[i].xR, lbp.L[i].inequalities)
+            nR += lbp.L[i].inequalities*len(lbp.L[i].b)
             ans.L[i].xR.resize(nR)
             ans.L[i].xR.lower_bounds = np.zeros(nR)
             changes_L[i] = changes_L_
@@ -267,14 +268,24 @@ def convert_LinearBilevelProblem_to_standard_form(lbp):
         if len(changes_L[i]) == 0:
             ans.U.c.L[i].xR = copy.copy(lbp.U.c.L[i].xR)
             ans.U.A.L[i].xR = copy.copy(lbp.U.A.L[i].xR)
-            for i,L in enumerate(lbp.L):
-                ans.L[i].c.L.xR = copy.copy(L.c.L[i].xR)
-                ans.L[i].A.L.xR = copy.copy(L.A.L[i].xR)
+            ans.L[i].c.L[i].xR = copy.copy(lbp.L[i].c.L[i].xR)
+            ans.L[i].A.L[i].xR = copy.copy(lbp.L[i].A.L[i].xR)
         else:
             ans.U.c.L[i].xR, ans.U.d, ans.U.A.L[i].xR, ans.U.b = \
                     _process_changes(changes_L[i], len(ans.L[i].xR), lbp.U.c.L[i].xR, ans.U.d, lbp.U.A.L[i].xR, ans.U.b, level_vars=False)
             ans.L[i].c.L[i].xR, ans.L[i].d, ans.L[i].A.L[i].xR, ans.L[i].b = \
                     _process_changes(changes_L[i], len(ans.L[i].xR), L.c.L[i].xR, ans.L[i].d, L.A.L[i].xR, ans.L[i].b)
+    #
+    # Resize constraint matrices
+    #
+    # After processing upper and lower variables, we may have added constraints.  The other
+    # upper/lower constraint matrices need to be resized as well.
+    #
+    for i in range(len(ans.L)):
+        if ans.U.A.L[i].xR is not None:
+            ans.U.A.L[i].xR.resize( [len(ans.U.b), len(ans.L[i].xR)] )
+        if ans.L[i].A.U.xR is not None:
+            ans.L[i].A.U.xR.resize( [len(ans.L[i].b), len(ans.U.xR)] )
     #
     # Add slack variables if the constraints are defined with inequalities
     #
@@ -293,13 +304,16 @@ def convert_LinearBilevelProblem_to_standard_form(lbp):
                 if ans.L[k].c.U.xR is not None:
                     ans.L[k].c.U.xR = np.append(ans.L[k].c.U.xR, 0)
         ans.U.A.U.xR = combine_matrices(ans.U.A.U.xR, B)
-    for i,L in enumerate(lbp.L):
-        if L.inequalities:
+
+    for i in range(len(lbp.L)):
+        if lbp.L[i].inequalities:
             B = dok_matrix((len(ans.L[i].b), len(ans.L[i].xR)))
             j = len(ans.L[i].xR)-len(ans.L[i].b)
             for k in range(len(ans.L[i].b)):
                 B[k,j] = 1
                 j += 1
+                if ans.U.c.L[i].xR is not None:
+                    ans.U.c.L[i].xR = np.append(ans.U.c.L[i].xR, 0)
                 if ans.L[i].c.L[i].xR is not None:
                     ans.L[i].c.L[i].xR = np.append(ans.L[i].c.L[i].xR, 0)
             ans.L[i].A.L[i].xR = combine_matrices(ans.L[i].A.L[i].xR, B)

@@ -160,8 +160,11 @@ class LevelValues(object):
         if value is not None:
             if self._matrix:
                 print("    %s:" % name)
+                if value.size:
+                    print("        shape: %d %d" % (value.shape[0], value.shape[1]))
+                print("        nonzeors:")
                 for row in str(value).split('\n'):
-                    print("      "+row)
+                    print("        "+row)
             else:
                 print("    %s:" % name, value)
 
@@ -453,7 +456,7 @@ class LinearBilevelProblem(object):
         return True
 
 
-class QuadraticLevelRepn(object):
+class QuadraticLevelRepn(object):       # pragma: no cover
 
     def __init__(self, nxR, nxZ, nxB):
         super().__init__(nxR, nxZ, nxB)
@@ -486,7 +489,7 @@ class QuadraticLevelRepn(object):
             print("   ",self.b)
 
 
-class QuadraticBilevelProblem(LinearBilevelProblem):
+class QuadraticBilevelProblem(LinearBilevelProblem):            # pragma: no cover
     """
     Let
         x   = [U.xR, U.xZ, U.xB, L.xR, L.xZ, L.xB]'                         # dense column vector
@@ -634,7 +637,7 @@ class QuadraticBilevelProblem(LinearBilevelProblem):
         return True
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":              # pragma: no cover
     prob = LinearBilevelProblem()
     U = prob.add_upper(3,2,1)
     U.xR.upper_bounds = np.array([1.5, 2.4, 3.1])
