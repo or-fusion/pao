@@ -23,7 +23,7 @@ class LinearBilevelSolver_REG(LinearBilevelSolverBase):
         #
         # Confirm that the LinearBilevelProblem is well-formed
         #
-        assert (type(lbp) is LinearBilevelProblem), "Solver '%s' can only solve a LinearBilevelProblem" % self.solver_type
+        assert (type(lbp) is LinearBilevelProblem), "Solver '%s' can only solve a LinearBilevelProblem" % self.name
         lbp.check()
         #
         # TODO: For now, we just deal with the case where there is a single lower-level.  Later, we
@@ -33,14 +33,14 @@ class LinearBilevelSolver_REG(LinearBilevelSolverBase):
         #
         # No binary or integer upper-level variables
         #
-        assert (len(lbp.U.xZ) == 0), "Cannot use solver %s with model with integer upper-level variables" % self.solver_type
-        assert (len(lbp.U.xB) == 0), "Cannot use solver %s with model with binary upper-level variables" % self.solver_type
+        assert (len(lbp.U.xZ) == 0), "Cannot use solver %s with model with integer upper-level variables" % self.name
+        assert (len(lbp.U.xB) == 0), "Cannot use solver %s with model with binary upper-level variables" % self.name
         #
         # No binary or integer lower-level variables
         #
         for i in range(len(lbp.L)):
-            assert (len(lbp.L[i].xZ) == 0), "Cannot use solver %s with model with integer lower-level variables" % self.solver_type
-            assert (len(lbp.L[i].xB) == 0), "Cannot use solver %s with model with binary lower-level variables" % self.solver_type
+            assert (len(lbp.L[i].xZ) == 0), "Cannot use solver %s with model with integer lower-level variables" % self.name
+            assert (len(lbp.L[i].xB) == 0), "Cannot use solver %s with model with binary lower-level variables" % self.name
 
     def solve(self, *args, **kwds):
         #
