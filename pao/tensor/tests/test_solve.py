@@ -149,6 +149,16 @@ class Test_bilevel_FA(unittest.TestCase):
         self.assertTrue(math.isclose(blp.U.xR.values[0], 6))
         self.assertTrue(math.isclose(blp.L.xR.values[0], 8))
 
+    def test_pineda(self):
+        blp = examples.pineda.create()
+        blp.check()
+
+        opt = LinearBilevelSolver('pao.lbp.FA')
+        opt.solve(blp)
+
+        self.assertTrue(math.isclose(blp.U.xR.values[0], 2))
+        self.assertTrue(math.isclose(blp.L.xR.values[0], 100))
+
 
 class Test_bilevel_REG(unittest.TestCase):
 
@@ -229,8 +239,18 @@ class Test_bilevel_REG(unittest.TestCase):
         opt = LinearBilevelSolver('pao.lbp.REG')
         opt.solve(blp)
 
-        self.assertTrue(math.isclose(blp.U.xR.values[0], 6))
-        self.assertTrue(math.isclose(blp.L.xR.values[0], 8))
+        self.assertTrue(math.isclose(blp.U.xR.values[0], 6, abs_tol=1e-4))
+        self.assertTrue(math.isclose(blp.L.xR.values[0], 8, abs_tol=1e-4))
+
+    def test_pineda(self):
+        blp = examples.pineda.create()
+        blp.check()
+
+        opt = LinearBilevelSolver('pao.lbp.REG')
+        opt.solve(blp)
+
+        self.assertTrue(math.isclose(blp.U.xR.values[0], 2, abs_tol=1e-4))
+        self.assertTrue(math.isclose(blp.L.xR.values[0], 100, abs_tol=1e-4))
 
 
 #class Test_bilevel_ld(unittest.TestCase):

@@ -165,6 +165,10 @@ class LinearBilevelSolver_FA(LinearBilevelSolverBase):
         #
         # Transform the problem to a MIP
         #
+        # TODO - directly create the bigM relaxation here.  Applying
+        # Pyomo transformations in sequence creates a model object that is
+        # difficult to interpret.
+        #
         #M.pprint()
         xfrm = pe.TransformationFactory('mpec.simple_disjunction')
         xfrm.apply_to(M)
