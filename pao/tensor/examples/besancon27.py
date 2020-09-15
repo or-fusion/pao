@@ -34,7 +34,7 @@ def create():
     return M
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":          #pragma: no cover
     M = create()
     opt = LinearBilevelSolver('pao.lbp.FA')
     opt.solve(M)

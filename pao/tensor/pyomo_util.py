@@ -4,27 +4,41 @@
 #
 import numpy as np
 import pyomo.environ as pe
+from .repn import LinearLevelRepn, LevelValues, SimplifiedList
 
 
-def add_upper(*, repn, M_U):
-    """
-    Add the linear objective and constraints that are associated with the 
-    upper-level problem in the LinearBilevelProblem.
-    """
-    _create_variables(repn.U, M_U)
-    _linear_objective(repn.U.c, repn.U, repn.L, repn.U.minimize, M_U)
-    _linear_constraints(repn.U.inequalities, repn.U.A, repn.U, repn.L, repn.U.b, M_U)
+def dot(A, x, num=None):
+    if type(x) is SimplifiedList:
+        x = x[0]
+    if type(A) is SimplifiedList:
+        A = A[0]
+    if type(A) is LevelValues:
+        assert type(x) is LinearLevelRepn, "Unexpected type %s" % str(type(x))
+        if num is not None:
+            ans = np.zeros(num)
+        else:
+            ans = None
+        if len(x.xR) > 0 and A.xR is not None:
+            if ans is None:
+                ans = dot(A.xR, x.xR.var)
+            else:
+                ans = ans + dot(A.xR, x.xR.var)
+        if len(x.xZ) > 0 and A.xZ is not None:
+            if ans is None:
+                ans = dot(A.xZ, x.xZ.var)
+            else:
+                ans = ans + dot(A.xZ, x.xZ.var)
+        if len(x.xB) > 0 and A.xB is not None:
+            if ans is None:
+                ans = dot(A.xB, x.xB.var)
+            else:
+                ans = ans + dot(A.xB, x.xB.var)
+        if A._matrix:
+            return ans
+        if num==1:
+            return ans[0]
+        return ans
 
-    fixed = []
-    if len(repn.U.xR) > 0:
-        fixed.append(M.U.xR)
-    if len(repn.U.xZ) > 0:
-        fixed.append(M.U.xZ)
-    if len(repn.U.xB) > 0:
-        fixed.append(M.U.xB)
-
-
-def dot(A, x):
     if type(A) is np.ndarray:
         return sum(A*x)
     else:
@@ -34,8 +48,7 @@ def dot(A, x):
             e[i] += v*x[j]
         return e
 
-
-def _create_variables(level, block):
+def add_variables(block, level):
     if len(level.xR) > 0:
         block.xR = pe.Var(range(0,level.xR.num), within=pe.Reals)
         level.xR.var = np.array([block.xR[i] for i in range(0,level.xR.num)])
@@ -58,8 +71,51 @@ def _create_variables(level, block):
         block.xB = pe.Var(range(0,level.xB.num), within=pe.Binaries)
         level.xB.var = np.array([block.xB[i] for i in range(0,level.xB.num)])
 
+def add_linear_constraints(block, A, U, L, b, inequalities):
+    if b is None:
+        return
+    nc = b.size
+    e = dot(A.U, U, num=nc) + dot(A.L, L, num=nc)
+
+    block.c = pe.ConstraintList()
+    for i in range(len(e)):
+        if type(e[i]) in [int,float]:
+            if inequalities:
+                assert e[i] <= b[i], "Trivial linear constraint violated: %f <= %f" % (e[i], b[i])
+            else:
+                assert e[i] == b[i], "Trivial linear constraint violated: %f == %f" % (e[i], b[i])
+            continue
+        if inequalities:
+            block.c.add( e[i] <= b[i] )
+        else:
+            block.c.add( e[i] == b[i] )
+
+#
+# Deprecated
+#
+
+def _add_upper(*, repn, M_U):
+    """
+    Add the linear objective and constraints that are associated with the 
+    upper-level problem in the LinearBilevelProblem.
+    """
+    _create_variables(repn.U, M_U)
+    _linear_objective(repn.U.c, repn.U, repn.L, repn.U.minimize, M_U)
+    _linear_constraints(repn.U.inequalities, repn.U.A, repn.U, repn.L, repn.U.b, M_U)
+
+    fixed = []
+    if len(repn.U.xR) > 0:
+        fixed.append(M.U.xR)
+    if len(repn.U.xZ) > 0:
+        fixed.append(M.U.xZ)
+    if len(repn.U.xB) > 0:
+        fixed.append(M.U.xB)
+
+def _create_variables(level, block):
+    add_variables(block, level)
 
 def _linear_expression(nc, A, level):
+    return dot(A, level, num=nc)
     e = np.zeros(nc)
     if len(level.xR) > 0 and A.xR is not None:
         e = e + dot(A.xR, level.xR.var)
@@ -72,26 +128,9 @@ def _linear_expression(nc, A, level):
 def _linear_objective(c, d, U, L, block, minimize):
     e = _linear_expression(1, c.U, U) + _linear_expression(1, c.L, L) + d
     if minimize:
-        block.o = pe.Objective(expr=e[0])
+        block.o = pe.Objective(expr=e)
     else:
-        block.o = pe.Objective(expr=e[0], sense=pe.maximize)
+        block.o = pe.Objective(expr=e, sense=pe.maximize)
 
 def _linear_constraints(inequalities, A, U, L, b, block):
-    if b is None:
-        return
-    nc = b.size
-    e = _linear_expression(nc, A.U, U) + _linear_expression(nc, A.L, L)
-
-    block.c = pe.ConstraintList()
-    for i in range(e.size):
-        if type(e[i]) in [int,float]:
-            if inequalities:
-                assert e[i] <= b[i], "Trivial linear constraint violated: %f <= %f" % (e[i], b[i])
-            else:
-                assert e[i] == b[i], "Trivial linear constraint violated: %f == %f" % (e[i], b[i])
-            continue
-        if inequalities:
-            block.c.add( e[i] <= b[i] )
-        else:
-            block.c.add( e[i] == b[i] )
-
+    add_linear_constraints(block, A, U, L, b, inequalities)

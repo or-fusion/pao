@@ -132,30 +132,32 @@ class LinearBilevelSolver_FA(LinearBilevelSolverBase):
         M.kkt = pe.Block()
 
         # upper- and lower-level variables
-        pyomo_util._create_variables(repn.U, M.U)
-        pyomo_util._create_variables(repn.L, M.L)
+        pyomo_util.add_variables(M.U, repn.U)
+        pyomo_util.add_variables(M.L, repn.L)
         # dual variables
         M.kkt.lam = pe.Var(range(len(repn.L.b)))                                    # equality constraints
         M.kkt.nu = pe.Var(range(len(repn.L.xR)), within=pe.NonNegativeReals)        # variable bounds
 
         # objective
-        e = pyomo_util._linear_expression(1, repn.U.c.U, repn.U) + pyomo_util._linear_expression(1, repn.U.c.L, repn.L) + repn.U.d
-        M.o = pe.Objective(expr=e[0])
+        e = pyomo_util.dot(repn.U.c.U, repn.U, num=1) + pyomo_util.dot(repn.U.c.L, repn.L, num=1) + repn.U.d
+        M.o = pe.Objective(expr=e)
 
         # upper-level constraints
-        pyomo_util._linear_constraints(repn.U.inequalities, repn.U.A, repn.U, repn.L, repn.U.b, M.U)
+        pyomo_util.add_linear_constraints(M.U, repn.U.A, repn.U, repn.L, repn.U.b, repn.U.inequalities)
         # lower-level constraints
-        pyomo_util._linear_constraints(repn.L.inequalities, repn.L.A, repn.U, repn.L, repn.L.b, M.L)
+        pyomo_util.add_linear_constraints(M.L, repn.L.A, repn.U, repn.L, repn.L.b, repn.L.inequalities)
 
         # stationarity
-        L_A_L_xR_T = repn.L.A.L.xR.transpose().todok()
         M.kkt.stationarity = pe.ConstraintList() 
+        # L_A_L_xR' * lam
+        L_A_L_xR_T = repn.L.A.L.xR.transpose().todok()
+        X = pyomo_util.dot( L_A_L_xR_T, M.kkt.lam )
         for i in range(len(repn.L.c.L.xR)):
-            # L_A_L_xR' * lam
-            e = 0
-            for j in M.kkt.lam:
-                e += L_A_L_xR_T[i,j] * M.kkt.lam[j]
-            M.kkt.stationarity.add( repn.L.c.L.xR[i] + e - M.kkt.nu[i] == 0 )
+            #e = 0
+            #for j in M.kkt.lam:
+            #    e += L_A_L_xR_T[i,j] * M.kkt.lam[j]
+            #M.kkt.stationarity.add( repn.L.c.L.xR[i] + e - M.kkt.nu[i] == 0 )
+            M.kkt.stationarity.add( repn.L.c.L.xR[i] + X[i] - M.kkt.nu[i] == 0 )
 
         # complementarity slackness - variables
         M.kkt.slackness = ComplementarityList()
