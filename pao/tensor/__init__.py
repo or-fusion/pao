@@ -3,3 +3,5 @@ from . import convert_repn
 from .solver import LinearBilevelSolver
 from . import pyomo_solvers
 from . import pyomo_util
+from . import examples
+from . import solvers

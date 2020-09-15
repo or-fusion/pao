@@ -66,6 +66,10 @@ class LevelVariable(object):
     def __len__(self):
         return self.num
 
+    def __iter__(self):
+        for i in range(self.num):
+            yield i
+
     def resize(self, num):
         if self.num != num:
             self.lower_bounds = None

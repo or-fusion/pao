@@ -26,7 +26,7 @@ def add_upper(*, repn, M_U):
 
 def dot(A, x):
     if type(A) is np.ndarray:
-        return A*x
+        return sum(A*x)
     else:
         Acoo = A.tocoo()
         e = [0] * Acoo.shape[0]
@@ -39,12 +39,12 @@ def _create_variables(level, block):
     if len(level.xR) > 0:
         block.xR = pe.Var(range(0,level.xR.num), within=pe.Reals)
         level.xR.var = np.array([block.xR[i] for i in range(0,level.xR.num)])
-        if level.xR.lower_bounds:
+        if level.xR.lower_bounds is not None:
             for i,v in block.xR.items():
-                v.lb = level.xR.lower_bounds[i]
-        if level.xR.upper_bounds:
+                v.setlb( level.xR.lower_bounds[i] )
+        if level.xR.upper_bounds is not None:
             for i,v in block.xR.items():
-                v.lb = level.xR.upper_bounds[i]
+                v.setlb( level.xR.upper_bounds[i] )
     if len(level.xZ) > 0:
         block.xZ = pe.Var(range(0,level.xZ.num), within=pe.Integers)
         level.xZ.var = np.array([block.xZ[i] for i in range(0,level.xZ.num)])

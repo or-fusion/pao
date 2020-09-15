@@ -66,18 +66,8 @@ def _find_nonpositive_variables(xR, inequalities):
 
 
 def _process_changes(changes, nxR, c, d, A, b, level_vars=True):
-    #assert (A is not None), "Only process changes when we have constraints"
-    #if A is None:
-    #    c = copy.copy(c)
-    #    d = copy.copy(d)
-    #    b = copy.copy(b)
-    #    return c, d, A, b
-
     c = copy.copy(c)
     d = copy.copy(d)
-    #if b is None:
-    #    b = np.ndarray(0)
-    #else:
     b = copy.copy(b)
 
     if A is None:
@@ -194,7 +184,7 @@ def convert_LinearBilevelProblem_to_standard_form(lbp):
     following this transformation.
     """
     #
-    # Setup converted problem
+    # Initial setup
     #
     ans = LinearBilevelProblem(name=lbp.name)
     ans.add_upper(nxZ=len(lbp.U.xZ), nxB=len(lbp.U.xB))
@@ -204,6 +194,7 @@ def convert_LinearBilevelProblem_to_standard_form(lbp):
     ans.U.b = copy.copy(lbp.U.b)
     for i,L in enumerate(lbp.L):
         ans.add_lower(nxZ=len(L.xZ), nxB=len(L.xB))
+        ans.L[i].minimize = lbp.L[i].minimize
         ans.L[i].inequalities = False
         ans.L[i].d = L.d
         ans.L[i].b = copy.copy(L.b)
@@ -226,7 +217,7 @@ def convert_LinearBilevelProblem_to_standard_form(lbp):
     #
     # Collect real variables that are changing
     #
-    if lbp.U.A.U.xR is not None and lbp.U.A.U.xR.shape[0] > 0:
+    if True:  #lbp.U.A.U.xR is not None and lbp.U.A.U.xR.shape[0] > 0:
         changes_U, nR = _find_nonpositive_variables(lbp.U.xR, lbp.U.inequalities)
         nR += lbp.U.inequalities*len(lbp.U.b)
         ans.U.xR.resize(nR)
@@ -236,7 +227,7 @@ def convert_LinearBilevelProblem_to_standard_form(lbp):
         ans.U.xR.resize(len(lbp.U.xR))
     changes_L = {}
     for i in range(len(lbp.L)):
-        if lbp.L[i].A.L[i].xR is not None and lbp.L[i].A.L[i].xR.shape[0] > 0:
+        if True: #lbp.L[i].A.L[i].xR is not None and lbp.L[i].A.L[i].xR.shape[0] > 0:
             changes_L_, nR = _find_nonpositive_variables(lbp.L[i].xR, lbp.L[i].inequalities)
             nR += lbp.L[i].inequalities*len(lbp.L[i].b)
             ans.L[i].xR.resize(nR)
@@ -318,5 +309,56 @@ def convert_LinearBilevelProblem_to_standard_form(lbp):
                     ans.L[i].c.L[i].xR = np.append(ans.L[i].c.L[i].xR, 0)
             ans.L[i].A.L[i].xR = combine_matrices(ans.L[i].A.L[i].xR, B)
     #
-    return ans
+    # Convert maximization to minimization
+    #
+    if not ans.U.minimize:
+        ans.U.minimize = True
+        ans.U.d *= -1
+        if ans.U.c.U.xR is not None:
+            ans.U.c.U.xR *= -1
+        if ans.U.c.U.xZ is not None:
+            ans.U.c.U.xZ *= -1
+        if ans.U.c.U.xB is not None:
+            ans.U.c.U.xB *= -1
+        for i in range(len(ans.L)):
+            if ans.U.c.L[i].xR is not None:
+                ans.U.c.L[i].xR *= -1
+            if ans.U.c.L[i].xZ is not None:
+                ans.U.c.L[i].xZ *= -1
+            if ans.U.c.L[i].xB is not None:
+                ans.U.c.L[i].xB *= -1
+    for i in range(len(ans.L)):
+        if not ans.L[i].minimize:
+            ans.L[i].d *= -1
+            ans.L[i].minimize = True
+            if ans.L[i].c.U.xR is not None:
+                ans.L[i].c.U.xR *= -1
+            if ans.L[i].c.U.xZ is not None:
+                ans.L[i].c.U.xZ *= -1
+            if ans.L[i].c.U.xB is not None:
+                ans.L[i].c.U.xB *= -1
+            if ans.L[i].c.L[i].xR is not None:
+                ans.L[i].c.L[i].xR *= -1
+            if ans.L[i].c.L[i].xZ is not None:
+                ans.L[i].c.L[i].xZ *= -1
+            if ans.L[i].c.L[i].xB is not None:
+                ans.L[i].c.L[i].xB *= -1
+    #
+    # Setup multipliers that are used to convert variables back to the original model
+    #
+    multipliers_U =   [[(i,1)] for i in lbp.U.xR]
+    multipliers_L = [ [[(i,1)] for i in lbp.L[j].xR] for j in range(len(lbp.L)) ]
+    for chg in changes_U:
+        if chg[1] == 2:
+            multipliers_U[ chg[0] ] = [(chg[0],-1)]
+        elif chg[1] == 4:
+            multipliers_U[ chg[0] ] = [(chg[0],1), (chg[2],-1)]
+    for i in changes_L:
+        for chg in changes_L[i]:
+            if chg[1] == 2:
+                multipliers_L[i][ chg[0] ] = [(chg[0],-1)]
+            elif chg[1] == 4:
+                multipliers_L[i][ chg[0] ] = [(chg[0],1), (chg[2],-1)]
+    #
+    return ans, (multipliers_U, multipliers_L)
 
