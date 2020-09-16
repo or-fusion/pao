@@ -2,6 +2,7 @@ import copy
 from scipy.sparse import coo_matrix, dok_matrix, csc_matrix
 import numpy as np
 from .repn import LinearBilevelProblem
+from .soln_manager import LBP_SolutionManager
 
 
 def _find_nonpositive_variables(xR, inequalities):
@@ -360,5 +361,5 @@ def convert_LinearBilevelProblem_to_standard_form(lbp):
             elif chg[1] == 4:
                 multipliers_L[i][ chg[0] ] = [(chg[0],1), (chg[2],-1)]
     #
-    return ans, (multipliers_U, multipliers_L)
+    return ans, LBP_SolutionManager( multipliers_U, multipliers_L )
 

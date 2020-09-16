@@ -4,6 +4,8 @@
 import six
 import abc
 import enum
+from pyutilib.misc import Options
+
 
 """
 An enumeration used to define the termination condition of solvers
@@ -53,7 +55,7 @@ An API for optimization solvers
 class Solver(six.with_metaclass(abc.ABCMeta, object)):
 
     def __init__(self, **kwds):
-        self.options = Bunch(
+        self.config = Options(
             time_limit=None,
             keepfiles=False,
             tee=False,
@@ -86,7 +88,6 @@ class Solver(six.with_metaclass(abc.ABCMeta, object)):
     @abc.abstractmethod
     def solve(self, model, options=None, **config_options):
         pass
-    
 
     """
     Returns True if the solver is persistent and supports resolve logic.
@@ -100,6 +101,13 @@ class Solver(six.with_metaclass(abc.ABCMeta, object)):
     def __bool__(self):
         raise RuntimeError("Casting a solver to bool() is not allowed.  Use available() to check if the solver can be executed.")
 
+    def _update_config(self, config_options):
+        keys = set(config_options.keys())
+        for k,v in config_options.items():
+            if k in self.config:
+                self.config[k] = v
+                keys.remove(k)    
+        assert (len(keys) == 0), "Unexpected options to solve() have been specified: %s" % str(sorted(k for k in keys))
 
 
 """
@@ -132,19 +140,12 @@ Here is an example workflow:
 class ResultsBase(six.with_metaclass(abc.ABCMeta, object)):
 
     def __init__(self):
-        self._solution_loader = None
-        self.solver = Bunch(
+        self._solution_manager = None
+        self.solver = Options(
                 termination_condition=TerminationCondition.unknown,
                 best_feasible_objective=None,
                 )
-        self.problem = Bunch()
-
-    """
-    Load the the solution from a results object into the 
-    specified model.
-    """
-    def load_solution(self, model):
-        self._solution_loader.load_solution(model)
+        self.problem = Options()
 
     """
     Returns
@@ -154,20 +155,41 @@ class ResultsBase(six.with_metaclass(abc.ABCMeta, object)):
     """
     @abc.abstractmethod
     def found_feasible_solution(self):
-        return self._found_feasible_solution
+        pass
+
+    """
+    Store the solution in the results object into the 
+    model.
+    """
+    @abc.abstractmethod
+    def store_to(self, model, i=0):
+        pass
+
+    """
+    Generate a string summary of the results object
+    """
+    @abc.abstractmethod
+    def __str__(self):
+        pass
 
 
-#
-# Keep this?
-#
 class Results(ResultsBase):
 
-    def __init__(self, found_feasible_solution):
+    def __init__(self, found_feasible_solution=None):
         super(Results, self).__init__()
         self._found_feasible_solution = found_feasible_solution
 
     def found_feasible_solution(self):
         return self._found_feasible_solution
+
+    def store_to(self, model, i=0):
+        self._solution_manager.store_to(model, i=0)
+
+    def __str__(self):
+        problem = self.problem.__str__(indent='  ')
+        solver = self.solver.__str__(indent='  ')
+        return "Problem:\n-" + problem[1:] + \
+            "\nSolver:\n-" + solver[1:]
 
 
 #

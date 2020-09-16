@@ -33,6 +33,8 @@ def create():
 
 if __name__ == "__main__":          #pragma: no cover
     M = create()
-    opt = LinearBilevelSolver('pao.bilevel.blp_global')
-    opt.solve(M)
-    M.print()
+    opt = LinearBilevelSolver('pao.lbp.REG')
+    res = opt.solve(M, tee=True)
+    #M.print()
+    print("PAO")
+    print(res)

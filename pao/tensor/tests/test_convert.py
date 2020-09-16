@@ -1,5 +1,4 @@
-#import numpy as np
-#import scipy.sparse
+import numpy as np
 import pyutilib.th as unittest
 from pao.tensor import *
 from pao.tensor.convert_repn import convert_LinearBilevelProblem_to_standard_form
@@ -14,7 +13,7 @@ class Test_Trivial(unittest.TestCase):
         U = blp.add_upper(nxR=1, nxZ=2, nxB=3)
         blp.check()
 
-        ans, multipliers = convert_LinearBilevelProblem_to_standard_form(blp)
+        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(blp)
         ans.check()
 
         self.assertEqual(ans.U.d, 0)
@@ -33,7 +32,7 @@ class Test_Trivial(unittest.TestCase):
         U.c.U.xB = [1, 1, 1]
         blp.check()
 
-        ans, multipliers = convert_LinearBilevelProblem_to_standard_form(blp)
+        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(blp)
         ans.check()
 
         self.assertEqual(ans.U.d, 0)
@@ -54,7 +53,7 @@ class Test_Trivial(unittest.TestCase):
         L = blp.add_lower(nxR=1, nxZ=2, nxB=3)
         blp.check()
 
-        ans, multipliers = convert_LinearBilevelProblem_to_standard_form(blp)
+        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(blp)
         ans.check()
 
         self.assertEqual(ans.U.d, 0)
@@ -89,7 +88,7 @@ class Test_Trivial(unittest.TestCase):
         L.c.L.xB = [1, 1, 1, 1]
         blp.check()
 
-        ans, multipliers = convert_LinearBilevelProblem_to_standard_form(blp)
+        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(blp)
         ans.check()
 
         self.assertEqual(ans.U.d, 0)
@@ -115,7 +114,7 @@ class Test_Upper(unittest.TestCase):
         U.b = [2]
         blp.check()
 
-        ans, multipliers = convert_LinearBilevelProblem_to_standard_form(blp)
+        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(blp)
         ans.check()
 
         self.assertEqual(ans.U.d, 0)
@@ -135,7 +134,7 @@ class Test_Upper(unittest.TestCase):
         L = blp.add_lower(nxZ=2, nxB=3)
         blp.check()
 
-        ans, multipliers = convert_LinearBilevelProblem_to_standard_form(blp)
+        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(blp)
         ans.check()
 
         self.assertEqual(ans.U.d, 0)
@@ -156,7 +155,7 @@ class Test_Upper(unittest.TestCase):
         U.b = [7]
         blp.check()
 
-        ans, multipliers = convert_LinearBilevelProblem_to_standard_form(blp)
+        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(blp)
         ans.check()
 
         self.assertEqual(ans.U.d, 6)
@@ -182,7 +181,7 @@ class Test_Upper(unittest.TestCase):
         L.c.U.xR = [9]
         blp.check()
 
-        ans, multipliers = convert_LinearBilevelProblem_to_standard_form(blp)
+        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(blp)
         ans.check()
 
         self.assertEqual(ans.U.d, 6)
@@ -209,7 +208,7 @@ class Test_Upper(unittest.TestCase):
         U.b = [7]
         blp.check()
 
-        ans, multipliers = convert_LinearBilevelProblem_to_standard_form(blp)
+        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(blp)
         ans.check()
 
         self.assertEqual(ans.U.d, 6)
@@ -235,7 +234,7 @@ class Test_Upper(unittest.TestCase):
         L.c.U.xR = [9]
         blp.check()
 
-        ans, multipliers = convert_LinearBilevelProblem_to_standard_form(blp)
+        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(blp)
         ans.check()
 
         self.assertEqual(ans.U.d, 6)
@@ -264,7 +263,7 @@ class Test_Upper(unittest.TestCase):
         blp.check()
         #blp.print()
 
-        ans, multipliers = convert_LinearBilevelProblem_to_standard_form(blp)
+        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(blp)
         #ans.print()
         ans.check()
 
@@ -295,7 +294,7 @@ class Test_Upper(unittest.TestCase):
         blp.check()
         #blp.print()
 
-        ans, multipliers = convert_LinearBilevelProblem_to_standard_form(blp)
+        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(blp)
         #ans.print()
         ans.check()
 
@@ -328,7 +327,7 @@ class Test_Upper(unittest.TestCase):
         blp.check()
         #blp.print()
 
-        ans, multipliers = convert_LinearBilevelProblem_to_standard_form(blp)
+        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(blp)
         #ans.print()
         ans.check()
 
@@ -357,7 +356,7 @@ class Test_Upper(unittest.TestCase):
         blp.check()
         #blp.print()
 
-        ans, multipliers = convert_LinearBilevelProblem_to_standard_form(blp)
+        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(blp)
         #ans.print()
         ans.check()
 
@@ -393,7 +392,7 @@ class Test_Upper(unittest.TestCase):
         U.b = [7]
         blp.check()
 
-        ans, multipliers = convert_LinearBilevelProblem_to_standard_form(blp)
+        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(blp)
         ans.check()
 
         self.assertEqual(ans.U.d, 77)
@@ -430,7 +429,7 @@ class Test_Upper(unittest.TestCase):
         L.c.U.xR = [9,10,11,12,13]
         blp.check()
 
-        ans, multipliers = convert_LinearBilevelProblem_to_standard_form(blp)
+        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(blp)
         ans.check()
 
         self.assertEqual(ans.U.d, 77)
@@ -468,7 +467,7 @@ class Test_Upper(unittest.TestCase):
         U.b = [7,8,9]
         blp.check()
 
-        ans, multipliers = convert_LinearBilevelProblem_to_standard_form(blp)
+        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(blp)
         ans.check()
 
         self.assertEqual(ans.U.d, 0)
@@ -504,7 +503,7 @@ class Test_Upper(unittest.TestCase):
         L.c.U.xR = [9,10,11]
         blp.check()
 
-        ans, multipliers = convert_LinearBilevelProblem_to_standard_form(blp)
+        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(blp)
         ans.check()
 
         self.assertEqual(ans.U.d, 0)
@@ -540,7 +539,7 @@ class Test_Upper(unittest.TestCase):
         U.b = [7]
         blp.check()
 
-        ans, multipliers = convert_LinearBilevelProblem_to_standard_form(blp)
+        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(blp)
         ans.check()
 
         self.assertEqual(ans.U.d, 6)
@@ -570,7 +569,7 @@ class Test_Upper(unittest.TestCase):
         L.c.U.xR = [9,10,11]
         blp.check()
 
-        ans, multipliers = convert_LinearBilevelProblem_to_standard_form(blp)
+        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(blp)
         ans.check()
 
         self.assertEqual(ans.U.d, 6)
@@ -602,7 +601,7 @@ class Test_Upper(unittest.TestCase):
         U.b = [7]
         blp.check()
 
-        ans, multipliers = convert_LinearBilevelProblem_to_standard_form(blp)
+        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(blp)
         ans.check()
 
         self.assertEqual(ans.U.d, 6)
@@ -631,7 +630,7 @@ class Test_Upper(unittest.TestCase):
         L.c.U.xR = [9,10]
         blp.check()
 
-        ans, multipliers = convert_LinearBilevelProblem_to_standard_form(blp)
+        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(blp)
         ans.check()
 
         self.assertEqual(ans.U.d, 6)
@@ -665,7 +664,7 @@ class Test_Upper(unittest.TestCase):
         U.b = [7]
         blp.check()
 
-        ans, multipliers = convert_LinearBilevelProblem_to_standard_form(blp)
+        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(blp)
         ans.check()
 
         self.assertEqual(ans.U.d, 77)
@@ -704,7 +703,7 @@ class Test_Upper(unittest.TestCase):
         L.c.U.xR = [9,10,11,12,13]
         blp.check()
 
-        ans, multipliers = convert_LinearBilevelProblem_to_standard_form(blp)
+        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(blp)
         ans.check()
 
         self.assertEqual(ans.U.d, 77)
@@ -743,7 +742,7 @@ class Test_Lower(unittest.TestCase):
         L.b = [2]
         blp.check()
 
-        ans, multipliers = convert_LinearBilevelProblem_to_standard_form(blp)
+        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(blp)
         ans.check()
 
         self.assertEqual(ans.U.d, 0)
@@ -768,7 +767,7 @@ class Test_Lower(unittest.TestCase):
         L.b = [7]
         blp.check()
 
-        ans, multipliers = convert_LinearBilevelProblem_to_standard_form(blp)
+        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(blp)
         ans.check()
 
         self.assertEqual(ans.U.d, 0)
@@ -796,7 +795,7 @@ class Test_Lower(unittest.TestCase):
         L.b = [7]
         blp.check()
 
-        ans, multipliers = convert_LinearBilevelProblem_to_standard_form(blp)
+        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(blp)
         ans.check()
 
         self.assertEqual(ans.U.d, 0)
@@ -826,7 +825,7 @@ class Test_Lower(unittest.TestCase):
         blp.check()
         #blp.print()
 
-        ans, multipliers = convert_LinearBilevelProblem_to_standard_form(blp)
+        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(blp)
         #ans.print()
         ans.check()
 
@@ -857,7 +856,7 @@ class Test_Lower(unittest.TestCase):
         blp.check()
         #blp.print()
 
-        ans, multipliers = convert_LinearBilevelProblem_to_standard_form(blp)
+        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(blp)
         #ans.print()
         ans.check()
 
@@ -892,7 +891,7 @@ class Test_Lower(unittest.TestCase):
         L.b = [7]
         blp.check()
 
-        ans, multipliers = convert_LinearBilevelProblem_to_standard_form(blp)
+        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(blp)
         ans.check()
 
         self.assertEqual(ans.U.d, 0)
@@ -930,7 +929,7 @@ class Test_Lower(unittest.TestCase):
         L.b = [7,8,9]
         blp.check()
 
-        ans, multipliers = convert_LinearBilevelProblem_to_standard_form(blp)
+        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(blp)
         ans.check()
 
         self.assertEqual(ans.U.d, 0)
@@ -966,7 +965,7 @@ class Test_Lower(unittest.TestCase):
         L.b = [7]
         blp.check()
 
-        ans, multipliers = convert_LinearBilevelProblem_to_standard_form(blp)
+        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(blp)
         ans.check()
 
         self.assertEqual(ans.U.d, 0)
@@ -998,7 +997,7 @@ class Test_Lower(unittest.TestCase):
         L.b = [7]
         blp.check()
 
-        ans, multipliers = convert_LinearBilevelProblem_to_standard_form(blp)
+        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(blp)
         ans.check()
 
         self.assertEqual(ans.U.d, 0)
@@ -1031,7 +1030,7 @@ class Test_Lower(unittest.TestCase):
         L.b = [7]
         blp.check()
 
-        ans, multipliers = convert_LinearBilevelProblem_to_standard_form(blp)
+        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(blp)
         ans.check()
 
         self.assertEqual(ans.U.d, 0)
@@ -1131,7 +1130,7 @@ class Test_NonTrivial(unittest.TestCase):
 
         #print("-"*80)
 
-        ans, multipliers = convert_LinearBilevelProblem_to_standard_form(blp)
+        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(blp)
         #ans.print()
         ans.check()
 
@@ -1152,9 +1151,9 @@ class Test_NonTrivial(unittest.TestCase):
         self.assertEqual(list(ans.L[0].b),    [-74, -75, -43, -83, 2])
         self.assertEqual(list(ans.L[1].b),    [-61, -61, -97, -85,  4])
 
-        self.assertEqual(multipliers[0], [[(0,1)], [(1,-1)], [(2,1)], [(3,1),(4,-1)]])
-        self.assertEqual(multipliers[1][0], [[(0,1)], [(1,-1)], [(2,1)], [(3,1),(5,-1)], [(4,1)]])
-        self.assertEqual(multipliers[1][1], [[(0,1)], [(1,1)], [(2,-1)], [(3,1)], [(4,1),(7,-1)], [(5,1)]])
+        self.assertEqual(soln_manager.multipliers_U, [[(0,1)], [(1,-1)], [(2,1)], [(3,1),(4,-1)]])
+        self.assertEqual(soln_manager.multipliers_L[0], [[(0,1)], [(1,-1)], [(2,1)], [(3,1),(5,-1)], [(4,1)]])
+        self.assertEqual(soln_manager.multipliers_L[1], [[(0,1)], [(1,1)], [(2,-1)], [(3,1)], [(4,1),(7,-1)], [(5,1)]])
 
     def test_test2(self):
         blp = LinearBilevelProblem()
@@ -1231,7 +1230,7 @@ class Test_NonTrivial(unittest.TestCase):
 
         #print("-"*80)
 
-        ans, multipliers = convert_LinearBilevelProblem_to_standard_form(blp)
+        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(blp)
         #ans.print()
         ans.check()
 
@@ -1252,9 +1251,9 @@ class Test_NonTrivial(unittest.TestCase):
         self.assertEqual(list(ans.L[0].b),    [-74, -75, -43, -83, 2])
         self.assertEqual(list(ans.L[1].b),    [-61, -61, -97, -85,  4])
 
-        self.assertEqual(multipliers[0], [[(0,1)], [(1,-1)], [(2,1)], [(3,1),(4,-1)]])
-        self.assertEqual(multipliers[1][0], [[(0,1)], [(1,-1)], [(2,1)], [(3,1),(5,-1)], [(4,1)]])
-        self.assertEqual(multipliers[1][1], [[(0,1)], [(1,1)], [(2,-1)], [(3,1)], [(4,1),(7,-1)], [(5,1)]])
+        self.assertEqual(soln_manager.multipliers_U, [[(0,1)], [(1,-1)], [(2,1)], [(3,1),(4,-1)]])
+        self.assertEqual(soln_manager.multipliers_L[0], [[(0,1)], [(1,-1)], [(2,1)], [(3,1),(5,-1)], [(4,1)]])
+        self.assertEqual(soln_manager.multipliers_L[1], [[(0,1)], [(1,1)], [(2,-1)], [(3,1)], [(4,1),(7,-1)], [(5,1)]])
 
 
 class Test_Examples(unittest.TestCase):
@@ -1273,7 +1272,7 @@ class Test_Examples(unittest.TestCase):
         #blp.print()
         blp.check()
 
-        ans, multipliers = convert_LinearBilevelProblem_to_standard_form(blp)
+        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(blp)
         #ans.print()
         ans.check()
 

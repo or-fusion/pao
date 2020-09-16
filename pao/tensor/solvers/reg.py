@@ -8,7 +8,9 @@ import pyutilib
 import pyomo.environ as pe
 import pyomo.opt
 from pyomo.mpec import ComplementarityList, complements
-from ..solver import LinearBilevelSolver, LinearBilevelSolverBase
+
+import pao.common
+from ..solver import LinearBilevelSolver, LinearBilevelSolverBase, LinearBilevelResults
 from ..repn import LinearBilevelProblem
 from ..convert_repn import convert_LinearBilevelProblem_to_standard_form
 from .. import pyomo_util
@@ -17,7 +19,9 @@ from .. import pyomo_util
 class LinearBilevelSolver_REG(LinearBilevelSolverBase):
 
     def __init__(self, **kwds):
-        self.name = 'pao.lbp.REG'
+        super(LinearBilevelSolverBase, self).__init__(name='pao.lbp.REG')
+        self.config.solver = 'ipopt'
+        self.config.rho = 1e-7
 
     def check_model(self, lbp):
         #
@@ -42,89 +46,74 @@ class LinearBilevelSolver_REG(LinearBilevelSolverBase):
             assert (len(lbp.L[i].xZ) == 0), "Cannot use solver %s with model with integer lower-level variables" % self.name
             assert (len(lbp.L[i].xB) == 0), "Cannot use solver %s with model with binary lower-level variables" % self.name
 
-    def solve(self, *args, **kwds):
+    def solve(self, lbp, options=None, **config_options):
         #
         # Error checks
         #
-        assert (len(args) == 1), "Can only solve a single LinearBilevelProblem"
-        lbp = args[0]
-        assert (lbp.__class__ == LinearBilevelProblem), "Unexpected argument of type %s" % str(type(lbp))
+        assert (lbp.__class__ == LinearBilevelProblem), "Unexpected model type %s" % str(type(lbp))
         self.check_model(lbp)
         #
         # Process keyword options
         #
-        solver =    kwds.pop('solver', 'ipopt')
-        tee =       kwds.pop('tee', False)
-        timelimit = kwds.pop('timelimit', None)
-        rho =      kwds.pop('rho', 1e-7)
+        self._update_config(config_options)
         #
         # Start clock
         #
         start_time = time.time()
 
-        self.standard_form, self.multipliers = convert_LinearBilevelProblem_to_standard_form(lbp)
+        self.standard_form, soln_manager = convert_LinearBilevelProblem_to_standard_form(lbp)
 
-        M = self._create_pyomo_model(self.standard_form, rho)
+        M = self._create_pyomo_model(self.standard_form, self.config.rho)
         #
         # Solve the Pyomo model the specified solver
         #
-        with pe.SolverFactory(solver) as opt:
-            results = opt.solve(M, tee=tee, timelimit=timelimit)
+        results = LinearBilevelResults(solution_manager=soln_manager)
+        with pe.SolverFactory(self.config.solver) as opt:
+            if options is not None:
+                opt.options.update(options)
+            pyomo_results = opt.solve(M, tee=self.config.tee, timelimit=self.config.time_limit)
+            pyomo.opt.check_optimal_termination(pyomo_results)
 
-            pyomo.opt.check_optimal_termination(results)
-            self._update_solution(lbp, M)
-            #
-            stop_time = time.time()
-            self.wall_time = stop_time - start_time
-            #self.results_obj = self._setup_results_obj()
-            #
-            # Return the sub-solver return condition value and log
-            #
-            return pyutilib.misc.Bunch(rc=getattr(opt, '_rc', None),
-                                       log=getattr(opt, '_log', None))
+            self._initialize_results(results, pyomo_results, M)
+            results.solver.rc = getattr(opt, '_rc', None)
 
-    def _setup_results_obj(self):
-        #
-        # Create a results object
-        #
-        results = pyomo.opt.SolverResults()
+            if self.config.load_solution:
+                # Load results from the Pyomo model to the LinearBilevelProblem
+                results.copy_from_to(M, lbp)
+            else:
+                # Load results from the Pyomo model to the Results
+                results.load_from(M)
+
+            #self._debug()
+            #results.solver.log = getattr(opt, '_log', None)
+
+        results.solver.wallclock_time = time.time() - start_time
+        return results
+
+    def _initialize_results(self, results, pyomo_results, M):
+        print(pyomo_results)
         #
         # SOLVER
         #
         solv = results.solver
-        solv.name = self.options.subsolver
-        solv.wallclock_time = self.wall_time
-        cpu_ = []
-        for res in self.results:
-            if not getattr(res.solver, 'cpu_time', None) is None:
-                cpu_.append(res.solver.cpu_time)
-        if cpu_:
-            solv.cpu_time = sum(cpu_)
+        solv.name = self.config.solver
+        solv.termination_condition = pyomo_results.solver.termination_condition
+        solv.solver_time = pyomo_results.solver.time
         #
-        # TODO: detect infeasibilities, etc
-        solv.termination_condition = pyomo.opt.TerminationCondition.optimal
-        #
-        # PROBLEM
+        # PROBLEM - Maybe this should be the summary of the BLP itself?
         #
         prob = results.problem
-        prob.name = self._instance.name
-        prob.number_of_constraints = self._instance.statistics.number_of_constraints
-        prob.number_of_variables = self._instance.statistics.number_of_variables
-        prob.number_of_binary_variables = self._instance.statistics.number_of_binary_variables
-        prob.number_of_integer_variables =\
-            self._instance.statistics.number_of_integer_variables
-        prob.number_of_continuous_variables =\
-            self._instance.statistics.number_of_continuous_variables
-        prob.number_of_objectives = self._instance.statistics.number_of_objectives
-        #
-        # SOLUTION(S)
-        #
-        self._instance.solutions.store_to(results)
+        prob.name = M.name
+        prob.number_of_objectives = pyomo_results.problem.Number_of_objectives
+        prob.number_of_constraints = pyomo_results.problem.Number_of_constraints
+        prob.number_of_variables = pyomo_results.problem.Number_of_variables
+        #prob.number_of_nonzeros = pyomo_results.problem.Number_of_nonzeros
+        prob.lower_bound = pyomo_results.problem.Lower_bound
+        prob.upper_bound = pyomo_results.problem.Upper_bound
+        prob.sense = 'minimize'
         return results
 
     def _create_pyomo_model(self, repn, rho):
-        #repn.print()
-        #print("*"*80)
         #
         # Create Pyomo model
         #
@@ -169,43 +158,20 @@ class LinearBilevelSolver_REG(LinearBilevelSolverBase):
         #
         # Transform the problem to a MIP
         #
-        #M.pprint()
         xfrm = pe.TransformationFactory('mpec.simple_nonlinear')
         xfrm.apply_to(M, mpec_bound=rho)
-        #print("="*80)
-        #M.pprint()
-        #M.display()
-        #print("="*80)
 
         return M
 
-    def _update_solution(self, repn, M):
-        if False:
-            for j in M.U.xR:
-                print("U",j,pe.value(M.U.xR[j]))
-            for j in M.L.xR:
-                print("L",j,pe.value(M.L.xR[j]))
-            for j in M.kkt.lam:
-                print("lam",j,pe.value(M.kkt.lam[j]))
-            for j in M.kkt.nu:
-                print("nu",j,pe.value(M.kkt.nu[j]))
-
-        for j in repn.U.xR:
-            repn.U.xR.values[j] = sum(pe.value(M.U.xR[v]) * c for v,c in self.multipliers[0][j])
-        for j in repn.U.xZ:
-            repn.U.xZ.values[j] = pe.value(M.U.xZ[j])
-        for j in repn.U.xB:
-            repn.U.xB.values[j] = pe.value(M.U.xB[j])
-        #
-        # TODO - generalize to multiple sub-problems
-        #
-        for i in range(len(repn.L)):
-            for j in repn.L[i].xR:
-                repn.L[i].xR.values[j] = sum(pe.value(M.L.xR[v]) * c for v,c in self.multipliers[1][i][j])
-            for j in repn.L[i].xZ:
-                repn.L[i].xZ.values[j] = pe.value(M.L.xZ[j])
-            for j in repn.L[i].xB:
-                repn.L[i].xB.values[j] = pe.value(M.L.xB[j])
+    def _debug(self):
+        for j in M.U.xR:
+            print("U",j,pe.value(M.U.xR[j]))
+        for j in M.L.xR:
+            print("L",j,pe.value(M.L.xR[j]))
+        for j in M.kkt.lam:
+            print("lam",j,pe.value(M.kkt.lam[j]))
+        for j in M.kkt.nu:
+            print("nu",j,pe.value(M.kkt.nu[j]))
 
 
 LinearBilevelSolver.register('pao.lbp.REG', LinearBilevelSolver_REG)
