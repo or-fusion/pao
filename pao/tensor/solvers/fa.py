@@ -8,7 +8,7 @@ import pyutilib
 import pyomo.environ as pe
 import pyomo.opt
 from pyomo.mpec import ComplementarityList, complements
-from ..solver import register_solver, LinearBilevelSolverBase
+from ..solver import LinearBilevelSolver, LinearBilevelSolverBase
 from ..repn import LinearBilevelProblem
 from ..convert_repn import convert_LinearBilevelProblem_to_standard_form
 from .. import pyomo_util
@@ -212,4 +212,4 @@ class LinearBilevelSolver_FA(LinearBilevelSolverBase):
                 repn.L[i].xB.values[j] = pe.value(M.L.xB[j])
 
 
-register_solver('pao.lbp.FA', LinearBilevelSolver_FA)
+LinearBilevelSolver.register('pao.lbp.FA', LinearBilevelSolver_FA)

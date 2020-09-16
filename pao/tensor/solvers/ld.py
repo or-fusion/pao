@@ -2,7 +2,7 @@ import numpy as np
 import pyomo.environ as pe
 #import pao.bilevel
 #import pao.bilevel.plugins
-from ..solver import register_solver, LinearBilevelSolverBase
+from ..solver import LinearBilevelSolver, LinearBilevelSolverBase
 from ..repn import LinearBilevelProblem
 from ..convert_repn import convert_LinearBilevelProblem_to_standard_form
 
@@ -155,4 +155,4 @@ class LinearBilevelSolver_ld(LinearBilevelSolverBase):
         return M
 
 
-register_solver('pao.lbp.ld', LinearBilevelSolver_ld)
+LinearBilevelSolver.register('pao.lbp.ld', LinearBilevelSolver_ld)

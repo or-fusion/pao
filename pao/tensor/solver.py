@@ -1,23 +1,19 @@
 import pyomo.environ as pe
+import pao.common
+
+#
+# TODO - should we have a separate factory for LinearBilevelProblems?
+#
+LinearBilevelSolver = pao.common.SolverFactory
 
 
-solver_registry = {}
-
-def register_solver(name, cls):
-    solver_registry[name] = cls
-
-
-def LinearBilevelSolver(name):
-    assert (name in solver_registry), "Unknown solver '%s' specified" % name
-    return solver_registry[name]()
-
-
-class LinearBilevelSolverBase(object):
+class LinearBilevelSolverBase(pao.common.Solver):
     """
     Define the API for solvers that optimize a LinearBilevelProblem
     """
 
     def __init__(self, name):
+        super(pao.common.Solver, self).__init__()
         self.name = 'unknown'
 
     def check_model(self, M):
