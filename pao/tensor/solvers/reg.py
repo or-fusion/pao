@@ -99,6 +99,7 @@ class LinearBilevelSolver_REG(LinearBilevelSolverBase):
         solv.name = self.config.solver
         solv.termination_condition = pyomo_results.solver.termination_condition
         solv.solver_time = pyomo_results.solver.time
+        solv.best_feasible_objective = pe.value(M.o)
         #
         # PROBLEM - Maybe this should be the summary of the BLP itself?
         #
