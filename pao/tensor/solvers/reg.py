@@ -50,7 +50,6 @@ class LinearBilevelSolver_REG(LinearBilevelSolverBase):
         #
         # Error checks
         #
-        assert (lbp.__class__ == LinearBilevelProblem), "Unexpected model type %s" % str(type(lbp))
         self.check_model(lbp)
         #
         # Process keyword options
