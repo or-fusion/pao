@@ -34,7 +34,7 @@ __doc__ = __doc__ % __version__
 __all__ = ('__version__')
 
 import pyomo.environ
-import pao.tensor
+import pao.lbp
 import pao.duality.plugins
 import pao.bilevel.plugins
 pao.bilevel.plugins.load()
