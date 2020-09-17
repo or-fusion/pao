@@ -59,7 +59,7 @@ class Solver(six.with_metaclass(abc.ABCMeta, object)):
             time_limit=None,
             keepfiles=False,
             tee=False,
-            load_solution=True
+            load_solutions=True
             )
 
     """
@@ -107,7 +107,7 @@ class Solver(six.with_metaclass(abc.ABCMeta, object)):
             if k in self.config:
                 self.config[k] = v
                 keys.remove(k)    
-        assert (len(keys) == 0), "Unexpected options to solve() have been specified: %s" % str(sorted(k for k in keys))
+        assert (len(keys) == 0), "Unexpected options to solve() have been specified: %s" % " ".join(sorted(k for k in keys))
 
 
 """
@@ -120,7 +120,7 @@ a results object may contain solutions found during optimization.
 Here is an example workflow:
 
 >>> opt = SolverFactory('my_solver')
->>> results = opt.solve(my_model, load_solution=False)
+>>> results = opt.solve(my_model, load_solutions=False)
 >>> if results.solver.termination_condition == TerminationCondition.optimal:
 >>>     print('optimal solution found: ', results.solver.best_feasible_objective)
 >>>     results.load_solution( my_model )
@@ -163,6 +163,13 @@ class ResultsBase(six.with_metaclass(abc.ABCMeta, object)):
     """
     @abc.abstractmethod
     def store_to(self, model, i=0):
+        pass
+
+    """
+    Load solution from the model.
+    """
+    @abc.abstractmethod
+    def load_from(self, model):
         pass
 
     """

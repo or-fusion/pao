@@ -38,3 +38,6 @@ class LinearBilevelResults(pao.common.Results):
     def copy_from_to(self, pyomo_model, lbp):
         self._solution_manager.copy_from_to(pyomo_model, lbp)
 
+    def load_from(self, data):
+        self._solution_manager.load_from(data)
+

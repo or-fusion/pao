@@ -66,7 +66,9 @@ class LinearBilevelSolver_FA(LinearBilevelSolverBase):
                 opt.options['mipgap'] = self.config.mipgap
             if options is not None:
                 opt.options.update(options)
-            pyomo_results = opt.solve(M, tee=self.config.tee, timelimit=self.config.timelimit)
+            pyomo_results = opt.solve(M, tee=self.config.tee, 
+                                         timelimit=self.config.timelimit,
+                                         load_solutions=self.config.load_solutions)
             pyomo.opt.check_optimal_termination(pyomo_results)
 
             self._initialize_results(results, pyomo_results, M)
@@ -77,7 +79,7 @@ class LinearBilevelSolver_FA(LinearBilevelSolverBase):
                 results.copy_from_to(M, lbp)
             else:
                 # Load results from the Pyomo model to the Results
-                results.load_from(M)
+                results.load_from(pyomo_results)
 
             #self._debug()
             #results.solver.log = getattr(opt, '_log', None)
@@ -93,7 +95,8 @@ class LinearBilevelSolver_FA(LinearBilevelSolverBase):
         solv.name = self.config.solver
         solv.termination_condition = pyomo_results.solver.termination_condition
         solv.solver_time = pyomo_results.solver.time
-        solv.best_feasible_objective = pe.value(M.o)
+        if self.config.load_solutions:
+            solv.best_feasible_objective = pe.value(M.o)
         #
         # PROBLEM - Maybe this should be the summary of the BLP itself?
         #

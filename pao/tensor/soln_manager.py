@@ -25,3 +25,7 @@ class LBP_SolutionManager(object):
             for j in repn.L[i].xB:
                 repn.L[i].xB.values[j] = pe.value(M.L.xB[j])
 
+    def load_from(self, data):
+        # TODO - should we copy the data from a Pyomo model?  or a Pyomo results object?
+        #           
+        assert (False), "LBP_SolutionManager.load_from() is not implemented yet"
