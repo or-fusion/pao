@@ -205,6 +205,7 @@ class Results(ResultsBase):
 class SolverFactoryClass(object):
 
     _registry = {}
+    _doc = {}
 
     """
     Register a solver class with the specified name.
@@ -213,9 +214,23 @@ class SolverFactoryClass(object):
         def decorator(cls):
             assert (name is not None), "Must register a solver with a name"
             SolverFactoryClass._registry[name] = cls
+            SolverFactoryClass._doc[name] = doc
         if cls is None:
             return decorator
         return decorator(cls)
+
+    """
+    Iterator showing all the solver names and descriptions
+    """
+    def __iter__(self):
+        for name in sorted(SolverFactoryClass._doc.keys()):
+            yield name
+
+    """
+    Method used to get the description of a solver
+    """
+    def doc(self, name):
+        return SolverFactoryClass._doc[name]
 
     """
     Construct a Solver class instance that is registered with the
