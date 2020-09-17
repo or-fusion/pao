@@ -2,7 +2,7 @@
 # Example from Getachew, Mersha and Dempe, 2005.
 # Constraints in the upper-level
 #
-from pao.tensor import *
+from pao.lbp import *
 
 
 def create():

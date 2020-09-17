@@ -1,4 +1,4 @@
-# pao.tensor.examples
+# pao.lbp.examples
 
 from . import bard511_L0
 from . import bard511_L1

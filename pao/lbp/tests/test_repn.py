@@ -1,8 +1,8 @@
 import numpy as np
 import scipy.sparse
 import pyutilib.th as unittest
-from pao.tensor import *
-from pao.tensor.repn import SimplifiedList, LinearLevelRepn, LevelVariable, LevelValues, LevelValueWrapper
+from pao.lbp import *
+from pao.lbp.repn import SimplifiedList, LinearLevelRepn, LevelVariable, LevelValues, LevelValueWrapper
 
 
 class Test_SimplifiedList(unittest.TestCase):

@@ -1,7 +1,7 @@
 import numpy as np
 import pyutilib.th as unittest
-from pao.tensor import *
-from pao.tensor.convert_repn import convert_LinearBilevelProblem_to_standard_form
+from pao.lbp import *
+from pao.lbp.convert_repn import convert_LinearBilevelProblem_to_standard_form
 
 
 class Test_Trivial(unittest.TestCase):

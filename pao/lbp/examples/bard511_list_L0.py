@@ -3,7 +3,7 @@
 # Using explicit index of lower level
 # Using Python list data
 #
-from pao.tensor import *
+from pao.lbp import *
 
 
 def create():

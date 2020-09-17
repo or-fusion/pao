@@ -1,7 +1,7 @@
 import math
 import pyutilib.th as unittest
-from pao.tensor import *
-from pao.tensor import examples
+from pao.lbp import *
+from pao.lbp import examples
 
 
 class Test_bilevel_blp(unittest.TestCase):

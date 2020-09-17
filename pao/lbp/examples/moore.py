@@ -4,7 +4,7 @@
 # The mixed integer linear bilevel programming problem.
 # Operations Research 38(5), 911–921.
 #
-from pao.tensor import *
+from pao.lbp import *
 
 
 def create():
