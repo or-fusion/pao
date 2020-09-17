@@ -209,8 +209,13 @@ class SolverFactoryClass(object):
     """
     Register a solver class with the specified name.
     """
-    def register(self, name, cls):
-        SolverFactoryClass._registry[name] = cls
+    def register(self, cls=None, *, name=None, doc=None):
+        def decorator(cls):
+            assert (name is not None), "Must register a solver with a name"
+            SolverFactoryClass._registry[name] = cls
+        if cls is None:
+            return decorator
+        return decorator(cls)
 
     """
     Construct a Solver class instance that is registered with the

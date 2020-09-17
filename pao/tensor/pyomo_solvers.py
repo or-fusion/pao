@@ -170,7 +170,7 @@ class BilevelSolver3_LinearBilevelProblem(PyomoSolverBase_LinearBilevelProblem):
         self.collect_values()
 
 
-LinearBilevelSolver.register('pao.bilevel.ld', BilevelSolver1_LinearBilevelProblem)
-LinearBilevelSolver.register('pao.bilevel.blp_global', BilevelSolver2_LinearBilevelProblem)
-LinearBilevelSolver.register('pao.bilevel.blp_local', BilevelSolver3_LinearBilevelProblem)
+LinearBilevelSolver.register(BilevelSolver1_LinearBilevelProblem, name='pao.bilevel.ld')
+LinearBilevelSolver.register(BilevelSolver2_LinearBilevelProblem, name='pao.bilevel.blp_global')
+LinearBilevelSolver.register(BilevelSolver3_LinearBilevelProblem, name='pao.bilevel.blp_local')
 

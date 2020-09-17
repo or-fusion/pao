@@ -1,16 +1,30 @@
+#
+# A solver for linear bilevel programs that
+# represent interdiction problems where the upper-
+# and lower-objectives are opposite.
+#
+import time
 import numpy as np
+import pyutilib
 import pyomo.environ as pe
-#import pao.bilevel
-#import pao.bilevel.plugins
-from ..solver import LinearBilevelSolver, LinearBilevelSolverBase
+import pyomo.opt
+from ..solver import LinearBilevelSolver, LinearBilevelSolverBase, LinearBilevelResults
 from ..repn import LinearBilevelProblem
 from ..convert_repn import convert_LinearBilevelProblem_to_standard_form
+from .. import pyomo_util
+
+nan = float('nan')
 
 
-class LinearBilevelSolver_ld(LinearBilevelSolverBase):
+@LinearBilevelSolver.register(
+        name="pao.lbp.interdiction",
+        doc="A solver for linear bilevel programs that represent interdiction problems where the upper- and lower-objectives are opposite.")
+class LinearBilevelSolver_interdiction(LinearBilevelSolverBase):
 
     def __init__(self, **kwds):
-        self.name = 'pao.lbp.ld'
+        super(LinearBilevelSolverBase, self).__init__(name='pao.lbp.interdiction')
+        self.config.solver = 'glpk'
+        self.config.mipgap = nan
 
     def check_model(self, lbp):
         #
@@ -32,92 +46,98 @@ class LinearBilevelSolver_ld(LinearBilevelSolverBase):
         #
         # Upper and lower objectives are the opposite of each other
         #
-        # TODO
+        for i in range(len(lbp.L)):
+            assert (lbp.check_opposite_objectives(lbp.U, lbp.L[i])), "Lower level L[%d] does not have an objective that is the opposite of the upper-level" % i
+        #
+        # Lower level variables are not allowed in the upper-level
+        # constraints.
+        #
+        # TODO - confirm that this is a necessarily restriction for this
+        # solver.
+        #
+        for i in range(len(lbp.L)):
+            assert (U.A.L[i].xR is None), "The lower-level variables cannot be used in the upper-level constraints."
+        #
+        # Upper-level variables are not allowed in the lower-level
+        # constraints.
+        #
+        # NOTE: this avoids the introduction of quadratic terms when
+        # dualizing the lower-level.  That might be OK, but for now we
+        # are assuming the simple application of a MIP solver.
+        #
+        for i in range(len(lbp.L)):
+            assert (L[i].A.U.xR is None), "The upper-level variables cannot be used in the lower-level constraints."
+            assert (L[i].A.U.xZ is None), "The upper-level variables cannot be used in the lower-level constraints."
+            assert (L[i].A.U.xB is None), "The upper-level variables cannot be used in the lower-level constraints."
 
-    def solve(self, *args, **kwds):
+    def solve(self, lbp, options=None, **config_options):
         #
         # Error checks
         #
-        assert (len(args) == 1), "Can only solve a single LinearBilevelProblem"
-        lbp = args[0]
-        assert (lbp.__class__ == LinearBilevelProblem), "Unexpected argument of type %s" % str(type(lbp))
         self.check_model(lbp)
         #
         # Process keyword options
         #
-        solver =    kwds.pop('solver', 'glpk')
-        tee =       kwds.pop('tee', False)
-        timelimit = kwds.pop('timelimit', None)
-        mipgap =    kwds.pop('mipgap', None)
+        self._update_config(config_options)
         #
         # Start clock
         #
         start_time = time.time()
 
-        self.standard_form, self.multipliers = convert_LinearBilevelProblem_to_standard_form(lbp)
+        self.standard_form, soln_manager = convert_LinearBilevelProblem_to_standard_form(lbp)
 
         M = self._create_pyomo_model(self.standard_form)
         #
         # Solve the Pyomo model the specified solver
         #
-        with pyomo.opt.SolverFactory(solver) as opt:
-            if mipgap is not None:
-                opt.options['mipgap'] = mipgap
-            results = opt.solve(M, tee=tee, timelimit=timelimit)
+        with pyomo.opt.SolverFactory(self.config.solver) as opt:
+            if self.config.mipgap is not nan:
+                opt.options['mipgap'] = self.config.mipgap
+            if options is not None:
+                opt.options.update(options)
+            pyomo_results = opt.solve(M, tee=tee, 
+                                         timelimit=timelimit,
+                                         load_solutions=self.config.load_solutions)
+            pyomo.opt.check_termination(pyomo_results)
 
-            pyomo_util.check_termination(results.solver.termination_condition)
+            self._initialize_results(results, pyomo_results, M)
+            results.solver.rc = getattr(opt, '_rc', None)
 
-            # check that the solutions list is not empty
-            if M.solutions.solutions:
-                M.solutions.select(0, ignore_fixed_vars=True)
-            #
-            stop_time = time.time()
-            self.wall_time = stop_time - start_time
-            self.results_obj = self._setup_results_obj()
+            if self.config.load_solutions:
+                # Load results from the Pyomo model to the LinearBilevelProblem
+                results.copy_from_to(M, lbp)
+            else:
+                # Load results from the Pyomo model to the Results
+                results.load_from(pyomo_results)
 
-            #
-            # Return the sub-solver return condition value and log
-            #
-            return pyutilib.misc.Bunch(rc=getattr(opt, '_rc', None),
-                                       log=getattr(opt, '_log', None))
+            #self._debug()
+            #results.solver.log = getattr(opt, '_log', None)
 
-    def _setup_results_obj(self):
-        #
-        # Create a results object
-        #
-        results = pyomo.opt.SolverResults()
+        results.solver.wallclock_time = time.time() - start_time
+        return results
+
+    def _initialize_results(self, results, pyomo_results, M):
         #
         # SOLVER
         #
         solv = results.solver
-        solv.name = self.options.subsolver
-        solv.wallclock_time = self.wall_time
-        cpu_ = []
-        for res in self.results:
-            if not getattr(res.solver, 'cpu_time', None) is None:
-                cpu_.append(res.solver.cpu_time)
-        if cpu_:
-            solv.cpu_time = sum(cpu_)
+        solv.name = self.config.solver
+        solv.termination_condition = pyomo_results.solver.termination_condition
+        solv.solver_time = pyomo_results.solver.time
+        if self.config.load_solutions:
+            solv.best_feasible_objective = pe.value(M.o)
         #
-        # TODO: detect infeasibilities, etc
-        solv.termination_condition = pyomo.opt.TerminationCondition.optimal
-        #
-        # PROBLEM
+        # PROBLEM - Maybe this should be the summary of the BLP itself?
         #
         prob = results.problem
-        prob.name = self._instance.name
-        prob.number_of_constraints = self._instance.statistics.number_of_constraints
-        prob.number_of_variables = self._instance.statistics.number_of_variables
-        prob.number_of_binary_variables = self._instance.statistics.number_of_binary_variables
-        prob.number_of_integer_variables =\
-            self._instance.statistics.number_of_integer_variables
-        prob.number_of_continuous_variables =\
-            self._instance.statistics.number_of_continuous_variables
-        prob.number_of_objectives = self._instance.statistics.number_of_objectives
-        #
-        # SOLUTION(S)
-        #
-        self._instance.solutions.store_to(results)
+        prob.name = M.name
+        prob.number_of_objectives = pyomo_results.problem.Number_of_objectives
+        prob.number_of_constraints = pyomo_results.problem.Number_of_constraints
+        prob.number_of_variables = pyomo_results.problem.Number_of_variables
+        prob.number_of_nonzeros = pyomo_results.problem.Number_of_nonzeros
+        prob.lower_bound = pyomo_results.problem.Lower_bound
+        prob.upper_bound = pyomo_results.problem.Upper_bound
+        prob.sense = 'minimize'
         return results
 
     def _create_pyomo_model(self, repn):
@@ -125,25 +145,22 @@ class LinearBilevelSolver_ld(LinearBilevelSolverBase):
         # Create Pyomo model
         #
         M = pe.ConcreteModel()
-        M.z = pe.Var()
         M.U = pe.Block()
         M.L = pe.Block()
-        M.Dual = pe.Block()
+        M.dual = pe.Block()
 
         # upper- and lower-level variables
         pyomo_util._create_variables(repn.U, M.U)
         pyomo_util._create_variables(repn.L, M.L)
+        M.dual.z = pe.Var()
 
         # upper- and lower-level constraints
-        pyomo_util._linear_constraints(repn.U.inequalities, repn.U.A, repn.U, repn.L, repn.U.b, M.U)
-        pyomo_util._linear_constraints(repn.L.inequalities, repn.L.A, repn.U, repn.L, repn.L.b, M.L)
+        pyomo_util.add_linear_constraints(M.U, repn.U.A, repn.U, repn.L, repn.U.b, M.U.inequalities)
+        pyomo_util.add_linear_constraints(M.L, repn.L.A, repn.U, repn.L, repn.L.b, M.L.inequalities)
 
         # objective
-        e = pyomo_util._linear_expression(1, repn.c.U, repn.U) + M.z
-        if repn.U.minimize:
-            M.o = pe.Objective(expr=e[0])
-        else:
-            M.o = pe.Objective(expr=e[0], sense=pe.maximize)
+        e = pyomo_util.dot(repn.U.c.U, repn.U, num=1) + pyomo_util.dot(repn.U.c.L, repn.L, num=1) + repn.U.d
+        M.o = pe.Objective(expr=e)
 
         # dual variables for primal constraints
         M.Dual.dual_c = Var(range(len(M.L.c)))
@@ -154,5 +171,13 @@ class LinearBilevelSolver_ld(LinearBilevelSolverBase):
 
         return M
 
+    def _debug(self):
+        for j in M.U.xR:
+            print("U",j,pe.value(M.U.xR[j]))
+        for j in M.L.xR:
+            print("L",j,pe.value(M.L.xR[j]))
+        #for j in M.kkt.lam:
+        #    print("lam",j,pe.value(M.kkt.lam[j]))
+        #for j in M.kkt.nu:
+        #    print("nu",j,pe.value(M.kkt.nu[j]))
 
-LinearBilevelSolver.register('pao.lbp.ld', LinearBilevelSolver_ld)

@@ -16,6 +16,9 @@ from ..convert_repn import convert_LinearBilevelProblem_to_standard_form
 from .. import pyomo_util
 
 
+@LinearBilevelSolver.register(
+        name="pao.lbp.REG",
+        doc="A solver for linear bilevel programs using regularization discussed by Scheel and Scholtes (2000) and Ralph and Wright (2004).")
 class LinearBilevelSolver_REG(LinearBilevelSolverBase):
 
     def __init__(self, **kwds):
@@ -78,7 +81,7 @@ class LinearBilevelSolver_REG(LinearBilevelSolverBase):
             self._initialize_results(results, pyomo_results, M)
             results.solver.rc = getattr(opt, '_rc', None)
 
-            if self.config.load_solution:
+            if self.config.load_solutions:
                 # Load results from the Pyomo model to the LinearBilevelProblem
                 results.copy_from_to(M, lbp)
             else:
@@ -175,5 +178,3 @@ class LinearBilevelSolver_REG(LinearBilevelSolverBase):
         for j in M.kkt.nu:
             print("nu",j,pe.value(M.kkt.nu[j]))
 
-
-LinearBilevelSolver.register('pao.lbp.REG', LinearBilevelSolver_REG)

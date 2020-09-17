@@ -14,6 +14,9 @@ from ..convert_repn import convert_LinearBilevelProblem_to_standard_form
 from .. import pyomo_util
 
 
+@LinearBilevelSolver.register(
+        name='pao.lbp.FA',
+        doc='A solver for linear bilevel programs using big-M relaxations discussed by Fortuny-Amat and McCarl, 1981.')
 class LinearBilevelSolver_FA(LinearBilevelSolverBase):
 
     def __init__(self, **kwds):
@@ -73,7 +76,7 @@ class LinearBilevelSolver_FA(LinearBilevelSolverBase):
             self._initialize_results(results, pyomo_results, M)
             results.solver.rc = getattr(opt, '_rc', None)
 
-            if self.config.load_solution:
+            if self.config.load_solutions:
                 # Load results from the Pyomo model to the LinearBilevelProblem
                 results.copy_from_to(M, lbp)
             else:
@@ -177,4 +180,3 @@ class LinearBilevelSolver_FA(LinearBilevelSolverBase):
             print("nu",j,pe.value(M.kkt.nu[j]))
 
 
-LinearBilevelSolver.register('pao.lbp.FA', LinearBilevelSolver_FA)
