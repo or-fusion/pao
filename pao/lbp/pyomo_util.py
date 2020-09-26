@@ -54,19 +54,27 @@ def add_variables(block, level):
         level.xR.var = np.array([block.xR[i] for i in range(0,level.xR.num)])
         if level.xR.lower_bounds is not None:
             for i,v in block.xR.items():
-                v.setlb( level.xR.lower_bounds[i] )
+                lb = level.xR.lower_bounds[i]
+                if not lb is np.NINF:
+                    v.setlb( lb )
         if level.xR.upper_bounds is not None:
             for i,v in block.xR.items():
-                v.setlb( level.xR.upper_bounds[i] )
+                ub = level.xR.upper_bounds[i]
+                if not ub is np.PINF:
+                    v.setub( ub )
     if len(level.xZ) > 0:
         block.xZ = pe.Var(range(0,level.xZ.num), within=pe.Integers)
         level.xZ.var = np.array([block.xZ[i] for i in range(0,level.xZ.num)])
         if level.xZ.lower_bounds:
             for i,v in block.xZ.items():
-                v.lb = level.xZ.lower_bounds[i]
+                lb = level.xZ.lower_bounds[i]
+                if not lb is np.NINF:
+                    v.setlb( lb )
         if level.xZ.upper_bounds:
             for i,v in block.xZ.items():
-                v.lb = level.xZ.upper_bounds[i]
+                ub = level.xZ.upper_bounds[i]
+                if not ub is np.PINF:
+                    v.setub( ub )
     if len(level.xB) > 0:
         block.xB = pe.Var(range(0,level.xB.num), within=pe.Binaries)
         level.xB.var = np.array([block.xB[i] for i in range(0,level.xB.num)])

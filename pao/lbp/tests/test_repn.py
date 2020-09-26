@@ -11,6 +11,29 @@ class Test_SimplifiedList(unittest.TestCase):
         l = SimplifiedList()
         self.assertEqual(len(l._data),0)
 
+    def test_clone1(self):
+        class A(object):
+            def __init__(self, i=0):
+                self.i = i
+        l = SimplifiedList()
+        l.append(A())
+        l.insert(2, A(2))
+        ans = l.clone()
+        self.assertEqual(len(ans), 2)
+        
+    def test_clone2(self):
+        class A(object):
+            def __init__(self, i=0):
+                self.i = i
+            def clone(self):
+                return A(self.i+1)
+        l = SimplifiedList()
+        l.append(A())
+        l.insert(2, A(2))
+        ans = l.clone()
+        self.assertEqual(len(ans), 2)
+        self.assertEqual(ans[-1].i, 3)
+        
     def test_insert(self):
         class A(object):
             def __init__(self, i=0):
@@ -161,13 +184,53 @@ class Test_LevelVariable(unittest.TestCase):
         l = LevelVariable(10)
         self.assertEqual(len(l), 10)
 
-    def test_setattr(self):
+    def test_iter(self):
         l = LevelVariable(10)
+        tmp = [i for i in l]
+        self.assertEqual(tmp, list(range(10)))
+
+    def test_setattr(self):
+        l = LevelVariable(3)
         l.a = [1,2,3]
         self.assertEqual(type(l.a),list)
         l.lower_bounds = [1,2,3]
         self.assertEqual(type(l.lower_bounds),np.ndarray)
 
+    def test_clone(self):
+        l = LevelVariable(3)
+        l.lower_bounds = [1,2,3]
+        ans = l.clone()
+        self.assertEqual(len(ans), len(l))
+        self.assertEqual(type(l.lower_bounds),np.ndarray)
+
+    def test_resize(self):
+        l = LevelVariable(5)
+        l.lower_bounds = [1,2,3,np.NINF,np.NINF]
+        self.assertEqual(list(l.lower_bounds), [1,2,3,np.NINF,np.NINF])
+
+        l = LevelVariable(3)
+        l.lower_bounds = [1,2,3]
+        l.resize(3, lb=np.NINF)
+        self.assertEqual(list(l.lower_bounds), [1,2,3])
+
+        l = LevelVariable(3)
+        l.lower_bounds = [1,2,3]
+        l.upper_bounds = [4,5,6]
+        l.resize(2, lb=4)
+        self.assertEqual(list(l.lower_bounds), [1,2])
+        self.assertEqual(list(l.upper_bounds), [4,5])
+
+        l = LevelVariable(3)
+        l.lower_bounds = [1,2,3]
+        l.upper_bounds = [3,4,5]
+        l.resize(4, lb=4, ub=6)
+        self.assertEqual(list(l.lower_bounds), [1,2,3,4])
+        self.assertEqual(list(l.upper_bounds), [3,4,5,6])
+
+        l = LevelVariable(3)
+        l.resize(4, lb=4)
+        self.assertEqual(list(l.lower_bounds), [np.NINF,np.NINF,np.NINF,4])
+        self.assertEqual(list(l.upper_bounds), [np.PINF,np.PINF,np.PINF,np.PINF])
 
 class Test_LevelValues(unittest.TestCase):
 
@@ -203,6 +266,21 @@ class Test_LevelValues(unittest.TestCase):
         self.assertEqual(len(l), 4)
         l.set_values(xB=[(0,1,2),(3,4,5)], xR=[(0,0,5),(1,0,6)], xZ=[(1,1,1)])
         self.assertEqual(len(l), 4)
+        
+    def test_clone_values(self):
+        l = LevelValues()
+        l.set_values(xR=[0,1,2], xZ=[3,4], xB=[5])
+        ans = l.clone()
+        self.assertEqual(len(ans), 6)
+        
+    def test_clone_matrix(self):
+        l = LevelValues(matrix=True)
+        l.set_values(xR=[(0,1,2),(3,4,5)], xB=[(0,0,5),(1,0,6)], xZ=[(1,1,1)])
+        ans = l.clone()
+        self.assertEqual(len(ans), 4)
+        l.set_values(xB=[(0,1,2),(3,4,5)], xR=[(0,0,5),(1,0,6)], xZ=[(1,1,1)])
+        ans = l.clone()
+        self.assertEqual(len(ans), 4)
         
     def test_setattr(self):
         l = LevelValues()
@@ -249,6 +327,15 @@ class Test_LevelValueWrapper(unittest.TestCase):
         #
         getattr(l, "_foo", False)
         
+    def test_clone(self):
+        l = LevelValueWrapper('foo', matrix=True)
+        l.foo
+        l.L
+        ans = l.clone()
+        self.assertEqual(list(ans._values.keys()), ['foo','L'])
+        self.assertEqual(type(ans.foo), LevelValues)
+        self.assertEqual(len(ans.L),1)
+        
 
 class Test_LinearLevelRepn(unittest.TestCase):
 
@@ -270,6 +357,14 @@ class Test_LinearLevelRepn(unittest.TestCase):
         self.assertEqual(l.x, -1)
         l.b = -1
         self.assertEqual(l.b, np.array(-1))
+
+    def test_clone(self):
+        l = LinearLevelRepn(1,2,3)
+        l.x = -1
+        l.b = -1
+        ans = l.clone()
+        self.assertEqual(ans.x, -1)
+        self.assertEqual(ans.b, np.array(-1))
         
 
 class Test_LinearBilevelProblem(unittest.TestCase):
@@ -305,6 +400,25 @@ class Test_LinearBilevelProblem(unittest.TestCase):
         self.assertEqual(len(L[1].xB), 3)
         self.assertEqual(id(L[0]), id(blp.L[0]))
         self.assertEqual(id(L[1]), id(blp.L[1]))
+
+    def test_clone(self):
+        blp = LinearBilevelProblem()
+        U = blp.add_upper(nxR=1, nxZ=2, nxB=3)
+        L = blp.add_lower(nxR=1, nxZ=2, nxB=3)
+        L = blp.add_lower(nxR=1, nxZ=2, nxB=3)
+
+        ans = blp.clone()
+        self.assertEqual(len(ans.U.xR), 1)
+        self.assertEqual(len(ans.U.xZ), 2)
+        self.assertEqual(len(ans.U.xB), 3)
+
+        self.assertEqual(len(ans.L[0].xR), 1)
+        self.assertEqual(len(ans.L[0].xZ), 2)
+        self.assertEqual(len(ans.L[0].xB), 3)
+
+        self.assertEqual(len(ans.L[1].xR), 1)
+        self.assertEqual(len(ans.L[1].xZ), 2)
+        self.assertEqual(len(ans.L[1].xB), 3)
 
     def test_check_opposite_objectives(self):
         blp = LinearBilevelProblem()

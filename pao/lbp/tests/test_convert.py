@@ -21,6 +21,24 @@ class Test_Trivial(unittest.TestCase):
         self.assertEqual(len(ans.U.A.U), len(blp.U.A.U))
         self.assertEqual(len(ans.U.b), len(blp.U.b))
 
+    def test_trivial1L(self):
+        # No changes are expected with a trivial problem
+        #   with upper-level variables
+        blp = LinearBilevelProblem()
+        U = blp.add_upper(nxR=1, nxZ=2, nxB=3)
+        L = blp.add_lower(nxR=1, nxZ=2, nxB=3)
+        L.xR.lower_bounds = [0]
+        L.xZ.lower_bounds = [0,0]
+        blp.check()
+
+        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(blp)
+        ans.check()
+
+        self.assertEqual(ans.U.d, 0)
+        self.assertEqual(len(ans.U.c.U), len(blp.U.c.U))
+        self.assertEqual(len(ans.U.A.U), len(blp.U.A.U))
+        self.assertEqual(len(ans.U.b), len(blp.U.b))
+
     def test_trivial2(self):
         # No changes are expected with a trivial problem
         #   with upper-level variables
@@ -39,6 +57,53 @@ class Test_Trivial(unittest.TestCase):
         self.assertEqual(len(ans.U.c.U), len(blp.U.c.U)+1)
         self.assertEqual(len(ans.U.A.U), len(blp.U.A.U))
         self.assertEqual(len(ans.U.b), len(blp.U.b))
+
+    def test_trivial2_max(self):
+        # No changes are expected with a trivial problem
+        #   with upper-level variables
+        #   with upper-level objective
+        blp = LinearBilevelProblem()
+        U = blp.add_upper(nxR=1, nxZ=2, nxB=3)
+        U.minimize = False
+        U.c.U.xR = [1]
+        U.c.U.xZ = [1, 1]
+        U.c.U.xB = [1, 1, 1]
+        U.c.L.xR = [2]
+        U.c.L.xZ = [2, 2]
+        U.c.L.xB = [2, 2, 2]
+        L = blp.add_lower(nxR=1, nxZ=2, nxB=3)
+        L.minimize = False
+        L.c.U.xR = [3]
+        L.c.U.xZ = [3, 3]
+        L.c.U.xB = [3, 3, 3]
+        L.c.L.xR = [4]
+        L.c.L.xZ = [4, 4]
+        L.c.L.xB = [4, 4, 4]
+        blp.check()
+
+        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(blp)
+        ans.check()
+        #ans.print()
+
+        self.assertEqual(ans.U.d, 0)
+        self.assertEqual(len(ans.U.c.U), len(blp.U.c.U)+1)
+        self.assertEqual(len(ans.U.A.U), len(blp.U.A.U))
+        self.assertEqual(len(ans.U.b), len(blp.U.b))
+        self.assertEqual(len(ans.L[0].c.L[0]), len(blp.L[0].c.L[0])+1)
+
+        self.assertEqual(list(ans.U.c.U.xR), [-1,1])
+        self.assertEqual(list(ans.U.c.U.xZ), [-1,-1])
+        self.assertEqual(list(ans.U.c.U.xB), [-1,-1,-1])
+        self.assertEqual(list(ans.U.c.L.xR), [-2,2])
+        self.assertEqual(list(ans.U.c.L.xZ), [-2,-2])
+        self.assertEqual(list(ans.U.c.L.xB), [-2,-2,-2])
+
+        self.assertEqual(list(ans.L.c.U.xR), [-3,3])
+        self.assertEqual(list(ans.L.c.U.xZ), [-3,-3])
+        self.assertEqual(list(ans.L.c.U.xB), [-3,-3,-3])
+        self.assertEqual(list(ans.L.c.L.xR), [-4,4])
+        self.assertEqual(list(ans.L.c.L.xZ), [-4,-4])
+        self.assertEqual(list(ans.L.c.L.xB), [-4,-4,-4])
 
     def test_trivial3(self):
         # No changes are expected with a trivial problem
@@ -123,6 +188,26 @@ class Test_Upper(unittest.TestCase):
         self.assertEqual(len(ans.U.b), len(blp.U.b))
         self.assertEqual(len(ans.U.xR), len(blp.U.xR)+1)
 
+    def test_test3_inequality(self):
+        # Expect Changes - Nontrivial problem
+        #   upper-level inequality constraints, so slack variables should be added
+        blp = LinearBilevelProblem()
+        U = blp.add_upper(nxR=1, nxZ=2, nxB=3)
+        U.inequalities = False
+        U.xR.lower_bounds = [0]
+        U.A.U.xR = [(0,0,1)]
+        U.b = [2]
+        blp.check()
+
+        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(blp, inequalities=True)
+        ans.check()
+
+        self.assertEqual(ans.U.d, 0)
+        self.assertEqual(len(ans.U.c.U), len(blp.U.c.U))
+        self.assertEqual(len(ans.U.A.U), 2*len(blp.U.A.U))
+        self.assertEqual(len(ans.U.b), 2*len(blp.U.b))
+        self.assertEqual(len(ans.U.xR), len(blp.U.xR))
+
     def test_test3L(self):
         # Expect Changes - Nontrivial problem
         #   upper-level inequality constraints, so slack variables should be added
@@ -196,6 +281,30 @@ class Test_Upper(unittest.TestCase):
         self.assertEqual(ans.U.b[0], -8)
         self.assertEqual(len(ans.U.xR), len(blp.U.xR))
 
+    def test_test4_inequality(self):
+        # Expect Changes - Nontrivial problem
+        #   upper-level lower bounds, so the const objective and RHS are changed
+        blp = LinearBilevelProblem()
+        U = blp.add_upper(nxR=1, nxZ=2, nxB=3)
+        U.inequalities = True
+        U.xR.lower_bounds = [3]
+        U.c.U.xR = [2]
+        U.A.U.xR = [(0,0,5)]
+        U.b = [7]
+        blp.check()
+
+        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(blp, inequalities=True)
+        ans.check()
+
+        self.assertEqual(ans.U.d, 6)
+        self.assertEqual(len(ans.U.c.U), len(blp.U.c.U))
+        self.assertEqual(ans.U.c.U.xR[0], 2)
+        self.assertEqual(len(ans.U.A.U), len(blp.U.A.U))
+        self.assertEqual(ans.U.A.U.xR.todok()[0,0], 5)
+        self.assertEqual(len(ans.U.b), len(blp.U.b))
+        self.assertEqual(ans.U.b[0], -8)
+        self.assertEqual(len(ans.U.xR), len(blp.U.xR))
+
     def test_test5(self):
         # Expect Changes - Nontrivial problem
         #   upper-level upper bounds, so the const objective and RHS are changed
@@ -243,6 +352,30 @@ class Test_Upper(unittest.TestCase):
         self.assertEqual(ans.L.d, 27)
         self.assertEqual(len(ans.L.c.L[0]), len(blp.L.c.L[0]))
         self.assertEqual(ans.L.c.U.xR[0], -9)
+        self.assertEqual(len(ans.U.A.U), len(blp.U.A.U))
+        self.assertEqual(ans.U.A.U.xR.todok()[0,0], -5)
+        self.assertEqual(len(ans.U.b), len(blp.U.b))
+        self.assertEqual(ans.U.b[0], -8)
+        self.assertEqual(len(ans.U.xR), len(blp.U.xR))
+
+    def test_test5_inequality(self):
+        # Expect Changes - Nontrivial problem
+        #   upper-level upper bounds, so the const objective and RHS are changed
+        blp = LinearBilevelProblem()
+        U = blp.add_upper(nxR=1, nxZ=2, nxB=3)
+        U.inequalities = True
+        U.xR.upper_bounds = [3]
+        U.c.U.xR = [2]
+        U.A.U.xR = [(0,0,5)]
+        U.b = [7]
+        blp.check()
+
+        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(blp, inequalities=True)
+        ans.check()
+
+        self.assertEqual(ans.U.d, 6)
+        self.assertEqual(len(ans.U.c.U), len(blp.U.c.U))
+        self.assertEqual(ans.U.c.U.xR[0], -2)
         self.assertEqual(len(ans.U.A.U), len(blp.U.A.U))
         self.assertEqual(ans.U.A.U.xR.todok()[0,0], -5)
         self.assertEqual(len(ans.U.b), len(blp.U.b))
@@ -526,6 +659,43 @@ class Test_Upper(unittest.TestCase):
         self.assertEqual(len(ans.L.c.U), len(blp.L.c.U)+3)
         self.assertEqual(list(ans.L.c.U.xR), [9,10,11,0,0,0])
 
+    def test_test9_inequality(self):
+        # Expect Changes - Nontrivial problem
+        #   upper-level lower bounds, so the const objective and RHS are changed
+        #   upper-level upper bounds, so the const objective and RHS are changed
+        #   upper-level range bounds, so the const objective and RHS are changed
+        #   upper-level unbounded variables, so variables are added
+        blp = LinearBilevelProblem()
+        U = blp.add_upper(nxR=3, nxZ=2, nxB=3)
+        U.inequalities = False
+        U.xR.lower_bounds = [0, 0, 0]
+        U.c.U.xR = [2, 3, 4]
+        U.A.U.xR = [(0,0,5), (1,1,17), (2,2,19)]
+        U.b = [7,8,9]
+        blp.check()
+
+        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(blp, inequalities=True)
+        ans.check()
+
+        self.assertEqual(ans.U.d, 0)
+        self.assertEqual(len(ans.U.c.U), len(blp.U.c.U))
+        self.assertEqual(list(ans.U.c.U.xR), [2,3,4])
+        self.assertEqual(len(ans.U.A.U), 2*len(blp.U.A.U))
+        self.assertEqual(ans.U.A.U.xR.todok()[0,0], 5)
+        self.assertEqual(ans.U.A.U.xR.todok()[1,1], 17)
+        self.assertEqual(ans.U.A.U.xR.todok()[2,2], 19)
+        self.assertEqual(ans.U.A.U.xR.todok()[3,0], -5)
+        self.assertEqual(ans.U.A.U.xR.todok()[4,1], -17)
+        self.assertEqual(ans.U.A.U.xR.todok()[5,2], -19)
+        self.assertEqual(len(ans.U.b), 2*len(blp.U.b))
+        self.assertEqual(ans.U.b[0], 7)
+        self.assertEqual(ans.U.b[1], 8)
+        self.assertEqual(ans.U.b[2], 9)
+        self.assertEqual(ans.U.b[3], -7)
+        self.assertEqual(ans.U.b[4], -8)
+        self.assertEqual(ans.U.b[5], -9)
+        self.assertEqual(len(ans.U.xR), len(blp.U.xR))
+
     def test_test10(self):
         # Expect Changes - Nontrivial problem
         #   upper-level lower bounds, so the const objective and RHS are changed
@@ -669,17 +839,17 @@ class Test_Upper(unittest.TestCase):
 
         self.assertEqual(ans.U.d, 77)
         self.assertEqual(len(ans.U.c.U), len(blp.U.c.U)+3)
-        self.assertEqual(list(ans.U.c.U.xR), [2,-3,4,5,6,-5,0,0])
+        self.assertEqual(list(ans.U.c.U.xR), [2,-3,4,5,6,0,0,-5])
         self.assertEqual(len(ans.U.A.U), len(blp.U.A.U)+1)
         self.assertEqual(ans.U.A.U.xR.todok()[0,0], 5)
         self.assertEqual(ans.U.A.U.xR.todok()[0,1], -17)
         self.assertEqual(ans.U.A.U.xR.todok()[0,2], 19)
         self.assertEqual(ans.U.A.U.xR.todok()[0,3], 23)
         self.assertEqual(ans.U.A.U.xR.todok()[0,4], 29)
-        self.assertEqual(ans.U.A.U.xR.todok()[0,5], -23)
+        self.assertEqual(ans.U.A.U.xR.todok()[0,5], 1)
         self.assertEqual(ans.U.A.U.xR.todok()[1,2], 1)
-        self.assertEqual(ans.U.A.U.xR.todok()[0,6], 1)
-        self.assertEqual(ans.U.A.U.xR.todok()[1,7], 1)
+        self.assertEqual(ans.U.A.U.xR.todok()[1,6], 1)
+        self.assertEqual(ans.U.A.U.xR.todok()[0,7], -23)
         self.assertEqual(len(ans.U.b), len(blp.U.b)+1)
         self.assertEqual(ans.U.b[0], -370)
         self.assertEqual(ans.U.b[1], 2)
@@ -708,17 +878,17 @@ class Test_Upper(unittest.TestCase):
 
         self.assertEqual(ans.U.d, 77)
         self.assertEqual(len(ans.U.c.U), len(blp.U.c.U)+3)
-        self.assertEqual(list(ans.U.c.U.xR), [2,-3,4,5,6,-5,0,0])
+        self.assertEqual(list(ans.U.c.U.xR), [2,-3,4,5,6,0,0,-5])
         self.assertEqual(len(ans.U.A.U), len(blp.U.A.U)+1)
         self.assertEqual(ans.U.A.U.xR.todok()[0,0], 5)
         self.assertEqual(ans.U.A.U.xR.todok()[0,1], -17)
         self.assertEqual(ans.U.A.U.xR.todok()[0,2], 19)
         self.assertEqual(ans.U.A.U.xR.todok()[0,3], 23)
         self.assertEqual(ans.U.A.U.xR.todok()[0,4], 29)
-        self.assertEqual(ans.U.A.U.xR.todok()[0,5], -23)
+        self.assertEqual(ans.U.A.U.xR.todok()[0,5], 1)
         self.assertEqual(ans.U.A.U.xR.todok()[1,2], 1)
-        self.assertEqual(ans.U.A.U.xR.todok()[0,6], 1)
-        self.assertEqual(ans.U.A.U.xR.todok()[1,7], 1)
+        self.assertEqual(ans.U.A.U.xR.todok()[1,6], 1)
+        self.assertEqual(ans.U.A.U.xR.todok()[0,7], -23)
         self.assertEqual(len(ans.U.b), len(blp.U.b)+1)
         self.assertEqual(ans.U.b[0], -370)
         self.assertEqual(ans.U.b[1], 2)
@@ -726,7 +896,7 @@ class Test_Upper(unittest.TestCase):
 
         self.assertEqual(ans.L.d, 238)
         self.assertEqual(len(ans.L.c.U), len(blp.L.c.U)+3)
-        self.assertEqual(list(ans.L.c.U.xR), [9,-10,11,12,13,-12,0,0])
+        self.assertEqual(list(ans.L.c.U.xR), [9,-10,11,12,13,0,0,-12])
 
 
 class Test_Lower(unittest.TestCase):
@@ -1038,17 +1208,17 @@ class Test_Lower(unittest.TestCase):
 
         self.assertEqual(ans.L.d, 77)
         self.assertEqual(len(ans.L.c.L[0]), len(blp.L.c.L[0])+3)
-        self.assertEqual(list(ans.L.c.L.xR), [2,-3,4,5,6,-5,0,0])
+        self.assertEqual(list(ans.L.c.L.xR), [2,-3,4,5,6,0,0,-5])
         self.assertEqual(len(ans.L.A.L[0]), len(blp.L.A.L[0])+1)
         self.assertEqual(ans.L.A.L.xR.todok()[0,0], 5)
         self.assertEqual(ans.L.A.L.xR.todok()[0,1], -17)
         self.assertEqual(ans.L.A.L.xR.todok()[0,2], 19)
         self.assertEqual(ans.L.A.L.xR.todok()[0,3], 23)
         self.assertEqual(ans.L.A.L.xR.todok()[0,4], 29)
-        self.assertEqual(ans.L.A.L.xR.todok()[0,5], -23)
+        self.assertEqual(ans.L.A.L.xR.todok()[0,5], 1)
         self.assertEqual(ans.L.A.L.xR.todok()[1,2], 1)
-        self.assertEqual(ans.L.A.L.xR.todok()[0,6], 1)
-        self.assertEqual(ans.L.A.L.xR.todok()[1,7], 1)
+        self.assertEqual(ans.L.A.L.xR.todok()[1,6], 1)
+        self.assertEqual(ans.L.A.L.xR.todok()[0,7], -23)
         self.assertEqual(len(ans.L.b), len(blp.L.b)+1)
         self.assertEqual(ans.L.b[0], -370)
         self.assertEqual(ans.L.b[1], 2)
@@ -1139,21 +1309,119 @@ class Test_NonTrivial(unittest.TestCase):
         self.assertEqual(ans.L[0].d, 261)
         self.assertEqual(ans.L[1].d, 379)
 
-        self.assertEqual(list(ans.U.c.U.xR),        [ 2, -3,  4,  5, -5,  0, 0,  0, 0])
-        self.assertEqual(list(ans.U.c.L[0].xR),     [ 3, -4,  5,  6,  7, -6, 0,  0, 0, 0, 0])
+        self.assertEqual(list(ans.U.c.U.xR),        [ 2, -3,  4,  5,  0,  0, 0,  0, -5])
+        self.assertEqual(list(ans.U.c.L[0].xR),     [ 3, -4,  5,  6,  7,  0, 0,  0, 0, 0, -6])
         self.assertEqual(list(ans.U.c.L[1].xR),     [ 4,  5, -6,  7,  8,  9, 0, -8])
-        self.assertEqual(list(ans.L[0].c.U.xR),     [ 5, -6,  7,  8, -8,  0, 0,  0, 0])
-        self.assertEqual(list(ans.L[0].c.L[0].xR),  [ 6, -7,  8,  9, 10, -9, 0,  0, 0, 0, 0])
-        self.assertEqual(list(ans.L[1].c.U.xR),     [ 5, -6,  7,  8, -8,  0, 0,  0, 0])
+        self.assertEqual(list(ans.L[0].c.U.xR),     [ 5, -6,  7,  8,  0,  0, 0,  0, -8])
+        self.assertEqual(list(ans.L[0].c.L[0].xR),  [ 6, -7,  8,  9, 10,  0, 0,  0, 0, 0, -9])
+        self.assertEqual(list(ans.L[1].c.U.xR),     [ 5, -6,  7,  8,  0,  0, 0,  0, -8])
         self.assertEqual(list(ans.L[1].c.L[1].xR),  [ 7,  8, -9, 10, 11, 12, 0, -11])
 
         self.assertEqual(list(ans.U.b),       [-67, -71, -91, 4.])
         self.assertEqual(list(ans.L[0].b),    [-74, -75, -43, -83, 2])
         self.assertEqual(list(ans.L[1].b),    [-61, -61, -97, -85,  4])
 
+        self.assertEqual(soln_manager.multipliers_U, [[(0,1)], [(1,-1)], [(2,1)], [(3,1),(8,-1)]])
+        self.assertEqual(soln_manager.multipliers_L[0], [[(0,1)], [(1,-1)], [(2,1)], [(3,1),(10,-1)], [(4,1)]])
+        self.assertEqual(soln_manager.multipliers_L[1], [[(0,1)], [(1,1)], [(2,-1)], [(3,1)], [(4,1),(7,-1)], [(5,1)]])
+
+    def test_test1_inequality(self):
+        blp = LinearBilevelProblem()
+
+        U = blp.add_upper(nxR=4)
+        blp.add_lower(nxR=5)
+        L = blp.add_lower(nxR=6)
+
+        U.xR.lower_bounds    = [3,       np.NINF, 7, np.NINF]
+        U.xR.upper_bounds    = [np.PINF, 5,       11, np.PINF]
+
+        L[0].xR.lower_bounds = [5,       np.NINF, 11, np.NINF, 0]
+        L[0].xR.upper_bounds = [np.PINF, 7,       13, np.PINF, np.PINF]
+
+        L[1].xR.lower_bounds = [0,       7,       np.NINF, 13, np.NINF, 0]
+        L[1].xR.upper_bounds = [np.PINF, np.PINF, 11,      17, np.PINF, np.PINF]
+
+
+        U.c.U.xR    = [2, 3, 4, 5]
+        U.c.L[0].xR = [3, 4, 5, 6, 7]
+        U.c.L[1].xR = [4, 5, 6, 7, 8, 9]
+
+        U.inequalities = False
+        U.A.U.xR =    [(0,0,1), (0,1,1), (0,2,1), (0,3,1),
+                       (1,0,2),          (1,2,2),
+                                (2,1,3),          (2,3,3)
+                      ]
+        U.A.L[0].xR = [(0,0,1), (0,1,1), (0,2,1), (0,3,1), (0,4,1),
+                       (1,0,2),          (1,2,2),
+                                (2,1,3),          (2,3,3)
+                      ]
+        U.A.L[1].xR = [(0,0,1), (0,1,1), (0,2,1), (0,3,1), (0,4,1), (0,5,1),
+                       (1,0,2),          (1,2,2),
+                                (2,1,3),          (2,3,3)
+                      ]
+        U.b = [2,3,5]
+
+
+        L[0].c.U.xR    = [5, 6, 7, 8]
+        L[0].c.L[0].xR = [6, 7, 8, 9, 10]
+
+        L[0].inequalities = False
+        L[0].A.U.xR =    [(0,0,2), (0,1,2), (0,2,2), (0,3,2),
+                          (1,0,3),          (1,2,3),
+                                   (2,1,4),          (2,3,4),
+                                            (3,2,5)
+                         ]
+        L[0].A.L[0].xR = [(0,0,2), (0,1,2), (0,2,2), (0,3,2), (0,4,2),
+                          (1,0,3),          (1,2,3),
+                                   (2,1,4),          (2,3,4),
+                                            (3,2,5),          (3,4,5)
+                         ]
+        L[0].b = [2,3,5,7]
+
+        L[1].c.U.xR    = [5, 6, 7, 8]
+        L[1].c.L[1].xR = [7, 8, 9, 10, 11, 12]
+
+        L[1].inequalities = True
+        L[1].A.U.xR =    [(1,0,3),          (1,2,3),
+                                   (2,1,4),          (2,3,4),
+                                            (3,2,5)
+                         ]
+        L[1].A.L[1].xR = [(0,0,2), (0,1,2), (0,2,2), (0,3,2), (0,4,2), (0,5,2),
+                          (1,0,3),          (1,2,3),
+                                   (2,1,4),          (2,3,4),
+                                            (3,2,5),          (3,4,5)
+                         ]
+        L[1].b = [1,2,3,5]
+
+        #blp.print()
+        blp.check()
+
+        #print("-"*80)
+
+        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(blp, inequalities=True)
+        #ans.print()
+        ans.check()
+
+        # Just some sanity checks here
+        self.assertEqual(ans.U.d, 339)
+        self.assertEqual(ans.L[0].d, 261)
+        self.assertEqual(ans.L[1].d, 379)
+
+        self.assertEqual(list(ans.U.c.U.xR),        [ 2, -3,  4,  5,  -5])
+        self.assertEqual(list(ans.U.c.L[0].xR),     [ 3, -4,  5,  6,  7,  -6])
+        self.assertEqual(list(ans.U.c.L[1].xR),     [ 4,  5, -6,  7,  8,  9, -8])
+        self.assertEqual(list(ans.L[0].c.U.xR),     [ 5, -6,  7,  8,  -8])
+        self.assertEqual(list(ans.L[0].c.L[0].xR),  [ 6, -7,  8,  9, 10,  -9])
+        self.assertEqual(list(ans.L[1].c.U.xR),     [ 5, -6,  7,  8,  -8])
+        self.assertEqual(list(ans.L[1].c.L[1].xR),  [ 7,  8, -9, 10, 11, 12, -11])
+
+        self.assertEqual(list(ans.U.b),       [-67, -71, -91, 67, 71, 91, 4.])
+        self.assertEqual(list(ans.L[0].b),    [-74, -75, -43, -83, 74, 75, 43, 83, 2])
+        self.assertEqual(list(ans.L[1].b),    [-61, -61, -97, -85, 4])
+
         self.assertEqual(soln_manager.multipliers_U, [[(0,1)], [(1,-1)], [(2,1)], [(3,1),(4,-1)]])
         self.assertEqual(soln_manager.multipliers_L[0], [[(0,1)], [(1,-1)], [(2,1)], [(3,1),(5,-1)], [(4,1)]])
-        self.assertEqual(soln_manager.multipliers_L[1], [[(0,1)], [(1,1)], [(2,-1)], [(3,1)], [(4,1),(7,-1)], [(5,1)]])
+        self.assertEqual(soln_manager.multipliers_L[1], [[(0,1)], [(1,1)], [(2,-1)], [(3,1)], [(4,1),(6,-1)], [(5,1)]])
 
     def test_test2(self):
         blp = LinearBilevelProblem()
@@ -1239,20 +1507,20 @@ class Test_NonTrivial(unittest.TestCase):
         self.assertEqual(ans.L[0].d, -261)
         self.assertEqual(ans.L[1].d, 379)
 
-        self.assertEqual(list(ans.U.c.U.xR),        [-2,  3, -4, -5,  5,  0, 0,  0, 0])
-        self.assertEqual(list(ans.U.c.L[0].xR),     [-3,  4, -5, -6, -7,  6, 0,  0, 0, 0, 0])
+        self.assertEqual(list(ans.U.c.U.xR),        [-2,  3, -4, -5,  0, 0,  0, 0, 5])
+        self.assertEqual(list(ans.U.c.L[0].xR),     [-3,  4, -5, -6, -7,  0,  0, 0, 0, 0, 6])
         self.assertEqual(list(ans.U.c.L[1].xR),     [-4, -5,  6, -7, -8, -9, 0,  8])
-        self.assertEqual(list(ans.L[0].c.U.xR),     [-5,  6, -7, -8,  8,  0, 0,  0, 0])
-        self.assertEqual(list(ans.L[0].c.L[0].xR),  [-6,  7, -8, -9,-10,  9, 0,  0, 0, 0, 0])
-        self.assertEqual(list(ans.L[1].c.U.xR),     [ 5, -6,  7,  8, -8,  0, 0,  0, 0])
+        self.assertEqual(list(ans.L[0].c.U.xR),     [-5,  6, -7, -8,  0,  0, 0,  0, 8])
+        self.assertEqual(list(ans.L[0].c.L[0].xR),  [-6,  7, -8, -9,-10,  0, 0,  0, 0, 0, 9])
+        self.assertEqual(list(ans.L[1].c.U.xR),     [ 5, -6,  7,  8,  0,  0, 0,  0, -8])
         self.assertEqual(list(ans.L[1].c.L[1].xR),  [ 7,  8, -9, 10, 11, 12, 0, -11])
 
         self.assertEqual(list(ans.U.b),       [-67, -71, -91, 4.])
         self.assertEqual(list(ans.L[0].b),    [-74, -75, -43, -83, 2])
         self.assertEqual(list(ans.L[1].b),    [-61, -61, -97, -85,  4])
 
-        self.assertEqual(soln_manager.multipliers_U, [[(0,1)], [(1,-1)], [(2,1)], [(3,1),(4,-1)]])
-        self.assertEqual(soln_manager.multipliers_L[0], [[(0,1)], [(1,-1)], [(2,1)], [(3,1),(5,-1)], [(4,1)]])
+        self.assertEqual(soln_manager.multipliers_U, [[(0,1)], [(1,-1)], [(2,1)], [(3,1),(8,-1)]])
+        self.assertEqual(soln_manager.multipliers_L[0], [[(0,1)], [(1,-1)], [(2,1)], [(3,1),(10,-1)], [(4,1)]])
         self.assertEqual(soln_manager.multipliers_L[1], [[(0,1)], [(1,1)], [(2,-1)], [(3,1)], [(4,1),(7,-1)], [(5,1)]])
 
 

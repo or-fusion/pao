@@ -18,6 +18,14 @@ class SimplifiedList(collections.abc.MutableSequence):
         self._clone = clone
         self._data = []
 
+    def clone(self):
+        ans = SimplifiedList(clone=self._clone)
+        try:
+            ans._data = [ val.clone() for val in self._data ]
+        except:
+            ans._data = [ copy.copy(val) for val in self._data ]
+        return ans
+
     def insert(self, i, val):
         self._data.insert(i, val)
 
@@ -63,6 +71,11 @@ class LevelVariable(object):
         self.lower_bounds = lb
         self.upper_bounds = ub
 
+    def clone(self):
+        ans = LevelVariable(self.num, self.lower_bounds, self.upper_bounds)
+        ans.values = copy.copy(self.values)
+        return ans
+
     def __len__(self):
         return self.num
 
@@ -70,11 +83,37 @@ class LevelVariable(object):
         for i in range(self.num):
             yield i
 
-    def resize(self, num):
-        if self.num != num:
-            self.lower_bounds = None
-            self.upper_bounds = None
+    def resize(self, num, lb=np.NINF, ub=np.PINF):
+        if num == self.num:
+            return
+        curr_num = self.num
         self.num = num
+        if num > curr_num:
+            tmp = self.lower_bounds
+            self.lower_bounds = np.array([np.NINF]*num)
+            if tmp is not None:
+                for i in range(curr_num):
+                    self.lower_bounds[i] = tmp[i]
+            for i in range(curr_num, num):
+                self.lower_bounds[i] = lb
+            tmp = self.upper_bounds
+            self.upper_bounds = np.array([np.PINF]*num)
+            if tmp is not None:
+                for i in range(curr_num):
+                    self.upper_bounds[i] = tmp[i]
+            for i in range(curr_num, num):
+                self.upper_bounds[i] = ub
+        else:
+            tmp = self.lower_bounds
+            self.lower_bounds = np.array([np.NINF]*num)
+            if tmp is not None:
+                for i in range(num):
+                    self.lower_bounds[i] = tmp[i]
+            tmp = self.upper_bounds
+            self.upper_bounds = np.array([np.PINF]*num)
+            if tmp is not None:
+                for i in range(num):
+                    self.upper_bounds[i] = tmp[i]
         self.values = [None]*num
 
     def print(self, type):                  # pragma: no cover
@@ -92,13 +131,13 @@ class LevelVariable(object):
     def __setattr__(self, name, value):
         if name == 'lower_bounds' and value is not None:
             # Add this check in the model checks
-            #assert (value.size == self.num), "The variable has length %s but specifying a lower bounds with length %s" % (str(self.num), str(value.size))
+            assert (len(value) == self.num), "The variable has length %s but specifying a lower bounds with length %s" % (str(self.num), str(len(value)))
             if type(value) is list:
                 value = np.array(value)
             super().__setattr__(name, value)
         elif name == 'upper_bounds' and value is not None:
             # Add this check in the model checks
-            #assert (value.size == self.num), "The variable has length %s but specifying a upper bounds with length %s" % (str(self.num), str(value.size))
+            assert (len(value) == self.num), "The variable has length %s but specifying a upper bounds with length %s" % (str(self.num), str(len(value)))
             if type(value) is list:
                 value = np.array(value)
             super().__setattr__(name, value)
@@ -113,6 +152,24 @@ class LevelValues(object):
         self.xR = None
         self.xZ = None
         self.xB = None
+
+    def clone(self):
+        ans = LevelValues(matrix=self._matrix)
+        if self._matrix:
+            if self.xR is not None:
+                ans.xR = self.xR.copy()
+            if self.xZ is not None:
+                ans.xZ = self.xZ.copy()
+            if self.xB is not None:
+                ans.xB = self.xB.copy()
+        else:
+            if self.xR is not None:
+                ans.xR = np.copy(self.xR)
+            if self.xZ is not None:
+                ans.xZ = np.copy(self.xZ)
+            if self.xB is not None:
+                ans.xB = np.copy(self.xB)
+        return ans
 
     def set_values(self, xB=None, xR=None, xZ=None):
         self.xR = xR
@@ -166,7 +223,7 @@ class LevelValues(object):
                 print("    %s:" % name)
                 if value.size:
                     print("        shape: %d %d" % (value.shape[0], value.shape[1]))
-                print("        nonzeors:")
+                print("        nonzeros:")
                 for row in str(value).split('\n'):
                     print("        "+row)
             else:
@@ -179,6 +236,12 @@ class LevelValueWrapper(object):
         setattr(self, '_matrix', matrix)
         setattr(self, '_values', {})
         setattr(self, '_prefix', prefix)
+
+    def clone(self):
+        ans = LevelValueWrapper(self._prefix, matrix=self._matrix)
+        for name in self._values:
+            ans._values[name] = self._values[name].clone()
+        return ans
 
     def __len__(self):
         _values = getattr(self, '_values')
@@ -236,13 +299,35 @@ class LinearLevelRepn(object):
         self.xR = LevelVariable(nxR)    # continuous variables at this level
         self.xZ = LevelVariable(nxZ)    # integer variables at this level
         self.xB = LevelVariable(nxB)    # binary variables at this level
-        self.minimize = True            # sense of the objective at this level
         self.c = LevelValueWrapper("c") # objective coefficients at this level
-        self.d = 0                      # constant in objective at this level
         self.A = LevelValueWrapper("A",
                         matrix=True)    # constraint matrices at this level
         self.b = np.ndarray(0)          # RHS of the constraints
+        self.minimize = True            # sense of the objective at this level
         self.inequalities = True        # If True, the constraints are inequalities
+        self.d = 0                      # constant in objective at this level
+
+    def clone(self):
+        ans = LinearLevelRepn(0,0,0)
+        ans.xR = self.xR.clone()
+        ans.xZ = self.xZ.clone()
+        ans.xB = self.xB.clone()
+        ans.c = self.c.clone()
+        ans.A = self.A.clone()
+        ans.b = np.copy(self.b)
+        ans.minimize = self.minimize
+        ans.inequalities = self.inequalities
+        ans.d = self.d
+        # TODO - Should we allow users to annotate these objects with other data?
+        for attr in dir(self):
+            if attr in ['xR', 'xZ', 'xB', 'c', 'A', 'b', 'minimize', 'inequalities', 'd']:
+                continue
+            if attr in ['clone', 'print']:    # methods
+                continue
+            if attr.startswith('_'):
+                continue
+            setattr(ans, attr, copy.copy(getattr(self, attr)))
+        return ans
 
     def print(self, *args, nL=0):       # pragma: no cover
         print("Variables:")
@@ -309,6 +394,13 @@ class LinearBilevelProblem(object):
     def add_lower(self, *, nxR=0, nxZ=0, nxB=0):
         self.L.append( LinearLevelRepn(nxR, nxZ, nxB) )
         return self.L
+
+    def clone(self):
+        ans = LinearBilevelProblem()
+        ans.name = self.name
+        ans.U = self.U.clone()
+        ans.L = self.L.clone()
+        return ans
 
     def print(self):                            # pragma: no cover
         nL = len(self.L)
@@ -392,6 +484,8 @@ class LinearBilevelProblem(object):
         else:
             nr = U.b.size
             if U.A.U.xR is not None:
+                if nr != U.A.U.xR.shape[0]:
+                    print("X", nr, U.A.U.xR.shape[0])
                 assert (nr == U.A.U.xR.shape[0]), "Incompatible specification of U.b and U.A.U.xR"
             if U.A.U.xZ is not None:
                 assert (nr == U.A.U.xZ.shape[0]), "Incompatible specification of U.b and U.A.U.xZ"
