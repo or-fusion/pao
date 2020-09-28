@@ -201,37 +201,62 @@ def _process_changes(changes, nxR, c, d, A, b, add_rows=False):
     return c, d, A.tocoo(), b
 
 
-def convert_to_nonnegative_variables(ans, inequalities):
+def convert_to_nonnegative_variables(ans, inequalities, real=True):
+    if real:
+        vstr='xR'
+    else:
+        vstr='xZ'
     #
     # Collect real variables that are changing
     #
-    changes_U, nR = _find_nonpositive_variables(ans.U.xR, inequalities)
-    ans.U.xR.resize(nR)
-    ans.U.xR.lower_bounds = np.zeros(nR)
+    UxV = getattr(ans.U, vstr)
+    changes_U, nV = _find_nonpositive_variables(UxV, inequalities, real=real)
+    UxV.resize(nV)
+    UxV.lower_bounds = np.zeros(nV)
     changes_L = {}
     for i in range(len(ans.L)):
-        changes_L_, nR = _find_nonpositive_variables(ans.L[i].xR, inequalities)
-        ans.L[i].xR.resize(nR)
-        ans.L[i].xR.lower_bounds = np.zeros(nR)
+        LxV = getattr(ans.L[i], vstr)
+        changes_L_, nV = _find_nonpositive_variables(LxV, inequalities, real=real)
+        LxV.resize(nV)
+        LxV.lower_bounds = np.zeros(nV)
         changes_L[i] = changes_L_
     #
     # Process changes related to upper-level variables
     #
     if len(changes_U) > 0:
-        ans.U.c.U.xR, ans.U.d, ans.U.A.U.xR, ans.U.b = \
-                _process_changes(changes_U, len(ans.U.xR), ans.U.c.U.xR, ans.U.d, ans.U.A.U.xR, ans.U.b, add_rows=True)
+        UxV = getattr(ans.U, vstr)
+        UcUxV = getattr(ans.U.c.U, vstr)
+        UAUxV = getattr(ans.U.A.U, vstr)
+        UcUxV, ans.U.d, UAUxV, ans.U.b = \
+                _process_changes(changes_U, len(UxV), UcUxV, ans.U.d, UAUxV, ans.U.b, add_rows=True)
+        setattr(ans.U.c.U, vstr, UcUxV)
+        setattr(ans.U.A.U, vstr, UAUxV)
         for i,L in enumerate(ans.L):
-            ans.L[i].c.U.xR, ans.L[i].d, ans.L[i].A.U.xR, ans.L[i].b = \
-                _process_changes(changes_U, len(ans.U.xR), L.c.U.xR, L.d, L.A.U.xR, L.b)
+            LcUxV = getattr(ans.L[i].c.U, vstr)
+            LAUxV = getattr(ans.L[i].A.U, vstr)
+            LcUxV, ans.L[i].d, LAUxV, ans.L[i].b = \
+                _process_changes(changes_U, len(UxV), LcUxV, L.d, LAUxV, L.b)
+            setattr(ans.L[i].c.U, vstr, LcUxV)
+            setattr(ans.L[i].A.U, vstr, LAUxV)
     #
     # Process changes related to lower-level variables
     #
     for i,L in enumerate(ans.L):
+        LxV = getattr(ans.L[i], vstr)
         if len(changes_L[i]) > 0:
-            ans.U.c.L[i].xR, ans.U.d, ans.U.A.L[i].xR, ans.U.b = \
-                    _process_changes(changes_L[i], len(ans.L[i].xR), ans.U.c.L[i].xR, ans.U.d, ans.U.A.L[i].xR, ans.U.b)
-            ans.L[i].c.L[i].xR, ans.L[i].d, ans.L[i].A.L[i].xR, ans.L[i].b = \
-                    _process_changes(changes_L[i], len(ans.L[i].xR), L.c.L[i].xR, ans.L[i].d, L.A.L[i].xR, ans.L[i].b, add_rows=True)
+            UcLxV = getattr(ans.U.c.L[i], vstr)
+            UALxV = getattr(ans.U.A.L[i], vstr)
+            UcLxV, ans.U.d, UALxV, ans.U.b = \
+                    _process_changes(changes_L[i], len(LxV), UcLxV, ans.U.d, UALxV, ans.U.b)
+            setattr(ans.U.c.L[i], vstr, UcLxV)
+            setattr(ans.U.A.L[i], vstr, UALxV)
+            #
+            LcLxV = getattr(ans.L[i].c.L[i], vstr)
+            LALxV = getattr(ans.L[i].A.L[i], vstr)
+            LcLxV, ans.L[i].d, LALxV, ans.L[i].b = \
+                    _process_changes(changes_L[i], len(LxV), LcLxV, ans.L[i].d, LALxV, ans.L[i].b, add_rows=True)
+            setattr(ans.L[i].c.L[i], vstr, LcLxV)
+            setattr(ans.L[i].A.L[i], vstr, LALxV)
     #
     # Resize constraint matrices
     #
@@ -239,10 +264,10 @@ def convert_to_nonnegative_variables(ans, inequalities):
     # upper/lower constraint matrices need to be resized as well.
     #
     for i in range(len(ans.L)):
-        if ans.U.A.L[i].xR is not None:
-            ans.U.A.L[i].xR.resize( [len(ans.U.b), len(ans.L[i].xR)] )
-        if ans.L[i].A.U.xR is not None:
-            ans.L[i].A.U.xR.resize( [len(ans.L[i].b), len(ans.U.xR)] )
+        if getattr(ans.U.A.L[i], vstr) is not None:
+            getattr(ans.U.A.L[i], vstr).resize( [len(ans.U.b), len(getattr(ans.L[i], vstr))] )
+        if getattr(ans.L[i].A.U, vstr) is not None:
+            getattr(ans.L[i].A.U, vstr).resize( [len(ans.L[i].b), len(getattr(ans.U, vstr))] )
     #
     return changes_U, changes_L
 
@@ -389,6 +414,30 @@ def convert_constraints(ans, inequalities):
         ans.L[i].inequalities = inequalities
 
 
+def get_multipliers(lbp, changes_U, changes_L, real=True):
+    if real:
+        vstr = 'xR'
+    else:
+        vstr = 'xZ'
+    # 
+    # If there were no changes, then the multiplier is 1
+    #
+    multipliers_U =   [[(i,1)] for i in getattr(lbp.U, vstr)]
+    multipliers_L = [ [[(i,1)] for i in getattr(lbp.L[j], vstr)] for j in range(len(lbp.L)) ]
+    for chg in changes_U:
+        if type(chg) is VChangeUpperBound:
+            multipliers_U[ chg.v ] = [(chg.v,-1)]
+        elif type(chg) is VChangeUnbounded:
+            multipliers_U[ chg.v ] = [(chg.v,1), (chg.w,-1)]
+    for i in changes_L:
+        for chg in changes_L[i]:
+            if type(chg) is VChangeUpperBound:
+                multipliers_L[i][ chg.v ] = [(chg.v,-1)]
+            elif type(chg) is VChangeUnbounded:
+                multipliers_L[i][ chg.v ] = [(chg.v,1), (chg.w,-1)]
+    return multipliers_U, multipliers_L
+
+
 def convert_LinearBilevelProblem_to_standard_form(lbp, inequalities=False):
     """
     After applying this transformation, the problem has the form:
@@ -408,31 +457,18 @@ def convert_LinearBilevelProblem_to_standard_form(lbp, inequalities=False):
     #
     # Convert to the required constraint form
     #
-    #ans.print()
-    #print("-"*80)
     convert_constraints(ans, inequalities)
     #
     # Normalize variables
     #
-    changes_U, changes_L = convert_to_nonnegative_variables(ans, inequalities)
+    changes_UxR, changes_LxR = convert_to_nonnegative_variables(ans, inequalities, real=True)
+    changes_UxZ, changes_LxZ = convert_to_nonnegative_variables(ans, inequalities, real=False)
     #
     # Setup multipliers that are used to convert variables back to the original model
     #
-    # If there were no changes, then the multiplier is 1
-    #
-    multipliers_U =   [[(i,1)] for i in lbp.U.xR]
-    multipliers_L = [ [[(i,1)] for i in lbp.L[j].xR] for j in range(len(lbp.L)) ]
-    for chg in changes_U:
-        if type(chg) is VChangeUpperBound:
-            multipliers_U[ chg.v ] = [(chg.v,-1)]
-        elif type(chg) is VChangeUnbounded:
-            multipliers_U[ chg.v ] = [(chg.v,1), (chg.w,-1)]
-    for i in changes_L:
-        for chg in changes_L[i]:
-            if type(chg) is VChangeUpperBound:
-                multipliers_L[i][ chg.v ] = [(chg.v,-1)]
-            elif type(chg) is VChangeUnbounded:
-                multipliers_L[i][ chg.v ] = [(chg.v,1), (chg.w,-1)]
-    #
-    return ans, LBP_SolutionManager( multipliers_U, multipliers_L )
+    multipliers_UxR, multipliers_LxR = get_multipliers(lbp, changes_UxR, changes_LxR, real=True)
+    multipliers_UxZ, multipliers_LxZ = get_multipliers(lbp, changes_UxZ, changes_LxZ, real=False)
+
+    return ans, LBP_SolutionManager( real=(multipliers_UxR, multipliers_LxR), 
+                                     integer=(multipliers_UxZ, multipliers_LxZ) )
 

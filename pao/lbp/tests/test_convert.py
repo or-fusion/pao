@@ -54,7 +54,7 @@ class Test_Trivial(unittest.TestCase):
         ans.check()
 
         self.assertEqual(ans.U.d, 0)
-        self.assertEqual(len(ans.U.c.U), len(blp.U.c.U)+1)
+        self.assertEqual(len(ans.U.c.U), len(blp.U.c.U)+3)
         self.assertEqual(len(ans.U.A.U), len(blp.U.A.U))
         self.assertEqual(len(ans.U.b), len(blp.U.b))
 
@@ -86,23 +86,23 @@ class Test_Trivial(unittest.TestCase):
         #ans.print()
 
         self.assertEqual(ans.U.d, 0)
-        self.assertEqual(len(ans.U.c.U), len(blp.U.c.U)+1)
+        self.assertEqual(len(ans.U.c.U), len(blp.U.c.U)+3)
         self.assertEqual(len(ans.U.A.U), len(blp.U.A.U))
         self.assertEqual(len(ans.U.b), len(blp.U.b))
-        self.assertEqual(len(ans.L[0].c.L[0]), len(blp.L[0].c.L[0])+1)
+        self.assertEqual(len(ans.L[0].c.L[0]), len(blp.L[0].c.L[0])+3)
 
         self.assertEqual(list(ans.U.c.U.xR), [-1,1])
-        self.assertEqual(list(ans.U.c.U.xZ), [-1,-1])
+        self.assertEqual(list(ans.U.c.U.xZ), [-1,-1,1,1])
         self.assertEqual(list(ans.U.c.U.xB), [-1,-1,-1])
         self.assertEqual(list(ans.U.c.L.xR), [-2,2])
-        self.assertEqual(list(ans.U.c.L.xZ), [-2,-2])
+        self.assertEqual(list(ans.U.c.L.xZ), [-2,-2,2,2])
         self.assertEqual(list(ans.U.c.L.xB), [-2,-2,-2])
 
         self.assertEqual(list(ans.L.c.U.xR), [-3,3])
-        self.assertEqual(list(ans.L.c.U.xZ), [-3,-3])
+        self.assertEqual(list(ans.L.c.U.xZ), [-3,-3,3,3])
         self.assertEqual(list(ans.L.c.U.xB), [-3,-3,-3])
         self.assertEqual(list(ans.L.c.L.xR), [-4,4])
-        self.assertEqual(list(ans.L.c.L.xZ), [-4,-4])
+        self.assertEqual(list(ans.L.c.L.xZ), [-4,-4,4,4])
         self.assertEqual(list(ans.L.c.L.xB), [-4,-4,-4])
 
     def test_trivial3(self):
@@ -122,7 +122,7 @@ class Test_Trivial(unittest.TestCase):
         ans.check()
 
         self.assertEqual(ans.U.d, 0)
-        self.assertEqual(len(ans.U.c.U), len(blp.U.c.U)+1)
+        self.assertEqual(len(ans.U.c.U), len(blp.U.c.U)+3)
         self.assertEqual(len(ans.U.A.U), len(blp.U.A.U))
         self.assertEqual(len(ans.U.b), len(blp.U.b))
         self.assertEqual(ans.L.d, 0)
@@ -157,12 +157,12 @@ class Test_Trivial(unittest.TestCase):
         ans.check()
 
         self.assertEqual(ans.U.d, 0)
-        self.assertEqual(len(ans.U.c.U), len(blp.U.c.U)+1)
+        self.assertEqual(len(ans.U.c.U), len(blp.U.c.U)+3)
         self.assertEqual(len(ans.U.A.U), len(blp.U.A.U))
         self.assertEqual(len(ans.U.b), len(blp.U.b))
 
         self.assertEqual(ans.L.d, 0)
-        self.assertEqual(len(ans.L.c.U), len(blp.L.c.U)+1)
+        self.assertEqual(len(ans.L.c.U), len(blp.L.c.U)+3)
         self.assertEqual(len(ans.L.A.U), len(blp.L.A.U))
         self.assertEqual(len(ans.L.b), len(blp.L.b))
 
@@ -1321,9 +1321,9 @@ class Test_NonTrivial(unittest.TestCase):
         self.assertEqual(list(ans.L[0].b),    [-74, -75, -43, -83, 2])
         self.assertEqual(list(ans.L[1].b),    [-61, -61, -97, -85,  4])
 
-        self.assertEqual(soln_manager.multipliers_U, [[(0,1)], [(1,-1)], [(2,1)], [(3,1),(8,-1)]])
-        self.assertEqual(soln_manager.multipliers_L[0], [[(0,1)], [(1,-1)], [(2,1)], [(3,1),(10,-1)], [(4,1)]])
-        self.assertEqual(soln_manager.multipliers_L[1], [[(0,1)], [(1,1)], [(2,-1)], [(3,1)], [(4,1),(7,-1)], [(5,1)]])
+        self.assertEqual(soln_manager.multipliers_UxR, [[(0,1)], [(1,-1)], [(2,1)], [(3,1),(8,-1)]])
+        self.assertEqual(soln_manager.multipliers_LxR[0], [[(0,1)], [(1,-1)], [(2,1)], [(3,1),(10,-1)], [(4,1)]])
+        self.assertEqual(soln_manager.multipliers_LxR[1], [[(0,1)], [(1,1)], [(2,-1)], [(3,1)], [(4,1),(7,-1)], [(5,1)]])
 
     def test_test1_inequality(self):
         blp = LinearBilevelProblem()
@@ -1419,9 +1419,9 @@ class Test_NonTrivial(unittest.TestCase):
         self.assertEqual(list(ans.L[0].b),    [-74, -75, -43, -83, 74, 75, 43, 83, 2])
         self.assertEqual(list(ans.L[1].b),    [-61, -61, -97, -85, 4])
 
-        self.assertEqual(soln_manager.multipliers_U, [[(0,1)], [(1,-1)], [(2,1)], [(3,1),(4,-1)]])
-        self.assertEqual(soln_manager.multipliers_L[0], [[(0,1)], [(1,-1)], [(2,1)], [(3,1),(5,-1)], [(4,1)]])
-        self.assertEqual(soln_manager.multipliers_L[1], [[(0,1)], [(1,1)], [(2,-1)], [(3,1)], [(4,1),(6,-1)], [(5,1)]])
+        self.assertEqual(soln_manager.multipliers_UxR, [[(0,1)], [(1,-1)], [(2,1)], [(3,1),(4,-1)]])
+        self.assertEqual(soln_manager.multipliers_LxR[0], [[(0,1)], [(1,-1)], [(2,1)], [(3,1),(5,-1)], [(4,1)]])
+        self.assertEqual(soln_manager.multipliers_LxR[1], [[(0,1)], [(1,1)], [(2,-1)], [(3,1)], [(4,1),(6,-1)], [(5,1)]])
 
     def test_test2(self):
         blp = LinearBilevelProblem()
@@ -1519,9 +1519,9 @@ class Test_NonTrivial(unittest.TestCase):
         self.assertEqual(list(ans.L[0].b),    [-74, -75, -43, -83, 2])
         self.assertEqual(list(ans.L[1].b),    [-61, -61, -97, -85,  4])
 
-        self.assertEqual(soln_manager.multipliers_U, [[(0,1)], [(1,-1)], [(2,1)], [(3,1),(8,-1)]])
-        self.assertEqual(soln_manager.multipliers_L[0], [[(0,1)], [(1,-1)], [(2,1)], [(3,1),(10,-1)], [(4,1)]])
-        self.assertEqual(soln_manager.multipliers_L[1], [[(0,1)], [(1,1)], [(2,-1)], [(3,1)], [(4,1),(7,-1)], [(5,1)]])
+        self.assertEqual(soln_manager.multipliers_UxR, [[(0,1)], [(1,-1)], [(2,1)], [(3,1),(8,-1)]])
+        self.assertEqual(soln_manager.multipliers_LxR[0], [[(0,1)], [(1,-1)], [(2,1)], [(3,1),(10,-1)], [(4,1)]])
+        self.assertEqual(soln_manager.multipliers_LxR[1], [[(0,1)], [(1,1)], [(2,-1)], [(3,1)], [(4,1),(7,-1)], [(5,1)]])
 
 
 class Test_Examples(unittest.TestCase):
