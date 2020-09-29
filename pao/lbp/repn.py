@@ -446,23 +446,23 @@ class LinearBilevelProblem(object):
         #
         # Ncols of upper-level constraints
         #
-        assert ((U.A.U.xR is None) or (U.A.U.xR.shape[1] == len(U.xR)) or len(U.xR) == 0), "Incompatible specification of U.A.U.xR and U.xR"
-        assert ((U.A.U.xZ is None) or (U.A.U.xZ.shape[1] == len(U.xZ)) or len(U.xZ) == 0), "Incompatible specification of U.A.U.xZ and U.xZ"
-        assert ((U.A.U.xB is None) or (U.A.U.xB.shape[1] == len(U.xB)) or len(U.xB) == 0), "Incompatible specification of U.A.U.xB and U.xB"
+        assert ((U.A.U.xR is None) or (U.A.U.xR.shape[1] == len(U.xR))), "Incompatible specification of U.A.U.xR and U.xR"
+        assert ((U.A.U.xZ is None) or (U.A.U.xZ.shape[1] == len(U.xZ))), "Incompatible specification of U.A.U.xZ and U.xZ"
+        assert ((U.A.U.xB is None) or (U.A.U.xB.shape[1] == len(U.xB))), "Incompatible specification of U.A.U.xB and U.xB"
         for i in range(len(L)):
-            assert ((L[i].A.U.xR is None) or (L[i].A.U.xR.shape[1] == len(U.xR)) or len(U.xR) == 0), "Incompatible specification of L[%d].A.U.xR and U.xR" % i
-            assert ((L[i].A.U.xZ is None) or (L[i].A.U.xZ.shape[1] == len(U.xZ)) or len(U.xZ) == 0), "Incompatible specification of L[%d].A.U.xZ and U.xZ" % i
-            assert ((L[i].A.U.xB is None) or (L[i].A.U.xB.shape[1] == len(U.xB)) or len(U.xB) == 0), "Incompatible specification of L[%d].A.U.xB and U.xB" % i
+            assert ((L[i].A.U.xR is None) or (L[i].A.U.xR.shape[1] == len(U.xR))), "Incompatible specification of L[%d].A.U.xR and U.xR" % i
+            assert ((L[i].A.U.xZ is None) or (L[i].A.U.xZ.shape[1] == len(U.xZ))), "Incompatible specification of L[%d].A.U.xZ and U.xZ" % i
+            assert ((L[i].A.U.xB is None) or (L[i].A.U.xB.shape[1] == len(U.xB))), "Incompatible specification of L[%d].A.U.xB and U.xB" % i
         #
         # Ncols of lower-level constraints
         #
         for i in range(len(L)):
-            assert ((U.A.L[i].xR is None) or (U.A.L[i].xR.shape[1] == len(L[i].xR)) or len(L[i].xR) == 0), "Incompatible specification of U.A.L[%d].xR and L[%d].xR" % (i,i)
-            assert ((U.A.L[i].xZ is None) or (U.A.L[i].xZ.shape[1] == len(L[i].xZ)) or len(L[i].xZ) == 0), "Incompatible specification of U.A.L[%d].xZ and L[%d].xZ" % (i,i)
-            assert ((U.A.L[i].xB is None) or (U.A.L[i].xB.shape[1] == len(L[i].xB)) or len(L[i].xB) == 0), "Incompatible specification of U.A.L[%d].xB and L[%d].xB" % (i,i)
-            assert ((L[i].A.L[i].xR is None) or (L[i].A.L[i].xR.shape[1] == len(L[i].xR)) or len(L[i].xR) == 0), "Incompatible specification of L[%d].A.L[%d].xR and L[%d].xR" % (i,i,i)
-            assert ((L[i].A.L[i].xZ is None) or (L[i].A.L[i].xZ.shape[1] == len(L[i].xZ)) or len(L[i].xZ) == 0), "Incompatible specification of L[%d].A.L[%d].xZ and L[%d].xZ" % (i,i,i)
-            assert ((L[i].A.L[i].xB is None) or (L[i].A.L[i].xB.shape[1] == len(L[i].xB)) or len(L[i].xB) == 0), "Incompatible specification of L[%d].A.L[%d].xB and L[%d].xB" % (i,i,i)
+            assert ((U.A.L[i].xR is None) or (U.A.L[i].xR.shape[1] == len(L[i].xR))), "Incompatible specification of U.A.L[%d].xR and L[%d].xR" % (i,i)
+            assert ((U.A.L[i].xZ is None) or (U.A.L[i].xZ.shape[1] == len(L[i].xZ))), "Incompatible specification of U.A.L[%d].xZ and L[%d].xZ" % (i,i)
+            assert ((U.A.L[i].xB is None) or (U.A.L[i].xB.shape[1] == len(L[i].xB))), "Incompatible specification of U.A.L[%d].xB and L[%d].xB" % (i,i)
+            assert ((L[i].A.L[i].xR is None) or (L[i].A.L[i].xR.shape[1] == len(L[i].xR))), "Incompatible specification of L[%d].A.L[%d].xR and L[%d].xR" % (i,i,i)
+            assert ((L[i].A.L[i].xZ is None) or (L[i].A.L[i].xZ.shape[1] == len(L[i].xZ))), "Incompatible specification of L[%d].A.L[%d].xZ and L[%d].xZ" % (i,i,i)
+            assert ((L[i].A.L[i].xB is None) or (L[i].A.L[i].xB.shape[1] == len(L[i].xB))), "Incompatible specification of L[%d].A.L[%d].xB and L[%d].xB" % (i,i,i)
         #
         # Nrows of upper-level constraints
         #

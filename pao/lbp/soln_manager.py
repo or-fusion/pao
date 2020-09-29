@@ -11,39 +11,42 @@ class LBP_SolutionManager(object):
             self.multipliers_UxZ = integer[0]
             self.multipliers_LxZ = integer[1]
 
-    def copy_from_to(self, M, repn):
-        # repn.U
-        for j in repn.U.xR:
-            repn.U.xR.values[j] = sum(pe.value(M.U.xR[v]) * c for v,c in self.multipliers_UxR[j])
-        for j in repn.U.xZ:
-            repn.U.xZ.values[j] = sum(pe.value(M.U.xZ[v]) * c for v,c in self.multipliers_UxZ[j])
-        if M.U.xB is not None:
-            if len(M.U.xB) == 0:
+    def copy_from_to(self, UxR=None, UxZ=None, UxB=None, LxR=None, LxZ=None, LxB=None, pyomo=None, lbp=None):
+        if pyomo is not None:
+            return self.copy_from_to(UxR=pyomo.U.xR, UxZ=pyomo.U.xZ, UxB=pyomo.U.xB, LxR=pyomo.L.xR, LxZ=pyomo.L.xZ, LxB=pyomo.L.xB, lbp=lbp)
+
+        # lbp.U
+        for j in lbp.U.xR:
+            lbp.U.xR.values[j] = sum(pe.value(UxR[v]) * c for v,c in self.multipliers_UxR[j])
+        for j in lbp.U.xZ:
+            lbp.U.xZ.values[j] = sum(pe.value(UxZ[v]) * c for v,c in self.multipliers_UxZ[j])
+        if UxB is not None:
+            if len(UxB) == 0:
                 # Binaries are at the end of the integers
-                nxZ = len(repn.U.xZ)
-                for j in repn.U.xB:
-                    repn.U.xB.values[j] = pe.value(M.U.xZ[nxZ+j])
+                nxZ = len(lbp.U.xZ)
+                for j in lbp.U.xB:
+                    lbp.U.xB.values[j] = pe.value(UxZ[nxZ+j])
             else:
-                for j in repn.U.xB:
-                    repn.U.xB.values[j] = pe.value(M.U.xB[j])
+                for j in lbp.U.xB:
+                    lbp.U.xB.values[j] = pe.value(UxB[j])
         #
         # TODO: Handle multiple subproblems within Pyomo models
         #
-        # repn.L[i]
-        for i in range(len(repn.L)):
-            for j in repn.L[i].xR:
-                repn.L[i].xR.values[j] = sum(pe.value(M.L.xR[v]) * c for v,c in self.multipliers_LxR[i][j])
-            for j in repn.L[i].xZ:
-                repn.L[i].xZ.values[j] = sum(pe.value(M.L.xZ[v]) * c for v,c in self.multipliers_LxZ[i][j])
-            if M.L.xB is not None:
-                if len(M.L[i].xB) == 0:
+        # lbp.L[i]
+        for i in range(len(lbp.L)):
+            for j in lbp.L[i].xR:
+                lbp.L[i].xR.values[j] = sum(pe.value(LxR[v]) * c for v,c in self.multipliers_LxR[i][j])
+            for j in lbp.L[i].xZ:
+                lbp.L[i].xZ.values[j] = sum(pe.value(LxZ[v]) * c for v,c in self.multipliers_LxZ[i][j])
+            if LxB is not None:
+                if len(LxB) == 0:
                     # Binaries are at the end of the integers
-                    nxZ = len(repn.L[i].xZ)
-                    for j in repn.L[i].xB:
-                        repn.L[i].xB.values[j] = pe.value(M.L[i].xZ[nxZ+j])
+                    nxZ = len(lbp.L[i].xZ)
+                    for j in lbp.L[i].xB:
+                        lbp.L[i].xB.values[j] = pe.value(LxZ[nxZ+j])
                 else:
-                    for j in repn.L[i].xB:
-                        repn.L[i].xB.values[j] = pe.value(M.L.xB[j])
+                    for j in lbp.L[i].xB:
+                        lbp.L[i].xB.values[j] = pe.value(LxB[j])
 
     def load_from(self, data):
         # TODO - should we copy the data from a Pyomo model?  or a Pyomo results object?

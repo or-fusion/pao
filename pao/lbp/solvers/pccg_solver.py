@@ -19,6 +19,18 @@ from pyomo.mpec import *
 
 infinity = float('inf')
 
+def mat2dict(m):
+    if m is None:
+        return {}
+    cx = m.tocoo()    
+    return {(i,j):float(v) for i,j,v in zip(cx.row, cx.col, cx.data)}
+
+def array2dict(m):
+    if m is None:
+        return {}
+    return {i:float(m[i]) for i in range(len(m))}
+
+
 def create_pyomo_model(lbp, M):
     '''
     Parameter Import
@@ -32,32 +44,34 @@ def create_pyomo_model(lbp, M):
     coefficient vectors and matrices should be dictionaries (with tuples for matrices)
     variable size should be floats
     '''
+    lbp.print()
     #from ToyExample1 import mU, nL, nR, nZ, mR, mZ, AR, AZ, BR, BZ, cR, cZ, dR, dZ, PR, PZ, s, QR, QZ, wR, wZ, r
     mU = len(lbp.U.b)
-    nR = len(lbp.U.xR)
-    nZ = len(lbp.U.xZ)
-    AR = lbp.U.A.U.xR
-    AZ = lbp.U.A.U.xZ
-    BR = lbp.U.A.L.xR
-    BZ = lbp.U.A.L.xR
-    r = lbp.U.b
-    cR = lbp.U.c.U.xR
-    cZ = lbp.U.c.U.xZ
-    dR = lbp.U.c.L.xR
-    dZ = lbp.U.c.L.xZ
-
+    mR = len(lbp.U.xR)
+    mZ = len(lbp.U.xZ)
     nL = len(lbp.L.b)
     nR = len(lbp.L.xR)
     nZ = len(lbp.L.xZ)
-    PR = lbp.L.A.U.xR
-    PZ = lbp.L.A.U.xZ
-    QR = lbp.L.A.L.xR
-    QZ = lbp.L.A.L.xR
-    s = lbp.L.b
+
+    AR = mat2dict(lbp.U.A.U.xR)
+    AZ = mat2dict(lbp.U.A.U.xZ)
+    BR = mat2dict(lbp.U.A.L.xR)
+    BZ = mat2dict(lbp.U.A.L.xZ)
+    r = array2dict(lbp.U.b)
+    cR = array2dict(lbp.U.c.U.xR)
+    cZ = array2dict(lbp.U.c.U.xZ)
+    dR = array2dict(lbp.U.c.L.xR)
+    dZ = array2dict(lbp.U.c.L.xZ)
+
+    PR = mat2dict(lbp.L.A.U.xR)
+    PZ = mat2dict(lbp.L.A.U.xZ)
+    QR = mat2dict(lbp.L.A.L.xR)
+    QZ = mat2dict(lbp.L.A.L.xZ)
+    s = array2dict(lbp.L.b)
     #wR = lbp.L.c.U.xR
     #wZ = lbp.L.c.U.xZ
-    wR = lbp.L.c.L.xR
-    wZ = lbp.L.c.L.xZ
+    wR = array2dict(lbp.L.c.L.xR)
+    wZ = array2dict(lbp.L.c.L.xZ)
     '''
     mU number of upper level constraints
     mR number of upper level continuous variables
@@ -232,87 +246,6 @@ def create_pyomo_model(lbp, M):
 
     Parent.Master.DisjunctionBlock=Block(Any)
 
-    def Master_add(Parent,k): #function for adding constraints on each iteration
-        #(79)
-        
-        Parent.Master.CompBlock2[k].c_comp=ComplementarityList()
-        for i in Parent.nLset:
-            r_value= (sum(Parent.PR[(i,j)]*Parent.Master.x[(j,k)] for j in Parent.nRset)-
-                      Parent.Master.t[(i,k)])
-            l_value= (Parent.s[i]-
-                      sum(Parent.QR[(i,j)]*Parent.Master.xu[j] for j in Parent.mRset)-
-                      sum(Parent.QZ[(i,j)]*Parent.Master.yu[j] for j in Parent.mZset)-
-                      sum(Parent.PZ[(i,j)]*Parent.Master.Y[(j,k)] for j in Parent.nZset)) 
-        
-            Parent.Master.c_col.add(l_value-r_value >= Parent.zero)
-        
-        for i in Parent.nRset:  
-            Parent.Master.c_col.add(sum(Parent.PR[(j,i)]*Parent.Master.lam[(j,k)] for j in Parent.nLset)>=Parent.zero)
-            Parent.Master.CompBlock2[k].c_comp.add(complements(Parent.Master.x[(i,k)]>=0, 
-                                                                 sum(Parent.PR[(j,i)]*Parent.Master.lam[(j,k)] for j in Parent.nLset)>=0)) #(83)  
-        
-        for i in Parent.nLset:
-            Parent.Master.c_col.add(1-Parent.Master.lam[(i,k)]>=Parent.zero)
-            Parent.Master.CompBlock2[k].c_comp.add(complements(1-Parent.Master.lam[(i,k)]>=0,Parent.Master.t[(i,k)]>=0)) #(84)
-        
-        for i in Parent.nLset:
-            Parent.Master.CompBlock2[k].c_comp.add(complements(Parent.Master.lam[(i,k)]>=0,(Parent.s[i]-
-                                                         sum(Parent.QR[(i,j)]*Parent.Master.xu[j] for j in Parent.mRset)-
-                                                         sum(Parent.QZ[(i,j)]*Parent.Master.yu[j] for j in Parent.mZset)-
-                                                         sum(Parent.PZ[(i,j)]*Parent.Master.Y[(j,k)] for j in Parent.nZset)-
-                                                         sum(Parent.PR[(i,j)]*Parent.Master.x[(j,k)] for j in Parent.nRset)+
-                                                         Parent.Master.t[(i,k)]>=0))) #(85)
-        
-        
-        
-        #TransformationFactory('mpec.simple_disjunction').apply_to(Parent.Master.CompBlock2[k]) #To get the complementarity not in disjunction
-        
-        #(82) Disjunction
-        Parent.Master.DisjunctionBlock[k].LH=Disjunct()
-        Parent.Master.DisjunctionBlock[k].BLOCK=Disjunct()
-        
-        
-        
-        Parent.Master.DisjunctionBlock[k].LH.cons=Constraint(expr= sum(Parent.Master.t[(j,k)] for j in Parent.nLset) >= epsilon) 
-        
-        Parent.Master.DisjunctionBlock[k].BLOCK.cons=ConstraintList()
-        
-        l_value = (sum(Parent.wR[j]*Parent.Master.xl0[j] for j in Parent.nRset)+
-                   sum(Parent.wZ[j]*Parent.Master.yl0[j] for j in Parent.nZset))
-        r_value = (sum(Parent.wR[j]*Parent.Master.x[(j,k)] for j in Parent.nRset)+
-                   sum(Parent.wZ[j]*Parent.Master.Y[(j,k)] for j in Parent.nZset))
-        Parent.Master.DisjunctionBlock[k].BLOCK.cons.add(l_value - r_value >= 0)  #(82a) 
-        
-        for i in Parent.nLset:
-            r_value = (Parent.s[i] - 
-                   sum(Parent.QR[(i,j)]*Parent.Master.xu[j] for j in Parent.mRset)-
-                   sum(Parent.QZ[(i,j)]*Parent.Master.yu[j] for j in Parent.mZset)-
-                   sum(Parent.PZ[(i,j)]*Parent.Master.Y[(j,k)] for j in Parent.nZset))
-            l_value = sum(Parent.PR[(i,j)]*Parent.Master.x[(j,k)] for j in Parent.nRset)#(82b)
-            
-            Parent.Master.DisjunctionBlock[k].BLOCK.cons.add(r_value-l_value >= 0)
-            
-        for j in Parent.nRset:
-            value= sum(Parent.PR[(i,j)]*Parent.Master.pi[(i,k)] for i in Parent.nLset)
-            Parent.Master.DisjunctionBlock[k].BLOCK.cons.add(value >= Parent.wR[j])#(82c1)
-        
-        Parent.Master.DisjunctionBlock[k].BLOCK.comp1=ComplementarityList(rule=(complements(Parent.Master.pi[(j,k)]>=0, 
-                                      (Parent.s[j]-
-                                       sum(Parent.QR[(j,i)]*Parent.Master.xu[i] for i in Parent.mRset)-
-                                       sum(Parent.QZ[(j,i)]*Parent.Master.yu[i] for i in Parent.mZset)-
-                                       sum(Parent.PR[(j,i)]*Parent.Master.x[(i,k)] for i in Parent.nRset)-
-                                       sum(Parent.PZ[(j,i)]*Parent.Master.Y[(i,k)] for i in Parent.nZset))>=0) for j in Parent.nLset)) #(82d)
-        
-        Parent.Master.DisjunctionBlock[k].BLOCK.comp2=ComplementarityList(rule=(complements(
-                Parent.Master.x[(j,k)]>=0,
-                sum(Parent.PR[(i,j)]*Parent.Master.pi[(i,k)] for i in Parent.nLset)-Parent.wR[j]>=0) for j in Parent.nRset)) #(82c2)
-        
-        
-        Parent.Master.DisjunctionBlock[k].c_disj=Disjunction(expr=[Parent.Master.DisjunctionBlock[k].LH, Parent.Master.DisjunctionBlock[k].BLOCK])
-        
-        #TransformationFactory('mpec.simple_disjunction').apply_to(
-        #    Parent.Master.DisjunctionBlock[k].BLOCK) #to get the complementarity in the disjunction
-        return Parent
 
     #Create parameters that will be updated on each iteration, initialized with coefficient vector of same size 
     Parent.xu_star=Param(Parent.mRset,initialize=cR,default=0,mutable=True)
@@ -398,11 +331,96 @@ def create_pyomo_model(lbp, M):
     Parent.sub2.c2=Constraint(Parent.mUset,rule=sub2_c2) #(59)
     Parent.sub2.c3=Constraint(rule=sub2_c3)
 
-    def UBnew(Parent):
-        UBnew=(sum(Parent.cR[j]*Parent.xu_star[j] for j in range(mR))+
-            sum(Parent.cZ[j]*Parent.yu_star[j] for j in range(mZ))+
-            Parent.Theta_0)
-        return UBnew
+    return Parent
+
+
+def Master_add(Parent, k, epsilon): #function for adding constraints on each iteration
+    #(79)
+    
+    Parent.Master.CompBlock2[k].c_comp=ComplementarityList()
+    for i in Parent.nLset:
+        r_value= (sum(Parent.PR[(i,j)]*Parent.Master.x[(j,k)] for j in Parent.nRset)-
+                  Parent.Master.t[(i,k)])
+        l_value= (Parent.s[i]-
+                  sum(Parent.QR[(i,j)]*Parent.Master.xu[j] for j in Parent.mRset)-
+                  sum(Parent.QZ[(i,j)]*Parent.Master.yu[j] for j in Parent.mZset)-
+                  sum(Parent.PZ[(i,j)]*Parent.Master.Y[(j,k)] for j in Parent.nZset)) 
+    
+        Parent.Master.c_col.add(l_value-r_value >= Parent.zero)
+    
+    for i in Parent.nRset:  
+        Parent.Master.c_col.add(sum(Parent.PR[(j,i)]*Parent.Master.lam[(j,k)] for j in Parent.nLset)>=Parent.zero)
+        Parent.Master.CompBlock2[k].c_comp.add(complements(Parent.Master.x[(i,k)]>=0, 
+                                                             sum(Parent.PR[(j,i)]*Parent.Master.lam[(j,k)] for j in Parent.nLset)>=0)) #(83)  
+    
+    for i in Parent.nLset:
+        Parent.Master.c_col.add(1-Parent.Master.lam[(i,k)]>=Parent.zero)
+        Parent.Master.CompBlock2[k].c_comp.add(complements(1-Parent.Master.lam[(i,k)]>=0,Parent.Master.t[(i,k)]>=0)) #(84)
+    
+    for i in Parent.nLset:
+        Parent.Master.CompBlock2[k].c_comp.add(complements(Parent.Master.lam[(i,k)]>=0,(Parent.s[i]-
+                                                     sum(Parent.QR[(i,j)]*Parent.Master.xu[j] for j in Parent.mRset)-
+                                                     sum(Parent.QZ[(i,j)]*Parent.Master.yu[j] for j in Parent.mZset)-
+                                                     sum(Parent.PZ[(i,j)]*Parent.Master.Y[(j,k)] for j in Parent.nZset)-
+                                                     sum(Parent.PR[(i,j)]*Parent.Master.x[(j,k)] for j in Parent.nRset)+
+                                                     Parent.Master.t[(i,k)]>=0))) #(85)
+    
+    
+    
+    #TransformationFactory('mpec.simple_disjunction').apply_to(Parent.Master.CompBlock2[k]) #To get the complementarity not in disjunction
+    
+    #(82) Disjunction
+    Parent.Master.DisjunctionBlock[k].LH=Disjunct()
+    Parent.Master.DisjunctionBlock[k].BLOCK=Disjunct()
+    
+    
+    
+    Parent.Master.DisjunctionBlock[k].LH.cons=Constraint(expr= sum(Parent.Master.t[(j,k)] for j in Parent.nLset) >= epsilon) 
+    
+    Parent.Master.DisjunctionBlock[k].BLOCK.cons=ConstraintList()
+    
+    l_value = (sum(Parent.wR[j]*Parent.Master.xl0[j] for j in Parent.nRset)+
+               sum(Parent.wZ[j]*Parent.Master.yl0[j] for j in Parent.nZset))
+    r_value = (sum(Parent.wR[j]*Parent.Master.x[(j,k)] for j in Parent.nRset)+
+               sum(Parent.wZ[j]*Parent.Master.Y[(j,k)] for j in Parent.nZset))
+    Parent.Master.DisjunctionBlock[k].BLOCK.cons.add(l_value - r_value >= 0)  #(82a) 
+    
+    for i in Parent.nLset:
+        r_value = (Parent.s[i] - 
+               sum(Parent.QR[(i,j)]*Parent.Master.xu[j] for j in Parent.mRset)-
+               sum(Parent.QZ[(i,j)]*Parent.Master.yu[j] for j in Parent.mZset)-
+               sum(Parent.PZ[(i,j)]*Parent.Master.Y[(j,k)] for j in Parent.nZset))
+        l_value = sum(Parent.PR[(i,j)]*Parent.Master.x[(j,k)] for j in Parent.nRset)#(82b)
+        
+        Parent.Master.DisjunctionBlock[k].BLOCK.cons.add(r_value-l_value >= 0)
+        
+    for j in Parent.nRset:
+        value= sum(Parent.PR[(i,j)]*Parent.Master.pi[(i,k)] for i in Parent.nLset)
+        Parent.Master.DisjunctionBlock[k].BLOCK.cons.add(value >= Parent.wR[j])#(82c1)
+    
+    Parent.Master.DisjunctionBlock[k].BLOCK.comp1=ComplementarityList(rule=(complements(Parent.Master.pi[(j,k)]>=0, 
+                                  (Parent.s[j]-
+                                   sum(Parent.QR[(j,i)]*Parent.Master.xu[i] for i in Parent.mRset)-
+                                   sum(Parent.QZ[(j,i)]*Parent.Master.yu[i] for i in Parent.mZset)-
+                                   sum(Parent.PR[(j,i)]*Parent.Master.x[(i,k)] for i in Parent.nRset)-
+                                   sum(Parent.PZ[(j,i)]*Parent.Master.Y[(i,k)] for i in Parent.nZset))>=0) for j in Parent.nLset)) #(82d)
+    
+    Parent.Master.DisjunctionBlock[k].BLOCK.comp2=ComplementarityList(rule=(complements(
+            Parent.Master.x[(j,k)]>=0,
+            sum(Parent.PR[(i,j)]*Parent.Master.pi[(i,k)] for i in Parent.nLset)-Parent.wR[j]>=0) for j in Parent.nRset)) #(82c2)
+    
+    
+    Parent.Master.DisjunctionBlock[k].c_disj=Disjunction(expr=[Parent.Master.DisjunctionBlock[k].LH, Parent.Master.DisjunctionBlock[k].BLOCK])
+    
+    #TransformationFactory('mpec.simple_disjunction').apply_to(
+    #    Parent.Master.DisjunctionBlock[k].BLOCK) #to get the complementarity in the disjunction
+    return Parent
+
+
+def UBnew(Parent):
+    return sum(Parent.cR[j]*Parent.xu_star[j] for j in Parent.cR) +\
+           sum(Parent.cZ[j]*Parent.yu_star[j] for j in Parent.cZ) +\
+           Parent.Theta_0
 
 
 def execute_PCCG_solver(lbp, config, results):
@@ -433,17 +451,17 @@ def execute_PCCG_solver(lbp, config, results):
             bigm_xfrm.apply_to(Parent.Master) 
             opt.solve(Parent.Master)
 
-            for i in range(mR):
+            for i in Parent.xu_star:
                 Parent.xu_star[i]=Parent.Master.xu[i].value    
-            for i in range(mZ):
+            for i in Parent.yu_star:
                 Parent.yu_star[i]=Parent.Master.yu[i].value    
-            for i in range(nR):
+            for i in Parent.xl0_star:
                 Parent.xl0_star[i]=Parent.Master.xl0[i].value
-            for i in range(nZ):
+            for i in Parent.yl0_star:
                 Parent.yl0_star[i]=Parent.Master.yl0[i].value
 
             LB=value(Parent.Master.Theta_star) 
-            print(f'Iteration {k}: Master Obj={LB}')
+            print(f'Iteration {k}: Master Obj={LB} UB={UB}')
             #Step 3: Terminate?
             if UB-LB <= xi: #Output
                 elapsed = time.time() - t
@@ -458,9 +476,9 @@ def execute_PCCG_solver(lbp, config, results):
                 raise RuntimeError("ERROR! ERROR! Subproblem 1: Could not find optimal solution")
             Parent.theta=value(Parent.sub1.theta)
 
-            for i in range(nR):
+            for i in Parent.xl_hat:
                 Parent.xl_hat[i]=Parent.sub1.xl[i].value 
-            for i in range(nZ):
+            for i in Parent.yl_hat:
                 Parent.yl_hat[i]=int(round(Parent.sub1.yl[i].value)) 
 
             
@@ -468,9 +486,9 @@ def execute_PCCG_solver(lbp, config, results):
             results2=opt.solve(Parent.sub2)
             
             if results2.solver.termination_condition==TerminationCondition.optimal: #If Optimal
-                for i in range(nR):
+                for i in Parent.xl_star:
                     Parent.xl_star[i]=Parent.sub2.xl[i].value
-                for i in range(nZ):
+                for i in Parent.yl_star:
                     Parent.yl_star[i]=int(round(Parent.sub2.yl[i].value))
                     Parent.yl_arc[i]=int(round(Parent.sub2.yl[i].value))
                 Parent.Theta_0=value(Parent.sub2.Theta_0)
@@ -479,17 +497,17 @@ def execute_PCCG_solver(lbp, config, results):
                 UB=min(UB,value(UBnew(Parent)))
                 
             elif results2.solver.termination_condition==TerminationCondition.infeasible or results2.solver.termination_condition==TerminationCondition.infeasibleOrUnbounded: #If infeasible
-                for i in range(nZ):
+                for i in Parent.yl_arc:
                     Parent.yl_arc[i]=Parent.yl_hat[i]  
             else: 
                  raise RuntimeError("ERROR! ERROR! Subproblem2 not infeasible or optimal solution not found: SOMETHING WENT VERY VERY WRONG") 
             
             #Step 6: Add new constraints
             k = k+1
-            for i in range(nZ):
+            for i in Parent.yl_arc:  #range(nZ):
                 Parent.Master.Y[(i,k)]=Parent.yl_arc[i] #Make sure yl_arc is int or else Master.Y rejects
             
-            Master_add(Parent,k)
+            Master_add(Parent, k, epsilon)
             #Step 7: Loop 
             #print(f'yu={Parent.Master.yu[1].value}')
             #print(f'xu={Parent.Master.xu[1].value}')
@@ -501,8 +519,17 @@ def execute_PCCG_solver(lbp, config, results):
     #Output Information regarding objective and time/iterations to convergence    
     elapsed = time.time() - t
         
+    results.solver.name = 'PCCG'
+    results.solver_time = elapsed
     if k>= maxit:
         print('Maximum Iterations Reached')
+        results.solver.termination_condition = TerminationCondition.maxIterations
     elif k< maxit and flag !=1:
         print(f'Optimal Solution Found in {k-1} iterations and {elapsed} seconds: Obj={UB}')
+        results.solver.termination_condition = TerminationCondition.optimal
+        results.best_feasible_objective = UB
 
+    results.problem.upper_bound = UB
+    results.problem.lower_bound = UB
+
+    return Parent.Master.xu, Parent.Master.yu, Parent.Master.xl0, Parent.Master.yl0

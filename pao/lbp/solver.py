@@ -13,7 +13,7 @@ class LinearBilevelSolverBase(pao.common.Solver):
     """
 
     def __init__(self, name):
-        super(pao.common.Solver, self).__init__()
+        super().__init__()
         self.name = name
 
     def check_model(self, lbp):
@@ -35,8 +35,8 @@ class LinearBilevelResults(pao.common.Results):
         super(pao.common.Results, self).__init__()
         self._solution_manager=solution_manager
 
-    def copy_from_to(self, pyomo_model, lbp):
-        self._solution_manager.copy_from_to(pyomo_model, lbp)
+    def copy_from_to(self, **kwds):
+        self._solution_manager.copy_from_to(**kwds)
 
     def load_from(self, data):
         self._solution_manager.load_from(data)

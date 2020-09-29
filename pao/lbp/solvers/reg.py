@@ -22,7 +22,7 @@ from .. import pyomo_util
 class LinearBilevelSolver_REG(LinearBilevelSolverBase):
 
     def __init__(self, **kwds):
-        super(LinearBilevelSolverBase, self).__init__(name='pao.lbp.REG')
+        super().__init__(name='pao.lbp.REG')
         self.config.solver = 'ipopt'
         self.config.rho = 1e-7
 
@@ -83,7 +83,7 @@ class LinearBilevelSolver_REG(LinearBilevelSolverBase):
 
             if self.config.load_solutions:
                 # Load results from the Pyomo model to the LinearBilevelProblem
-                results.copy_from_to(M, lbp)
+                results.copy_from_to(pyomo=M, lbp=lbp)
             else:
                 # Load results from the Pyomo model to the Results
                 results.load_from(pyomo_results)

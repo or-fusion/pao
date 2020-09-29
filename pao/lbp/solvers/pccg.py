@@ -19,17 +19,18 @@ import pyomo.opt
 from pyomo.mpec import ComplementarityList, complements
 from ..solver import LinearBilevelSolver, LinearBilevelSolverBase, LinearBilevelResults
 from ..repn import LinearBilevelProblem
-from ..convert_repn import convert_LinearBilevelProblem_to_standard_form
+from ..convert_repn import convert_LinearBilevelProblem_to_standard_form, convert_sense, convert_binaries_to_integers
 from .. import pyomo_util
+from .pccg_solver import execute_PCCG_solver
 
 
 @LinearBilevelSolver.register(
         name='pao.lbp.PCCG',
         doc='A solver for linear bilevel programs using using projected column constraint generation')
-class LinearBilevelSolver_FA(LinearBilevelSolverBase):
+class LinearBilevelSolver_PCCG(LinearBilevelSolverBase):
 
     def __init__(self, **kwds):
-        super(LinearBilevelSolverBase, self).__init__(name='pao.lbp.PCCG')
+        super().__init__(name='pao.lbp.PCCG')
         self.config.solver = 'glpk'
 
     def check_model(self, lbp):
@@ -40,12 +41,6 @@ class LinearBilevelSolver_FA(LinearBilevelSolverBase):
         lbp.check()
         #
         assert (len(lbp.L) == 1), "Can only solve linear bilevel problems with one lower-level"
-        #
-        # No binary or integer lower level variables
-        #
-        #for i in range(len(lbp.L)):
-        #    assert (len(lbp.L[i].xZ) == 0), "Cannot use solver %s with model with integer lower-level variables" % self.name
-        #    assert (len(lbp.L[i].xB) == 0), "Cannot use solver %s with model with binary lower-level variables" % self.name
 
     def solve(self, lbp, options=None, **config_options):
         #
@@ -61,47 +56,15 @@ class LinearBilevelSolver_FA(LinearBilevelSolverBase):
         #
         start_time = time.time()
 
-        # TODO - does the standard form need to use inequalities?
-        self.standard_form, soln_manager = convert_LinearBilevelProblem_to_standard_form(lbp)
+        # PCCG requires a standard form with inequalities and 
+        # a maximization lower-level
+        self.standard_form, soln_manager = convert_LinearBilevelProblem_to_standard_form(lbp, inequalities=True)
+        convert_sense(self.standard_form.L)
         
         results = LinearBilevelResults(solution_manager=soln_manager)
 
-        execute_PCCG_solver(M, self.config, results)
+        UxR, UxZ, LxR, LxZ = execute_PCCG_solver(self.standard_form, self.config, results)
+        results.copy_from_to(UxR=UxR, UxZ=UxZ, LxR=LxR, LxZ=LxZ, lbp=lbp)
 
         results.solver.wallclock_time = time.time() - start_time
         return results
-
-    def _initialize_results(self, results, pyomo_results, M):
-        #
-        # SOLVER
-        #
-        solv = results.solver
-        solv.name = self.config.solver
-        solv.termination_condition = pyomo_results.solver.termination_condition
-        solv.solver_time = pyomo_results.solver.time
-        if self.config.load_solutions:
-            solv.best_feasible_objective = pe.value(M.o)
-        #
-        # PROBLEM - Maybe this should be the summary of the BLP itself?
-        #
-        prob = results.problem
-        prob.name = M.name
-        prob.number_of_objectives = pyomo_results.problem.Number_of_objectives
-        prob.number_of_constraints = pyomo_results.problem.Number_of_constraints
-        prob.number_of_variables = pyomo_results.problem.Number_of_variables
-        prob.number_of_nonzeros = pyomo_results.problem.Number_of_nonzeros
-        prob.lower_bound = pyomo_results.problem.Lower_bound
-        prob.upper_bound = pyomo_results.problem.Upper_bound
-        prob.sense = 'minimize'
-        return results
-
-    def _debug(self):
-        for j in M.U.xR:
-            print("U",j,pe.value(M.U.xR[j]))
-        for j in M.L.xR:
-            print("L",j,pe.value(M.L.xR[j]))
-        for j in M.kkt.lam:
-            print("lam",j,pe.value(M.kkt.lam[j]))
-        for j in M.kkt.nu:
-            print("nu",j,pe.value(M.kkt.nu[j]))
-

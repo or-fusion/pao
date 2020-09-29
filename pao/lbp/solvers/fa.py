@@ -20,7 +20,7 @@ from .. import pyomo_util
 class LinearBilevelSolver_FA(LinearBilevelSolverBase):
 
     def __init__(self, **kwds):
-        super(LinearBilevelSolverBase, self).__init__(name='pao.lbp.FA')
+        super().__init__(name='pao.lbp.FA')
         self.config.solver = 'glpk'
         self.config.bigm = 100000
 
@@ -78,7 +78,7 @@ class LinearBilevelSolver_FA(LinearBilevelSolverBase):
 
             if self.config.load_solutions:
                 # Load results from the Pyomo model to the LinearBilevelProblem
-                results.copy_from_to(M, lbp)
+                results.copy_from_to(pyomo=M, lbp=lbp)
             else:
                 # Load results from the Pyomo model to the Results
                 results.load_from(pyomo_results)

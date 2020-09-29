@@ -9,3 +9,4 @@ from . import besancon27
 from . import getachew_ex1
 from . import getachew_ex2
 from . import pineda
+from . import toyexample1
