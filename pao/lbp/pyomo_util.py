@@ -62,6 +62,8 @@ def add_variables(block, level):
                 ub = level.xR.upper_bounds[i]
                 if not ub is np.PINF:
                     v.setub( ub )
+    else:
+        block.xR = None
     if len(level.xZ) > 0:
         block.xZ = pe.Var(range(0,level.xZ.num), within=pe.Integers)
         level.xZ.var = np.array([block.xZ[i] for i in range(0,level.xZ.num)])
@@ -75,9 +77,13 @@ def add_variables(block, level):
                 ub = level.xZ.upper_bounds[i]
                 if not ub is np.PINF:
                     v.setub( ub )
+    else:
+        block.xZ = None
     if len(level.xB) > 0:
         block.xB = pe.Var(range(0,level.xB.num), within=pe.Binaries)
         level.xB.var = np.array([block.xB[i] for i in range(0,level.xB.num)])
+    else:
+        block.xB = None
 
 def add_linear_constraints(block, A, U, L, b, inequalities):
     if b is None:

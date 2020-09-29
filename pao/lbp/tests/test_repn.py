@@ -262,10 +262,10 @@ class Test_LevelValues(unittest.TestCase):
         
     def test_len_matrix(self):
         l = LevelValues(matrix=True)
-        l.set_values(xR=[(0,1,2),(3,4,5)], xB=[(0,0,5),(1,0,6)], xZ=[(1,1,1)])
-        self.assertEqual(len(l), 4)
-        l.set_values(xB=[(0,1,2),(3,4,5)], xR=[(0,0,5),(1,0,6)], xZ=[(1,1,1)])
-        self.assertEqual(len(l), 4)
+        l.set_values(xR=[[0,2,0,0,0],[0,0,0,0,0],[0,0,0,0,5]], xB=[[5],[6]], xZ=[[0,0],[0,1]])
+        self.assertEqual(len(l), 3)
+        l.set_values(xR=[[0,2,0,0,0],[0,0,0,0,0],[0,0,0,0,5]], xB=[[5],[6]], xZ=[[0,0],[0,1]])
+        self.assertEqual(len(l), 3)
         
     def test_clone_values(self):
         l = LevelValues()
@@ -275,12 +275,12 @@ class Test_LevelValues(unittest.TestCase):
         
     def test_clone_matrix(self):
         l = LevelValues(matrix=True)
-        l.set_values(xR=[(0,1,2),(3,4,5)], xB=[(0,0,5),(1,0,6)], xZ=[(1,1,1)])
+        l.set_values(xR=[[0,2,0,0,0],[0,0,0,0,0],[0,0,0,0,5]], xB=[[5],[6]], xZ=[[0,0],[0,1]])
         ans = l.clone()
-        self.assertEqual(len(ans), 4)
-        l.set_values(xB=[(0,1,2),(3,4,5)], xR=[(0,0,5),(1,0,6)], xZ=[(1,1,1)])
+        self.assertEqual(len(ans), 3)
+        l.set_values(xR=[[0,2,0,0,0],[0,0,0,0,0],[0,0,0,0,5]], xB=[[5],[6]], xZ=[[0,0],[0,1]])
         ans = l.clone()
-        self.assertEqual(len(ans), 4)
+        self.assertEqual(len(ans), 3)
         
     def test_setattr(self):
         l = LevelValues()
@@ -291,10 +291,12 @@ class Test_LevelValues(unittest.TestCase):
 
     def test_setattr_matrix(self):
         l = LevelValues(matrix=True)
-        l.a = [(0,1,2),(3,4,5)]
+        l.a = [[1,0,2,0],
+               [0,3,0,4]]
         self.assertEqual(type(l.a),list)
-        l.xR = [(0,1,2),(3,4,5)]
-        self.assertEqual(type(l.xR),scipy.sparse.coo.coo_matrix)
+        l.xR = [[1,0,2,0],
+                [0,3,0,4]]
+        self.assertEqual(type(l.xR),scipy.sparse.csr.csr_matrix)
 
 
 class Test_LevelValueWrapper(unittest.TestCase):
@@ -419,6 +421,33 @@ class Test_LinearBilevelProblem(unittest.TestCase):
         self.assertEqual(len(ans.L[1].xR), 1)
         self.assertEqual(len(ans.L[1].xZ), 2)
         self.assertEqual(len(ans.L[1].xB), 3)
+
+    def test_check_matrix_initialization(self):
+        blp = LinearBilevelProblem()
+        U = blp.add_upper(nxR=2, nxZ=3, nxB=4)
+        L = blp.add_lower(nxR=1, nxZ=2, nxB=3)
+
+        U.b = [1,2,3]
+
+        U.A.U.xR = [[1,0],[0,0],[0,0]]
+        U.A.U.xZ = [[1,0,0],[0,0,0],[0,0,0]]
+        U.A.U.xB = [[1,0,0,0],[0,0,0,0],[0,0,0,0]]
+        U.A.L.xR = [[1],[0],[0]]
+        U.A.L.xZ = [[1,0],[0,0],[0,0]]
+        U.A.L.xB = [[1,0,0],[0,0,0],[0,0,0]]
+
+        U.L = [1,2,3,4]
+
+        L.A.U.xR = [[1,0],[0,0],[0,0]]
+        L.A.U.xZ = [[1,0,0],[0,0,0],[0,0,0]]
+        L.A.U.xB = [[1,0,0,0],[0,0,0,0],[0,0,0,0]]
+        L.A.L.xR = [[1],[0],[0]]
+        L.A.L.xZ = [[1,0],[0,0],[0,0]]
+        L.A.L.xB = [[1,0,0],[0,0,0],[0,0,0]]
+
+        self.assertEqual(U.A.U.xR.shape, (3,2))
+        self.assertEqual(U.A.U.xZ.shape, (3,3))
+        self.assertEqual(U.A.U.xB.shape, (3,4))
 
     def test_check_opposite_objectives(self):
         blp = LinearBilevelProblem()

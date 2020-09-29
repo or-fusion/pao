@@ -1,6 +1,6 @@
 import math
 import pprint
-from scipy.sparse import coo_matrix
+from scipy.sparse import csr_matrix
 import numpy as np
 import copy
 import collections.abc
@@ -203,14 +203,7 @@ class LevelValues(object):
         if name in ['xR', 'xZ', 'xB'] and value is not None:
             if type(value) is list:
                 if self._matrix:                
-                    ivals = []
-                    jvals = []
-                    vals = []
-                    for i,j,v in value:
-                        ivals.append(i)
-                        jvals.append(j)
-                        vals.append(v)
-                    value = coo_matrix( (vals, (ivals,jvals)) )
+                    value = csr_matrix( value )
                 else:
                     value = np.array(value)
             super().__setattr__(name, value)

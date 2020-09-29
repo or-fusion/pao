@@ -1,5 +1,5 @@
 import copy
-from scipy.sparse import coo_matrix, dok_matrix, csc_matrix, vstack
+from scipy.sparse import coo_matrix, dok_matrix, csc_matrix, vstack, hstack
 import numpy as np
 from .repn import LinearBilevelProblem
 from .soln_manager import LBP_SolutionManager
@@ -290,43 +290,33 @@ def combine_matrices(A, B):
     r = np.concatenate((x.row, y.row))
     c = np.concatenate((x.col, y.col))
     ans = coo_matrix((d,(r,c)), shape=shape)
-    #print("A + B")
-    #print(ans)
     return ans
 
-def convert_to_minimization(ans, upper=True, lower=True):
-    if upper and not ans.U.minimize:
-        ans.U.minimize = True
-        ans.U.d *= -1
-        if ans.U.c.U.xR is not None:
-            ans.U.c.U.xR *= -1
-        if ans.U.c.U.xZ is not None:
-            ans.U.c.U.xZ *= -1
-        if ans.U.c.U.xB is not None:
-            ans.U.c.U.xB *= -1
-        for i in range(len(ans.L)):
-            if ans.U.c.L[i].xR is not None:
-                ans.U.c.L[i].xR *= -1
-            if ans.U.c.L[i].xZ is not None:
-                ans.U.c.L[i].xZ *= -1
-            if ans.U.c.L[i].xB is not None:
-                ans.U.c.L[i].xB *= -1
+
+def convert_sense(level):
+    level.minimize = True
+    level.d *= -1
+    if level.c.U.xR is not None:
+        level.c.U.xR *= -1
+    if level.c.U.xZ is not None:
+        level.c.U.xZ *= -1
+    if level.c.U.xB is not None:
+        level.c.U.xB *= -1
+    for i in range(len(level.c.L)):
+        if level.c.L[i].xR is not None:
+            level.c.L[i].xR *= -1
+        if level.c.L[i].xZ is not None:
+            level.c.L[i].xZ *= -1
+        if level.c.L[i].xB is not None:
+            level.c.L[i].xB *= -1
+
+
+def convert_to_minimization(ans):
+    if not ans.U.minimize:
+        convert_sense(ans.U)
     for i in range(len(ans.L)):
-        if lower and not ans.L[i].minimize:
-            ans.L[i].d *= -1
-            ans.L[i].minimize = True
-            if ans.L[i].c.U.xR is not None:
-                ans.L[i].c.U.xR *= -1
-            if ans.L[i].c.U.xZ is not None:
-                ans.L[i].c.U.xZ *= -1
-            if ans.L[i].c.U.xB is not None:
-                ans.L[i].c.U.xB *= -1
-            if ans.L[i].c.L[i].xR is not None:
-                ans.L[i].c.L[i].xR *= -1
-            if ans.L[i].c.L[i].xZ is not None:
-                ans.L[i].c.L[i].xZ *= -1
-            if ans.L[i].c.L[i].xB is not None:
-                ans.L[i].c.L[i].xB *= -1
+        if not ans.L[i].minimize:
+            convert_sense(ans.L[i])
 
 
 def add_ineq_constraints(mat):
@@ -436,6 +426,57 @@ def get_multipliers(lbp, changes_U, changes_L, real=True):
             elif type(chg) is VChangeUnbounded:
                 multipliers_L[i][ chg.v ] = [(chg.v,1), (chg.w,-1)]
     return multipliers_U, multipliers_L
+
+
+def convert_binaries_to_integers(lbp):
+    if len(lbp.U.xB) > 0:
+        nxZ = len(lbp.U.xZ)
+        nxB = len(lbp.U.xB)
+        lbp.U.xZ.resize(nxZ+nxB, lb=0, ub=1)
+        lbp.U.xB.resize(0)
+
+        if nxZ == 0:
+            lbp.U.c.U.xZ = lbp.U.c.U.xB
+            lbp.U.A.U.xZ = lbp.U.A.U.xB
+        else:
+            lbp.U.c.U.xZ = np.concatenate((lbp.U.c.U.xZ, lbp.U.c.U.xB))
+            lbp.U.A.U.xZ = hstack([lbp.U.A.U.xZ, lbp.U.A.U.xB], format='csr')
+        lbp.U.c.U.xB = None
+        lbp.U.A.U.xB = None
+        for i in range(len(lbp.L)):
+            if nxZ == 0:
+                lbp.L[i].c.U.xZ = lbp.L[i].c.U.xB
+                lbp.L[i].A.U.xZ = lbp.L[i].A.U.xB
+            else:
+                lbp.L[i].c.U.xZ = np.concatenate((lbp.L[i].c.U.xZ, lbp.L[i].c.U.xB))
+                lbp.L[i].A.U.xZ = hstack([lbp.L[i].A.U.xZ, lbp.L[i].A.U.xB], format='csr')
+            lbp.L[i].c.U.xB = None
+            lbp.L[i].A.U.xB = None
+
+    for i in range(len(lbp.L)):
+        if len(lbp.L[i].xB) > 0:
+            nxZ = len(lbp.L[i].xZ)
+            nxB = len(lbp.L[i].xB)
+            lbp.L[i].xZ.resize(nxZ+nxB, lb=0, ub=1)
+            lbp.L[i].xB.resize(0)
+
+            if nxZ == 0:
+                lbp.U.c.L[i].xZ = lbp.U.c.L[i].xB
+                lbp.U.A.L[i].xZ = lbp.U.A.L[i].xB
+            else:
+                lbp.U.c.L[i].xZ = np.concatenate((lbp.U.c.L[i].xZ, lbp.U.c.L[i].xB))
+                lbp.U.A.L[i].xZ = hstack([lbp.U.A.L[i].xZ, lbp.U.A.L[i].xB], format='csr')
+            lbp.U.c.L[i].xB = None
+            lbp.U.A.L[i].xB = None
+            for i in range(len(lbp.L)):
+                if nxZ == 0:
+                    lbp.L[i].c.L[i].xZ = lbp.L[i].c.L[i].xB
+                    lbp.L[i].A.L[i].xZ = lbp.L[i].A.L[i].xB
+                else:
+                    lbp.L[i].c.L[i].xZ = np.concatenate((lbp.L[i].c.L[i].xZ, lbp.L[i].c.L[i].xB))
+                    lbp.L[i].A.L[i].xZ = hstack([lbp.L[i].A.L[i].xZ, lbp.L[i].A.L[i].xB], format='csr')
+                lbp.L[i].c.L[i].xB = None
+                lbp.L[i].A.L[i].xB = None
 
 
 def convert_LinearBilevelProblem_to_standard_form(lbp, inequalities=False):

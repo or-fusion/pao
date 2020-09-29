@@ -19,8 +19,8 @@ def create():
     L.xR.lower_bounds = [0]
     L.c.L.xR = [1]
 
-    L.A.U.xR = [(0,0,100)]
-    L.A.L.xR = [(0,0,-1)]
+    L.A.U.xR = [[100]]
+    L.A.L.xR = [[-1]]
     L.b = [100]
 
     return M

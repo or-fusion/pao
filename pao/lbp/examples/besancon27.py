@@ -23,12 +23,12 @@ def create():
     L.minimize = False
 
     # Constraints
-    U.A.U.xR = [(0,0,-1/10)]
-    U.A.L.xR = [(0,0,-1)]
+    U.A.U.xR = [[-1/10]]
+    U.A.L.xR = [[-1]]
     U.b = [-1]
 
-    L.A.U.xR = [(0,0,-1/10)]
-    L.A.L.xR = [(0,0,1)]
+    L.A.U.xR = [[-1/10]]
+    L.A.L.xR = [[1]]
     L.b = [1]
 
     return M
