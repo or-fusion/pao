@@ -85,6 +85,7 @@ def add_variables(block, level):
     else:
         block.xB = None
 
+
 def add_linear_constraints(block, A, U, L, b, inequalities):
     if b is None:
         return

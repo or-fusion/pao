@@ -1638,6 +1638,114 @@ class Test_Integers(unittest.TestCase):
         self.assertEqual(list(L.A.L.xZ.toarray()[0]), [2,2,2,3,3,3,3])
         self.assertEqual(L.A.L.xB, None)
 
+    def test_test2(self):
+        lbp = LinearBilevelProblem()
+
+        U = lbp.add_upper(nxR=1, nxZ=0, nxB=3)
+
+        L = lbp.add_lower(nxR=2, nxZ=0, nxB=4)
+
+        #U.xZ.lower_bounds    = [0, np.NINF]
+        #U.xZ.upper_bounds    = [1, 5,     ]
+
+        L.xR.lower_bounds = [5,       np.NINF]
+        L.xR.upper_bounds = [np.PINF, 7,     ]
+        #L.xZ.lower_bounds = [0, np.NINF, 0]
+        #L.xZ.upper_bounds = [1, 5,       1]
+
+        U.c.U.xR = [2]
+        #U.c.U.xZ = [3, 4]
+        U.c.U.xB = [5, 6, 7]
+        U.c.L.xR = [3, 4]
+        #U.c.L.xZ = [5, 6, 7]
+        U.c.L.xB = [8, 9, 10, 11]
+
+        L.c.U.xR = [2]
+        #L.c.U.xZ = [3, 4]
+        L.c.U.xB = [5, 6, 7]
+        L.c.L.xR = [3, 4]
+        #L.c.L.xZ = [5, 6, 7]
+        L.c.L.xB = [8, 9, 10, 11]
+
+        U.A.U.xR = [[1]]
+        #U.A.U.xZ = [[2,2]]
+        U.A.U.xB = [[3,3,3]]
+        U.A.L.xR = [[1,1]]
+        #U.A.L.xZ = [[2,2,2]]
+        U.A.L.xB = [[3,3,3,3]]
+
+        U.b = [2]
+
+        L.A.U.xR = [[1]]
+        #L.A.U.xZ = [[2,2]]
+        L.A.U.xB = [[3,3,3]]
+        L.A.L.xR = [[1,1]]
+        #L.A.L.xZ = [[2,2,2]]
+        L.A.L.xB = [[3,3,3,3]]
+
+        L.b = [3]
+
+        lbp.check()
+
+        self.assertEqual(len(U.xR), 1)
+        self.assertEqual(len(U.xZ), 0)
+        self.assertEqual(len(U.xB), 3)
+        self.assertEqual(len(L.xR), 2)
+        self.assertEqual(len(L.xZ), 0)
+        self.assertEqual(len(L.xB), 4)
+
+        self.assertEqual(len(U.c.U.xR), 1)
+        #self.assertEqual(len(U.c.U.xZ), 2)
+        self.assertEqual(len(U.c.U.xB), 3)
+        self.assertEqual(len(U.c.L.xR), 2)
+        #self.assertEqual(len(U.c.L.xZ), 3)
+        self.assertEqual(len(U.c.L.xB), 4)
+
+        self.assertEqual(len(L.c.U.xR), 1)
+        #self.assertEqual(len(L.c.U.xZ), 2)
+        self.assertEqual(len(L.c.U.xB), 3)
+        self.assertEqual(len(L.c.L.xR), 2)
+        #self.assertEqual(len(L.c.L.xZ), 3)
+        self.assertEqual(len(L.c.L.xB), 4)
+
+        convert_binaries_to_integers(lbp)
+        lbp.check()
+        
+        self.assertEqual(len(U.xR), 1)
+        self.assertEqual(len(U.xZ), 3)
+        self.assertEqual(len(U.xB), 0)
+        self.assertEqual(len(L.xR), 2)
+        self.assertEqual(len(L.xZ), 4)
+        self.assertEqual(len(L.xB), 0)
+
+        self.assertEqual(len(U.c.U.xR), 1)
+        self.assertEqual(list(U.c.U.xZ), [5,6,7])
+        self.assertEqual(U.c.U.xB, None)
+        self.assertEqual(len(U.c.L.xR), 2)
+        self.assertEqual(list(U.c.L.xZ), [8,9,10,11])
+        self.assertEqual(U.c.L.xB, None)
+
+        self.assertEqual(len(L.c.U.xR), 1)
+        self.assertEqual(list(L.c.U.xZ), [5,6,7])
+        self.assertEqual(L.c.U.xB, None)
+        self.assertEqual(len(L.c.L.xR), 2)
+        self.assertEqual(list(L.c.L.xZ), [8,9,10,11])
+        self.assertEqual(L.c.L.xB, None)
+
+        self.assertEqual(list(U.A.U.xR.toarray()[0]), [1])
+        self.assertEqual(list(U.A.U.xZ.toarray()[0]), [3,3,3])
+        self.assertEqual(U.A.U.xB, None)
+        self.assertEqual(list(U.A.L.xR.toarray()[0]), [1,1])
+        self.assertEqual(list(U.A.L.xZ.toarray()[0]), [3,3,3,3])
+        self.assertEqual(U.A.L.xB, None)
+
+        self.assertEqual(list(L.A.U.xR.toarray()[0]), [1])
+        self.assertEqual(list(L.A.U.xZ.toarray()[0]), [3,3,3])
+        self.assertEqual(L.A.U.xB, None)
+        self.assertEqual(list(L.A.L.xR.toarray()[0]), [1,1])
+        self.assertEqual(list(L.A.L.xZ.toarray()[0]), [3,3,3,3])
+        self.assertEqual(L.A.L.xB, None)
+
 
 class Test_Examples(unittest.TestCase):
 

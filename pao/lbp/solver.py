@@ -16,13 +16,13 @@ class LinearBilevelSolverBase(pao.common.Solver):
         super().__init__()
         self.name = name
 
-    def check_model(self, lbp):
+    def check_model(self, lbp):         # pragma: no cover
         #
         # Confirm that the LinearBilevelProblem is well-formed
         #
         lbp.check()
 
-    def solve(self, *args, **kwds):
+    def solve(self, *args, **kwds):     # pragma: no cover
         #
         # Solve the LinearBilevelProblem
         #
@@ -38,6 +38,7 @@ class LinearBilevelResults(pao.common.Results):
     def copy_from_to(self, **kwds):
         self._solution_manager.copy_from_to(**kwds)
 
-    def load_from(self, data):
+    def load_from(self, data):          # pragma: no cover
+        assert (False), "load_from() is not implemented"
         self._solution_manager.load_from(data)
 
