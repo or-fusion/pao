@@ -57,7 +57,7 @@ def create_pyomo_model(lbp, M):
     AZ = mat2dict(lbp.U.A.U.xZ)
     BR = mat2dict(lbp.U.A.L.xR)
     BZ = mat2dict(lbp.U.A.L.xZ)
-    r = array2dict(lbp.U.b)
+    r  = array2dict(lbp.U.b)
     cR = array2dict(lbp.U.c.U.xR)
     cZ = array2dict(lbp.U.c.U.xZ)
     dR = array2dict(lbp.U.c.L.xR)
@@ -67,7 +67,7 @@ def create_pyomo_model(lbp, M):
     PZ = mat2dict(lbp.L.A.U.xZ)
     QR = mat2dict(lbp.L.A.L.xR)
     QZ = mat2dict(lbp.L.A.L.xZ)
-    s = array2dict(lbp.L.b)
+    s  = array2dict(lbp.L.b)
     #wR = lbp.L.c.U.xR
     #wZ = lbp.L.c.U.xZ
     wR = array2dict(lbp.L.c.L.xR)
@@ -122,7 +122,6 @@ def create_pyomo_model(lbp, M):
     Parent.dZ=Param(Parent.nZset,initialize=dZ,default=0,mutable=True)
     Parent.wR=Param(Parent.nRset,initialize=wR,default=0,mutable=True)
     Parent.wZ=Param(Parent.nZset,initialize=wZ,default=0,mutable=True)
-
 
     Parent.AR=Param(Parent.mUset,Parent.mRset,initialize=AR, default=0,mutable=True)
     Parent.AZ=Param(Parent.mUset,Parent.mZset,initialize=AZ, default=0,mutable=True)
