@@ -116,8 +116,8 @@ class LevelVariable(object):
                     self.upper_bounds[i] = tmp[i]
         self.values = [None]*num
 
-    def print(self, type):                  # pragma: no cover
-        print("  %s Variables:" % type)
+    def print(self, vtype):                  # pragma: no cover
+        print("  %s Variables:" % vtype)
         print("    num: "+str(self.num))
         if self.lower_bounds is not None:
             print("    lower bounds: "+str(self.lower_bounds))
@@ -126,7 +126,10 @@ class LevelVariable(object):
         print("    nonzero values:")
         for i,v in enumerate(self.values):
             if v is not None and v != 0:
-                print("      %d: %f" % (i, v))
+                if type(v) is int:
+                    print("      %d: %d" % (i, v))
+                else:
+                    print("      %d: %f" % (i, v))
 
     def __setattr__(self, name, value):
         if name == 'lower_bounds' and value is not None:
