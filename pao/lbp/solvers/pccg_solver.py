@@ -19,16 +19,18 @@ from pyomo.mpec import *
 
 infinity = float('inf')
 
+offset=0
+
 def mat2dict(m):
     if m is None:
         return {}
     cx = m.tocoo()    
-    return {(i,j):float(v) for i,j,v in zip(cx.row, cx.col, cx.data)}
+    return {(i+offset,j+offset):float(v) for i,j,v in zip(cx.row, cx.col, cx.data)}
 
 def array2dict(m):
     if m is None:
         return {}
-    return {i:float(m[i]) for i in range(len(m))}
+    return {i+offset:float(m[i]) for i in range(len(m))}
 
 
 def create_pyomo_model(lbp, M):
@@ -44,7 +46,6 @@ def create_pyomo_model(lbp, M):
     coefficient vectors and matrices should be dictionaries (with tuples for matrices)
     variable size should be floats
     '''
-    lbp.print()
     #from ToyExample1 import mU, nL, nR, nZ, mR, mZ, AR, AZ, BR, BZ, cR, cZ, dR, dZ, PR, PZ, s, QR, QZ, wR, wZ, r
     mU = len(lbp.U.b)
     mR = len(lbp.U.xR)
@@ -63,19 +64,21 @@ def create_pyomo_model(lbp, M):
     dR = array2dict(lbp.U.c.L.xR)
     dZ = array2dict(lbp.U.c.L.xZ)
 
-    PR = mat2dict(lbp.L.A.U.xR)
-    PZ = mat2dict(lbp.L.A.U.xZ)
-    QR = mat2dict(lbp.L.A.L.xR)
-    QZ = mat2dict(lbp.L.A.L.xZ)
+    PR = mat2dict(lbp.L.A.L.xR)
+    PZ = mat2dict(lbp.L.A.L.xZ)
+    QR = mat2dict(lbp.L.A.U.xR)
+    QZ = mat2dict(lbp.L.A.U.xZ)
     s  = array2dict(lbp.L.b)
-    #wR = lbp.L.c.U.xR
-    #wZ = lbp.L.c.U.xZ
     wR = array2dict(lbp.L.c.L.xR)
     wZ = array2dict(lbp.L.c.L.xZ)
     '''
     mU number of upper level constraints
     mR number of upper level continuous variables
     mZ number of upper level integer variables
+
+    nL number of lower level constraints
+    nR number of lower level continuous variables
+    nZ number of lower level integer variables
 
     AR constraint matrix for upper level problem, upper level continuous variables
     AZ constraint matrix for upper level problem, upper level integer variables
@@ -86,10 +89,6 @@ def create_pyomo_model(lbp, M):
     cZ coefficient vector for upper level objective, upper level integer variables
     dR coefficient vector for upper level objective, lower level continuous variables
     dZ coefficient vector for upper level objective, lower level integer variables
-
-    nL number of lower level constraints
-    nR number of lower level continuous variables
-    nZ number of lower level integer variables
 
     PR constraint matrix for lower level problem, lower level continuous variables
     PZ constraint matrix for lower level problem, lower level integer variables
@@ -107,12 +106,12 @@ def create_pyomo_model(lbp, M):
 
     Parent=ConcreteModel()
 
-    Parent.mUset=RangeSet(0,mU-1)
-    Parent.nLset=RangeSet(0,nL-1)
-    Parent.nRset=RangeSet(0,nR-1)
-    Parent.nZset=RangeSet(0,nZ-1)
-    Parent.mRset=RangeSet(0,mR-1)
-    Parent.mZset=RangeSet(0,mZ-1)
+    Parent.mUset=RangeSet(offset, (mU-1+offset))
+    Parent.nLset=RangeSet(offset, (nL-1+offset))
+    Parent.nRset=RangeSet(offset, (nR-1+offset))
+    Parent.nZset=RangeSet(offset, (nZ-1+offset))
+    Parent.mRset=RangeSet(offset, (mR-1+offset))
+    Parent.mZset=RangeSet(offset, (mZ-1+offset))
 
     Parent.s=Param(Parent.nLset,initialize=s,default=0,mutable=True)
     Parent.r=Param(Parent.mUset,initialize=r,default=0,mutable=True)
@@ -430,6 +429,8 @@ def execute_PCCG_solver(lbp, config, results):
     xi = config.get('xi', 0) #tolerance for UB-LB to claim convergence
     maxit= config.get('maxit', 5) #Maximum number of iterations
     M = config.get('bigm', 1e6) #upper bound on variables
+    solver = config.solver # MIP solver to use here
+    quiet = config.quiet # If True, then suppress output
 
     LB=-infinity
     UB=infinity
@@ -441,7 +442,7 @@ def execute_PCCG_solver(lbp, config, results):
 
     bigm_xfrm = TransformationFactory('gdp.bigm')
 
-    with SolverFactory("glpk") as opt:
+    with SolverFactory(solver) as opt:
         #Iteration
         while UB-LB > xi and k < maxit:
             #Step 1: Initialization (done)
@@ -460,15 +461,18 @@ def execute_PCCG_solver(lbp, config, results):
                 Parent.yl0_star[i]=Parent.Master.yl0[i].value
 
             LB=value(Parent.Master.Theta_star) 
-            print(f'Iteration {k}: Master Obj={LB} UB={UB}')
+            if not quiet:
+                print(f'Iteration {k}: Master Obj={LB} UB={UB}')
             #Step 3: Terminate?
             if UB-LB <= xi: #Output
                 elapsed = time.time() - t
                 flag=1 
-                print(f'Optimal Solution Found in {k} iterations and {elapsed} seconds: Obj={UB}')
+                if not quiet:
+                    print(f'Optimal Solution Found in {k} iterations and {elapsed} seconds: Obj={UB}')
                 break
-            #Step 4: Solve first subproblem
 
+            #print("Step 4")
+            #Step 4: Solve first subproblem
             results1=opt.solve(Parent.sub1) 
             
             if results1.solver.termination_condition !=TerminationCondition.optimal:
@@ -481,6 +485,7 @@ def execute_PCCG_solver(lbp, config, results):
                 Parent.yl_hat[i]=int(round(Parent.sub1.yl[i].value)) 
 
             
+            #print("Step 5")
             #Step 5: Solve second subproblem
             results2=opt.solve(Parent.sub2)
             
@@ -521,10 +526,12 @@ def execute_PCCG_solver(lbp, config, results):
     results.solver.name = 'PCCG'
     results.solver_time = elapsed
     if k>= maxit:
-        print('Maximum Iterations Reached')
+        if not quiet:
+            print('Maximum Iterations Reached')
         results.solver.termination_condition = TerminationCondition.maxIterations
     elif k< maxit and flag !=1:
-        print(f'Optimal Solution Found in {k-1} iterations and {elapsed} seconds: Obj={UB}')
+        if not quiet:
+            print(f'Optimal Solution Found in {k-1} iterations and {elapsed} seconds: Obj={UB}')
         results.solver.termination_condition = TerminationCondition.optimal
         results.best_feasible_objective = UB
 

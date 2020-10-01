@@ -31,7 +31,8 @@ class LinearBilevelSolver_PCCG(LinearBilevelSolverBase):
 
     def __init__(self, **kwds):
         super().__init__(name='pao.lbp.PCCG')
-        self.config.solver = 'glpk'
+        self.config.solver = 'gurobi'
+        self.config.quiet = True
 
     def check_model(self, lbp):
         #
