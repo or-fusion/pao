@@ -4,268 +4,393 @@ from pao.lbp import *
 from pao.lbp import examples
 
 
-class Test_bilevel_blp(unittest.TestCase):
+class Test_bilevel_lbp(unittest.TestCase):
 
     def test_bard511(self):
-        blp = examples.bard511.create()
-        blp.check()
+        lbp = examples.bard511.create()
+        lbp.check()
 
         opt = LinearBilevelSolver('pao.bilevel.blp_global')
-        opt.solve(blp)
+        opt.solve(lbp)
 
-        self.assertTrue(math.isclose(blp.U.xR.values[0], 4))
-        self.assertTrue(math.isclose(blp.L.xR.values[0], 4))
+        self.assertTrue(math.isclose(lbp.U.xR.values[0], 4))
+        self.assertTrue(math.isclose(lbp.L.xR.values[0], 4))
 
     def test_bard511_L0(self):
-        blp = examples.bard511_L0.create()
-        blp.check()
+        lbp = examples.bard511_L0.create()
+        lbp.check()
 
         opt = LinearBilevelSolver('pao.bilevel.blp_global')
-        opt.solve(blp)
+        opt.solve(lbp)
 
-        self.assertTrue(math.isclose(blp.U.xR.values[0], 4))
-        self.assertTrue(math.isclose(blp.L.xR.values[0], 4))
+        self.assertTrue(math.isclose(lbp.U.xR.values[0], 4))
+        self.assertTrue(math.isclose(lbp.L.xR.values[0], 4))
 
     def Xtest_bard511_L1(self):
-        blp = examples.bard511_L1.create()
-        blp.check()
+        lbp = examples.bard511_L1.create()
+        lbp.check()
 
         opt = LinearBilevelSolver('pao.bilevel.blp_global')
-        opt.solve(blp)
+        opt.solve(lbp)
 
-        self.assertTrue(math.isclose(blp.U.xR.values[0], 4))
-        self.assertTrue(math.isclose(blp.L.xR.values[0], 4))
+        self.assertTrue(math.isclose(lbp.U.xR.values[0], 4))
+        self.assertTrue(math.isclose(lbp.L.xR.values[0], 4))
 
     def test_bard511_list_L0(self):
-        blp = examples.bard511_list_L0.create()
-        blp.check()
+        lbp = examples.bard511_list_L0.create()
+        lbp.check()
 
         opt = LinearBilevelSolver('pao.bilevel.blp_global')
-        opt.solve(blp)
+        opt.solve(lbp)
 
-        self.assertTrue(math.isclose(blp.U.xR.values[0], 4))
-        self.assertTrue(math.isclose(blp.L.xR.values[0], 4))
+        self.assertTrue(math.isclose(lbp.U.xR.values[0], 4))
+        self.assertTrue(math.isclose(lbp.L.xR.values[0], 4))
 
     def test_bard511_list(self):
-        blp = examples.bard511_list.create()
-        blp.check()
+        lbp = examples.bard511_list.create()
+        lbp.check()
 
         opt = LinearBilevelSolver('pao.bilevel.blp_global')
-        opt.solve(blp)
+        opt.solve(lbp)
 
-        self.assertTrue(math.isclose(blp.U.xR.values[0], 4))
-        self.assertTrue(math.isclose(blp.L.xR.values[0], 4))
+        self.assertTrue(math.isclose(lbp.U.xR.values[0], 4))
+        self.assertTrue(math.isclose(lbp.L.xR.values[0], 4))
 
     def test_besancon27(self):
-        blp = examples.besancon27.create()
-        blp.check()
+        lbp = examples.besancon27.create()
+        lbp.check()
 
         opt = LinearBilevelSolver('pao.bilevel.blp_global')
-        opt.solve(blp)
+        opt.solve(lbp)
 
-        self.assertTrue(math.isclose(blp.U.xR.values[0], 0))
-        self.assertTrue(math.isclose(blp.L.xR.values[0], 1))
+        self.assertTrue(math.isclose(lbp.U.xR.values[0], 0))
+        self.assertTrue(math.isclose(lbp.L.xR.values[0], 1))
 
 
 class Test_bilevel_FA(unittest.TestCase):
 
     def test_bard511(self):
-        blp = examples.bard511.create()
-        blp.check()
+        lbp = examples.bard511.create()
+        lbp.check()
 
         opt = LinearBilevelSolver('pao.lbp.FA')
-        opt.solve(blp)
+        opt.solve(lbp)
 
-        self.assertTrue(math.isclose(blp.U.xR.values[0], 4))
-        self.assertTrue(math.isclose(blp.L.xR.values[0], 4))
+        self.assertTrue(math.isclose(lbp.U.xR.values[0], 4))
+        self.assertTrue(math.isclose(lbp.L.xR.values[0], 4))
 
     def test_bard511_L0(self):
-        blp = examples.bard511_L0.create()
-        blp.check()
+        lbp = examples.bard511_L0.create()
+        lbp.check()
 
         opt = LinearBilevelSolver('pao.lbp.FA')
-        opt.solve(blp)
+        opt.solve(lbp)
 
-        self.assertTrue(math.isclose(blp.U.xR.values[0], 4))
-        self.assertTrue(math.isclose(blp.L.xR.values[0], 4))
+        self.assertTrue(math.isclose(lbp.U.xR.values[0], 4))
+        self.assertTrue(math.isclose(lbp.L.xR.values[0], 4))
 
     def Xtest_bard511_L1(self):
-        blp = examples.bard511_L1.create()
-        blp.check()
+        lbp = examples.bard511_L1.create()
+        lbp.check()
 
         opt = LinearBilevelSolver('pao.lbp.FA')
-        opt.solve(blp)
+        opt.solve(lbp)
 
-        self.assertTrue(math.isclose(blp.U.xR.values[0], 4))
-        self.assertTrue(math.isclose(blp.L.xR.values[0], 4))
+        self.assertTrue(math.isclose(lbp.U.xR.values[0], 4))
+        self.assertTrue(math.isclose(lbp.L.xR.values[0], 4))
 
     def test_bard511_list_L0(self):
-        blp = examples.bard511_list_L0.create()
-        blp.check()
+        lbp = examples.bard511_list_L0.create()
+        lbp.check()
 
         opt = LinearBilevelSolver('pao.lbp.FA')
-        opt.solve(blp)
+        opt.solve(lbp)
 
-        self.assertTrue(math.isclose(blp.U.xR.values[0], 4))
-        self.assertTrue(math.isclose(blp.L.xR.values[0], 4))
+        self.assertTrue(math.isclose(lbp.U.xR.values[0], 4))
+        self.assertTrue(math.isclose(lbp.L.xR.values[0], 4))
 
     def test_bard511_list(self):
-        blp = examples.bard511_list.create()
-        blp.check()
+        lbp = examples.bard511_list.create()
+        lbp.check()
 
         opt = LinearBilevelSolver('pao.lbp.FA')
-        opt.solve(blp)
+        opt.solve(lbp)
 
-        self.assertTrue(math.isclose(blp.U.xR.values[0], 4))
-        self.assertTrue(math.isclose(blp.L.xR.values[0], 4))
+        self.assertTrue(math.isclose(lbp.U.xR.values[0], 4))
+        self.assertTrue(math.isclose(lbp.L.xR.values[0], 4))
 
     def test_besancon27(self):
-        blp = examples.besancon27.create()
-        blp.check()
+        lbp = examples.besancon27.create()
+        lbp.check()
 
         opt = LinearBilevelSolver('pao.lbp.FA')
-        opt.solve(blp)
+        opt.solve(lbp)
 
-        self.assertTrue(math.isclose(blp.U.xR.values[0], 0))
-        self.assertTrue(math.isclose(blp.L.xR.values[0], 1))
+        self.assertTrue(math.isclose(lbp.U.xR.values[0], 0))
+        self.assertTrue(math.isclose(lbp.L.xR.values[0], 1))
 
     def test_getachew_ex1(self):
-        blp = examples.getachew_ex1.create()
-        blp.check()
+        lbp = examples.getachew_ex1.create()
+        lbp.check()
 
         opt = LinearBilevelSolver('pao.lbp.FA')
-        opt.solve(blp)
+        opt.solve(lbp)
 
-        self.assertTrue(math.isclose(blp.U.xR.values[0], 8))
-        self.assertTrue(math.isclose(blp.L.xR.values[0], 6))
+        self.assertTrue(math.isclose(lbp.U.xR.values[0], 8))
+        self.assertTrue(math.isclose(lbp.L.xR.values[0], 6))
 
     def test_getachew_ex2(self):
-        blp = examples.getachew_ex2.create()
-        blp.check()
+        lbp = examples.getachew_ex2.create()
+        lbp.check()
 
         opt = LinearBilevelSolver('pao.lbp.FA')
-        opt.solve(blp)
+        opt.solve(lbp)
 
-        self.assertTrue(math.isclose(blp.U.xR.values[0], 6))
-        self.assertTrue(math.isclose(blp.L.xR.values[0], 8))
+        self.assertTrue(math.isclose(lbp.U.xR.values[0], 6))
+        self.assertTrue(math.isclose(lbp.L.xR.values[0], 8))
 
     def test_pineda(self):
-        blp = examples.pineda.create()
-        blp.check()
+        lbp = examples.pineda.create()
+        lbp.check()
 
         opt = LinearBilevelSolver('pao.lbp.FA')
-        opt.solve(blp)
+        opt.solve(lbp)
 
-        self.assertTrue(math.isclose(blp.U.xR.values[0], 2))
-        self.assertTrue(math.isclose(blp.L.xR.values[0], 100))
+        self.assertTrue(math.isclose(lbp.U.xR.values[0], 2))
+        self.assertTrue(math.isclose(lbp.L.xR.values[0], 100))
 
 
 class Test_bilevel_REG(unittest.TestCase):
 
     def test_bard511(self):
-        blp = examples.bard511.create()
-        blp.check()
+        lbp = examples.bard511.create()
+        lbp.check()
 
         opt = LinearBilevelSolver('pao.lbp.REG')
-        opt.solve(blp)
+        opt.solve(lbp)
 
-        self.assertTrue(math.isclose(blp.U.xR.values[0], 4, abs_tol=1e-4))
-        self.assertTrue(math.isclose(blp.L.xR.values[0], 4, abs_tol=1e-4))
+        self.assertTrue(math.isclose(lbp.U.xR.values[0], 4, abs_tol=1e-4))
+        self.assertTrue(math.isclose(lbp.L.xR.values[0], 4, abs_tol=1e-4))
 
     def test_bard511_L0(self):
-        blp = examples.bard511_L0.create()
-        blp.check()
+        lbp = examples.bard511_L0.create()
+        lbp.check()
 
         opt = LinearBilevelSolver('pao.lbp.REG')
-        opt.solve(blp)
+        opt.solve(lbp)
 
-        self.assertTrue(math.isclose(blp.U.xR.values[0], 4, abs_tol=1e-4))
-        self.assertTrue(math.isclose(blp.L.xR.values[0], 4, abs_tol=1e-4))
+        self.assertTrue(math.isclose(lbp.U.xR.values[0], 4, abs_tol=1e-4))
+        self.assertTrue(math.isclose(lbp.L.xR.values[0], 4, abs_tol=1e-4))
 
     def Xtest_bard511_L1(self):
-        blp = examples.bard511_L1.create()
-        blp.check()
+        lbp = examples.bard511_L1.create()
+        lbp.check()
 
         opt = LinearBilevelSolver('pao.lbp.REG')
-        opt.solve(blp)
+        opt.solve(lbp)
 
-        self.assertTrue(math.isclose(blp.U.xR.values[0], 4, abs_tol=1e-4))
-        self.assertTrue(math.isclose(blp.L.xR.values[0], 4, abs_tol=1e-4))
+        self.assertTrue(math.isclose(lbp.U.xR.values[0], 4, abs_tol=1e-4))
+        self.assertTrue(math.isclose(lbp.L.xR.values[0], 4, abs_tol=1e-4))
 
     def test_bard511_list_L0(self):
-        blp = examples.bard511_list_L0.create()
-        blp.check()
+        lbp = examples.bard511_list_L0.create()
+        lbp.check()
 
         opt = LinearBilevelSolver('pao.lbp.REG')
-        opt.solve(blp)
+        opt.solve(lbp)
 
-        self.assertTrue(math.isclose(blp.U.xR.values[0], 4, abs_tol=1e-4))
-        self.assertTrue(math.isclose(blp.L.xR.values[0], 4, abs_tol=1e-4))
+        self.assertTrue(math.isclose(lbp.U.xR.values[0], 4, abs_tol=1e-4))
+        self.assertTrue(math.isclose(lbp.L.xR.values[0], 4, abs_tol=1e-4))
 
     def test_bard511_list(self):
-        blp = examples.bard511_list.create()
-        blp.check()
+        lbp = examples.bard511_list.create()
+        lbp.check()
 
         opt = LinearBilevelSolver('pao.lbp.REG')
-        opt.solve(blp)
+        opt.solve(lbp)
 
-        self.assertTrue(math.isclose(blp.U.xR.values[0], 4, abs_tol=1e-4))
-        self.assertTrue(math.isclose(blp.L.xR.values[0], 4, abs_tol=1e-4))
+        self.assertTrue(math.isclose(lbp.U.xR.values[0], 4, abs_tol=1e-4))
+        self.assertTrue(math.isclose(lbp.L.xR.values[0], 4, abs_tol=1e-4))
 
     def test_besancon27(self):
-        blp = examples.besancon27.create()
-        blp.check()
+        lbp = examples.besancon27.create()
+        lbp.check()
 
         opt = LinearBilevelSolver('pao.lbp.REG')
-        opt.solve(blp)
+        opt.solve(lbp)
 
-        self.assertTrue(math.isclose(blp.U.xR.values[0], 0, abs_tol=1e-4))
-        self.assertTrue(math.isclose(blp.L.xR.values[0], 1, abs_tol=1e-4))
+        self.assertTrue(math.isclose(lbp.U.xR.values[0], 0, abs_tol=1e-4))
+        self.assertTrue(math.isclose(lbp.L.xR.values[0], 1, abs_tol=1e-4))
 
     def test_getachew_ex1(self):
-        blp = examples.getachew_ex1.create()
-        blp.check()
+        lbp = examples.getachew_ex1.create()
+        lbp.check()
 
         opt = LinearBilevelSolver('pao.lbp.REG')
-        opt.solve(blp)
+        opt.solve(lbp)
 
-        self.assertTrue(math.isclose(blp.U.xR.values[0], 8, abs_tol=1e-4))
-        self.assertTrue(math.isclose(blp.L.xR.values[0], 6, abs_tol=1e-4))
+        self.assertTrue(math.isclose(lbp.U.xR.values[0], 8, abs_tol=1e-4))
+        self.assertTrue(math.isclose(lbp.L.xR.values[0], 6, abs_tol=1e-4))
 
     def test_getachew_ex2(self):
-        blp = examples.getachew_ex2.create()
-        blp.check()
+        lbp = examples.getachew_ex2.create()
+        lbp.check()
 
         opt = LinearBilevelSolver('pao.lbp.REG')
-        opt.solve(blp)
+        opt.solve(lbp)
 
-        self.assertTrue(math.isclose(blp.U.xR.values[0], 6, abs_tol=1e-4))
-        self.assertTrue(math.isclose(blp.L.xR.values[0], 8, abs_tol=1e-4))
+        self.assertTrue(math.isclose(lbp.U.xR.values[0], 6, abs_tol=1e-4))
+        self.assertTrue(math.isclose(lbp.L.xR.values[0], 8, abs_tol=1e-4))
 
     def test_pineda(self):
-        blp = examples.pineda.create()
-        blp.check()
+        lbp = examples.pineda.create()
+        lbp.check()
 
         opt = LinearBilevelSolver('pao.lbp.REG')
-        opt.solve(blp)
+        opt.solve(lbp)
 
-        self.assertTrue(math.isclose(blp.U.xR.values[0], 2, abs_tol=1e-4))
-        self.assertTrue(math.isclose(blp.L.xR.values[0], 100, abs_tol=1e-4))
+        self.assertTrue(math.isclose(lbp.U.xR.values[0], 2, abs_tol=1e-4))
+        self.assertTrue(math.isclose(lbp.L.xR.values[0], 100, abs_tol=1e-4))
+
+
+class Test_bilevel_PCCG(unittest.TestCase):
+
+    def test_bard511(self):
+        lbp = examples.bard511.create()
+        lbp.check()
+
+        opt = LinearBilevelSolver('pao.lbp.PCCG')
+        opt.solve(lbp)
+
+        self.assertTrue(math.isclose(lbp.U.xR.values[0], 4, abs_tol=1e-4))
+        self.assertTrue(math.isclose(lbp.L.xR.values[0], 4, abs_tol=1e-4))
+
+    def test_bard511_L0(self):
+        lbp = examples.bard511_L0.create()
+        lbp.check()
+
+        opt = LinearBilevelSolver('pao.lbp.PCCG')
+        opt.solve(lbp)
+
+        self.assertTrue(math.isclose(lbp.U.xR.values[0], 4, abs_tol=1e-4))
+        self.assertTrue(math.isclose(lbp.L.xR.values[0], 4, abs_tol=1e-4))
+
+    def Xtest_bard511_L1(self):
+        lbp = examples.bard511_L1.create()
+        lbp.check()
+
+        opt = LinearBilevelSolver('pao.lbp.PCCG')
+        opt.solve(lbp)
+
+        self.assertTrue(math.isclose(lbp.U.xR.values[0], 4, abs_tol=1e-4))
+        self.assertTrue(math.isclose(lbp.L.xR.values[0], 4, abs_tol=1e-4))
+
+    def test_bard511_list_L0(self):
+        lbp = examples.bard511_list_L0.create()
+        lbp.check()
+
+        opt = LinearBilevelSolver('pao.lbp.PCCG')
+        opt.solve(lbp)
+
+        self.assertTrue(math.isclose(lbp.U.xR.values[0], 4, abs_tol=1e-4))
+        self.assertTrue(math.isclose(lbp.L.xR.values[0], 4, abs_tol=1e-4))
+
+    def test_bard511_list(self):
+        lbp = examples.bard511_list.create()
+        lbp.check()
+
+        opt = LinearBilevelSolver('pao.lbp.PCCG')
+        opt.solve(lbp)
+
+        self.assertTrue(math.isclose(lbp.U.xR.values[0], 4, abs_tol=1e-4))
+        self.assertTrue(math.isclose(lbp.L.xR.values[0], 4, abs_tol=1e-4))
+
+    def test_besancon27(self):
+        lbp = examples.besancon27.create()
+        lbp.check()
+
+        opt = LinearBilevelSolver('pao.lbp.PCCG')
+        opt.solve(lbp)
+
+        self.assertTrue(math.isclose(lbp.U.xR.values[0], 0, abs_tol=1e-4))
+        self.assertTrue(math.isclose(lbp.L.xR.values[0], 1, abs_tol=1e-4))
+
+    def test_getachew_ex1(self):
+        lbp = examples.getachew_ex1.create()
+        lbp.check()
+
+        opt = LinearBilevelSolver('pao.lbp.PCCG')
+        opt.solve(lbp)
+
+        self.assertTrue(math.isclose(lbp.U.xR.values[0], 8, abs_tol=1e-4))
+        self.assertTrue(math.isclose(lbp.L.xR.values[0], 6, abs_tol=1e-4))
+
+    def test_getachew_ex2(self):
+        lbp = examples.getachew_ex2.create()
+        lbp.check()
+
+        opt = LinearBilevelSolver('pao.lbp.PCCG')
+        opt.solve(lbp)
+
+        self.assertTrue(math.isclose(lbp.U.xR.values[0], 6, abs_tol=1e-4))
+        self.assertTrue(math.isclose(lbp.L.xR.values[0], 8, abs_tol=1e-4))
+
+    def test_pineda(self):
+        lbp = examples.pineda.create()
+        lbp.check()
+
+        opt = LinearBilevelSolver('pao.lbp.PCCG')
+        opt.solve(lbp)
+
+        self.assertTrue(math.isclose(lbp.U.xR.values[0], 2, abs_tol=1e-4))
+        self.assertTrue(math.isclose(lbp.L.xR.values[0], 100, abs_tol=1e-4))
+
+    def test_toyexample1(self):
+        lbp = examples.toyexample1.create()
+        lbp.check()
+
+        opt = LinearBilevelSolver('pao.lbp.PCCG')
+        opt.solve(lbp)
+
+        self.assertEqual(lbp.U.xZ.values[0], 2)
+        self.assertEqual(lbp.L.xZ.values[0], 2)
+
+    def test_toyexample2(self):
+        lbp = examples.toyexample2.create()
+        lbp.check()
+
+        opt = LinearBilevelSolver('pao.lbp.PCCG')
+        opt.solve(lbp)
+
+        self.assertEqual(lbp.U.xZ.values[0], 8)
+        self.assertEqual(lbp.L.xZ.values[0], 6)
+
+    def test_toyexample3(self):
+        lbp = examples.toyexample3.create()
+        lbp.check()
+
+        opt = LinearBilevelSolver('pao.lbp.PCCG')
+        opt.solve(lbp)
+
+        self.assertTrue(math.isclose(lbp.U.xR.values[0], 3, abs_tol=1e-4))
+        self.assertTrue(math.isclose(lbp.L.xR.values[0], 0.5, abs_tol=1e-4))
+        self.assertEqual(lbp.U.xZ.values[0], 8)
+        self.assertEqual(lbp.L.xZ.values[0], 0)
 
 
 #class Test_bilevel_ld(unittest.TestCase):
 class XTest_bilevel_ld(object):
 
     def test_besancon27(self):
-        blp = examples.besancon27.create()
-        blp.check()
-        blp.print()
+        lbp = examples.besancon27.create()
+        lbp.check()
+        lbp.print()
 
         opt = LinearBilevelSolver('pao.bilevel.ld')
-        opt.solve(blp)
+        opt.solve(lbp)
 
-        self.assertTrue(math.isclose(blp.U.xR.values[0], 0))
-        self.assertTrue(math.isclose(blp.L.xR.values[0], 1))
+        self.assertTrue(math.isclose(lbp.U.xR.values[0], 0))
+        self.assertTrue(math.isclose(lbp.L.xR.values[0], 1))
 
 if __name__ == "__main__":
     unittest.main()
