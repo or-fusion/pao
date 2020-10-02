@@ -2,9 +2,15 @@ import math
 import pyutilib.th as unittest
 from pao.lbp import *
 from pao.lbp import examples
+import pyomo.opt
+
+
+solvers = pyomo.opt.check_available_solvers('glpk','gurobi','ipopt')
 
 
 class Test_bilevel_lbp(unittest.TestCase):
+
+    # TODO - test with either gurobi or glpk
 
     def test_bard511(self):
         lbp = examples.bard511.create()
@@ -68,6 +74,8 @@ class Test_bilevel_lbp(unittest.TestCase):
 
 
 class Test_bilevel_FA(unittest.TestCase):
+
+    # TODO - test with either gurobi or glpk
 
     def test_bard511(self):
         lbp = examples.bard511.create()
@@ -160,6 +168,7 @@ class Test_bilevel_FA(unittest.TestCase):
         self.assertTrue(math.isclose(lbp.L.xR.values[0], 100))
 
 
+@unittest.skipIf('ipopt' not in solvers, "Ipopt solver is not available")
 class Test_bilevel_REG(unittest.TestCase):
 
     def test_bard511(self):
@@ -253,6 +262,7 @@ class Test_bilevel_REG(unittest.TestCase):
         self.assertTrue(math.isclose(lbp.L.xR.values[0], 100, abs_tol=1e-4))
 
 
+@unittest.skipIf('gurobi' not in solvers, "Gurobi solver is not available")
 class Test_bilevel_PCCG(unittest.TestCase):
 
     def test_bard511(self):
