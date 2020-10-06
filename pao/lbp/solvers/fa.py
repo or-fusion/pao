@@ -83,7 +83,7 @@ class LinearBilevelSolver_FA(LinearBilevelSolverBase):
                 # Load results from the Pyomo model to the Results
                 results.load_from(pyomo_results)
 
-            #self._debug()
+            #self._debug(M)
             #results.solver.log = getattr(opt, '_log', None)
 
         results.solver.wallclock_time = time.time() - start_time
@@ -169,7 +169,7 @@ class LinearBilevelSolver_FA(LinearBilevelSolverBase):
 
         return M
 
-    def _debug(self):
+    def _debug(self, M):
         for j in M.U.xR:
             print("U",j,pe.value(M.U.xR[j]))
         for j in M.L.xR:
