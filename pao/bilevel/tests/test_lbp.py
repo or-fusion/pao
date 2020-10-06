@@ -8,7 +8,7 @@ import pyomo.opt
 solvers = pyomo.opt.check_available_solvers('glpk','gurobi','ipopt')
 
 
-class Test_bilevel_FA(unittest.TestCase):
+class Test_submodel_FA(unittest.TestCase):
 
     # TODO - test with either gurobi or glpk
 
@@ -18,8 +18,8 @@ class Test_bilevel_FA(unittest.TestCase):
         opt = SolverFactory('pao.submodel.FA')
         opt.solve(M)
 
-        self.assertTrue(math.isclose(M.xR.value, 4))
-        self.assertTrue(math.isclose(M.L.xR.value, 4))
+        self.assertTrue(math.isclose(M.x.value, 4))
+        self.assertTrue(math.isclose(M.y.value, 4))
 
     def test_besancon27(self):
         M = examples.besancon27.create()
@@ -27,8 +27,8 @@ class Test_bilevel_FA(unittest.TestCase):
         opt = SolverFactory('pao.submodel.FA')
         opt.solve(M)
 
-        self.assertTrue(math.isclose(M.xR.value, 0))
-        self.assertTrue(math.isclose(M.L.xR.value, 1))
+        self.assertTrue(math.isclose(M.x.value, 0))
+        self.assertTrue(math.isclose(M.v.value, 1))
 
     def test_getachew_ex1(self):
         M = examples.getachew_ex1.create()
@@ -57,9 +57,18 @@ class Test_bilevel_FA(unittest.TestCase):
         self.assertTrue(math.isclose(M.xR.value, 2))
         self.assertTrue(math.isclose(M.L.xR.value, 100))
 
+    def test_sip_example1(self):
+        M = examples.sip_example1.create()
+
+        opt = SolverFactory('pao.submodel.FA')
+        opt.solve(M)
+
+        self.assertTrue(math.isclose(M.xR.value, 2))
+        self.assertTrue(math.isclose(M.L.xR.value, 100))
+
 
 @unittest.skipIf('ipopt' not in solvers, "Ipopt solver is not available")
-class Test_bilevel_REG(unittest.TestCase):
+class Test_submodel_REG(unittest.TestCase):
 
     def test_bard511(self):
         M = examples.bard511.create()
@@ -67,8 +76,8 @@ class Test_bilevel_REG(unittest.TestCase):
         opt = SolverFactory('pao.submodel.REG')
         opt.solve(M)
 
-        self.assertTrue(math.isclose(M.xR.value, 4, abs_tol=1e-4))
-        self.assertTrue(math.isclose(M.L.xR.value, 4, abs_tol=1e-4))
+        self.assertTrue(math.isclose(M.x.value, 4, abs_tol=1e-4))
+        self.assertTrue(math.isclose(M.y.value, 4, abs_tol=1e-4))
 
     def test_besancon27(self):
         M = examples.besancon27.create()
@@ -76,8 +85,8 @@ class Test_bilevel_REG(unittest.TestCase):
         opt = SolverFactory('pao.submodel.REG')
         opt.solve(M)
 
-        self.assertTrue(math.isclose(M.xR.value, 0, abs_tol=1e-4))
-        self.assertTrue(math.isclose(M.L.xR.value, 1, abs_tol=1e-4))
+        self.assertTrue(math.isclose(M.x.value, 0, abs_tol=1e-4))
+        self.assertTrue(math.isclose(M.v.value, 1, abs_tol=1e-4))
 
     def test_getachew_ex1(self):
         M = examples.getachew_ex1.create()
@@ -108,7 +117,7 @@ class Test_bilevel_REG(unittest.TestCase):
 
 
 @unittest.skipIf('gurobi' not in solvers, "Gurobi solver is not available")
-class Test_bilevel_PCCG(unittest.TestCase):
+class Test_submodel_PCCG(unittest.TestCase):
 
     def test_bard511(self):
         M = examples.bard511.create()
@@ -116,8 +125,8 @@ class Test_bilevel_PCCG(unittest.TestCase):
         opt = SolverFactory('pao.submodel.PCCG')
         opt.solve(M)
 
-        self.assertTrue(math.isclose(M.xR.value, 4, abs_tol=1e-4))
-        self.assertTrue(math.isclose(M.L.xR.value, 4, abs_tol=1e-4))
+        self.assertTrue(math.isclose(M.x.value, 4, abs_tol=1e-4))
+        self.assertTrue(math.isclose(M.y.value, 4, abs_tol=1e-4))
 
     def test_besancon27(self):
         M = examples.besancon27.create()
@@ -125,8 +134,8 @@ class Test_bilevel_PCCG(unittest.TestCase):
         opt = SolverFactory('pao.submodel.PCCG')
         opt.solve(M)
 
-        self.assertTrue(math.isclose(M.xR.value, 0, abs_tol=1e-4))
-        self.assertTrue(math.isclose(M.L.xR.value, 1, abs_tol=1e-4))
+        self.assertTrue(math.isclose(M.x.value, 0, abs_tol=1e-4))
+        self.assertTrue(math.isclose(M.v.value, 1, abs_tol=1e-4))
 
     def test_getachew_ex1(self):
         M = examples.getachew_ex1.create()
