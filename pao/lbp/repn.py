@@ -401,7 +401,7 @@ class LinearBilevelProblem(object):
     def print(self):                            # pragma: no cover
         nL = len(self.L)
         if self.name:
-            print("# LinearBilevelProblem: "+name)
+            print("# LinearBilevelProblem: "+self.name)
         else:
             print("# LinearBilevelProblem: unknown")
         print("")
