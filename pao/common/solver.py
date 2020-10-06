@@ -109,6 +109,16 @@ class Solver(six.with_metaclass(abc.ABCMeta, object)):
                 keys.remove(k)    
         assert (len(keys) == 0), "Unexpected options to solve() have been specified: %s" % " ".join(sorted(k for k in keys))
 
+    """
+    Support "with" statements.
+    """
+    def __enter__(self):
+        return self
+
+    # TODO
+    def __exit__(self, t, v, traceback):
+        pass
+
 
 """
 A results object is returned from the Solver.solve() method.  This
