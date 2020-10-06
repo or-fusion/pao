@@ -36,6 +36,6 @@ def create():
 
 if __name__ == "__main__":          #pragma: no cover
     M = create()
-    opt = LinearBilevelSolver('pao.lbp.FA')
+    opt = SolverFactory('pao.lbp.FA')
     opt.solve(M)
     M.print()

@@ -1,10 +1,7 @@
 import pyomo.environ as pe
 import pao.common
 
-#
-# TODO - should we have a separate factory for LinearBilevelProblems?
-#
-LinearBilevelSolver = pao.common.SolverFactory
+SolverFactory = pao.common.SolverFactory
 
 
 class LinearBilevelSolverBase(pao.common.Solver):

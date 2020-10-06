@@ -10,7 +10,7 @@ from pao.bilevel.solver import SolverFactory, PyomoSubmodelSolverBase_LBP
 
 @SolverFactory.register(
         name='pao.submodel.FA',
-        doc=pao.lbp.LinearBilevelSolver.doc('pao.lbp.FA'))
+        doc=SolverFactory.doc('pao.lbp.FA'))
 class PyomoSubmodelSolver_FA(PyomoSubmodelSolverBase_LBP):
 
     def __init__(self, **kwds):
@@ -18,7 +18,7 @@ class PyomoSubmodelSolver_FA(PyomoSubmodelSolverBase_LBP):
 
 @SolverFactory.register(
         name='pao.submodel.REG',
-        doc=pao.lbp.LinearBilevelSolver.doc('pao.lbp.REG'))
+        doc=SolverFactory.doc('pao.lbp.REG'))
 class PyomoSubmodelSolver_REG(PyomoSubmodelSolverBase_LBP):
 
     def __init__(self, **kwds):
@@ -26,7 +26,7 @@ class PyomoSubmodelSolver_REG(PyomoSubmodelSolverBase_LBP):
 
 @SolverFactory.register(
         name='pao.submodel.PCCG',
-        doc=pao.lbp.LinearBilevelSolver.doc('pao.lbp.PCCG'))
+        doc=SolverFactory.doc('pao.lbp.PCCG'))
 class PyomoSubmodelSolver_PCCG(PyomoSubmodelSolverBase_LBP):
 
     def __init__(self, **kwds):

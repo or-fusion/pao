@@ -1,6 +1,6 @@
 from .repn import LinearBilevelProblem
 from . import convert_repn
-from .solver import LinearBilevelSolver
+from .solver import SolverFactory
 from . import pyomo_solvers
 from . import pyomo_util
 from . import examples

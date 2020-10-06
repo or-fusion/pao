@@ -8,13 +8,13 @@ import pyutilib
 import pyomo.environ as pe
 import pyomo.opt
 from pyomo.mpec import ComplementarityList, complements
-from ..solver import LinearBilevelSolver, LinearBilevelSolverBase, LinearBilevelResults
+from ..solver import SolverFactory, LinearBilevelSolverBase, LinearBilevelResults
 from ..repn import LinearBilevelProblem
 from ..convert_repn import convert_LinearBilevelProblem_to_standard_form
 from .. import pyomo_util
 
 
-@LinearBilevelSolver.register(
+@SolverFactory.register(
         name='pao.lbp.FA',
         doc='A solver for linear bilevel programs using big-M relaxations discussed by Fortuny-Amat and McCarl, 1981.')
 class LinearBilevelSolver_FA(LinearBilevelSolverBase):

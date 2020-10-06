@@ -8,7 +8,7 @@ import numpy as np
 import pyutilib
 import pyomo.environ as pe
 import pyomo.opt
-from ..solver import LinearBilevelSolver, LinearBilevelSolverBase, LinearBilevelResults
+from ..solver import SolverFactory, LinearBilevelSolverBase, LinearBilevelResults
 from ..repn import LinearBilevelProblem
 from ..convert_repn import convert_LinearBilevelProblem_to_standard_form
 from .. import pyomo_util
@@ -16,7 +16,7 @@ from .. import pyomo_util
 nan = float('nan')
 
 
-@LinearBilevelSolver.register(
+@SolverFactory.register(
         name="pao.lbp.interdiction",
         doc="A solver for linear bilevel programs that represent interdiction problems where the upper- and lower-objectives are opposite.")
 class LinearBilevelSolver_interdiction(LinearBilevelSolverBase):

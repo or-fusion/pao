@@ -65,7 +65,7 @@ class PyomoSubmodelSolverBase_LBP(PyomoSubmodelSolverBase):
             raise
         #
         results = PyomoSubmodelResults(solution_manager=soln_manager)
-        with pao.lbp.LinearBilevelSolver(self.lbp_solver) as opt:
+        with SolverFactory(self.lbp_solver) as opt:
             lbp_results = opt.solve(lbp, options=options, 
                                         tee=self.config.tee,
                                         time_limit=self.config.time_limit,

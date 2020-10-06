@@ -2,7 +2,7 @@
 import pyomo.environ as pe
 import pao.bilevel
 #import pao.bilevel.plugins
-from .solver import LinearBilevelSolver
+from .solver import SolverFactory
 from .repn import LinearBilevelProblem
 from . import pyomo_util
 
@@ -170,7 +170,7 @@ class BilevelSolver3_LinearBilevelProblem(PyomoSolverBase_LinearBilevelProblem):
         self.collect_values()
 
 
-LinearBilevelSolver.register(BilevelSolver1_LinearBilevelProblem, name='pao.bilevel.ld')
-LinearBilevelSolver.register(BilevelSolver2_LinearBilevelProblem, name='pao.bilevel.blp_global')
-LinearBilevelSolver.register(BilevelSolver3_LinearBilevelProblem, name='pao.bilevel.blp_local')
+SolverFactory.register(BilevelSolver1_LinearBilevelProblem, name='pao.bilevel.ld')
+SolverFactory.register(BilevelSolver2_LinearBilevelProblem, name='pao.bilevel.blp_global')
+SolverFactory.register(BilevelSolver3_LinearBilevelProblem, name='pao.bilevel.blp_local')
 

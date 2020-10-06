@@ -10,13 +10,13 @@ import pyomo.opt
 from pyomo.mpec import ComplementarityList, complements
 
 import pao.common
-from ..solver import LinearBilevelSolver, LinearBilevelSolverBase, LinearBilevelResults
+from ..solver import SolverFactory, LinearBilevelSolverBase, LinearBilevelResults
 from ..repn import LinearBilevelProblem
 from ..convert_repn import convert_LinearBilevelProblem_to_standard_form
 from .. import pyomo_util
 
 
-@LinearBilevelSolver.register(
+@SolverFactory.register(
         name="pao.lbp.REG",
         doc="A solver for linear bilevel programs using regularization discussed by Scheel and Scholtes (2000) and Ralph and Wright (2004).")
 class LinearBilevelSolver_REG(LinearBilevelSolverBase):

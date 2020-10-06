@@ -16,7 +16,7 @@ class Test_bilevel_lbp(unittest.TestCase):
         lbp = examples.bard511.create()
         lbp.check()
 
-        opt = LinearBilevelSolver('pao.bilevel.blp_global')
+        opt = SolverFactory('pao.bilevel.blp_global')
         opt.solve(lbp)
 
         self.assertTrue(math.isclose(lbp.U.xR.values[0], 4))
@@ -26,7 +26,7 @@ class Test_bilevel_lbp(unittest.TestCase):
         lbp = examples.bard511_L0.create()
         lbp.check()
 
-        opt = LinearBilevelSolver('pao.bilevel.blp_global')
+        opt = SolverFactory('pao.bilevel.blp_global')
         opt.solve(lbp)
 
         self.assertTrue(math.isclose(lbp.U.xR.values[0], 4))
@@ -36,7 +36,7 @@ class Test_bilevel_lbp(unittest.TestCase):
         lbp = examples.bard511_L1.create()
         lbp.check()
 
-        opt = LinearBilevelSolver('pao.bilevel.blp_global')
+        opt = SolverFactory('pao.bilevel.blp_global')
         opt.solve(lbp)
 
         self.assertTrue(math.isclose(lbp.U.xR.values[0], 4))
@@ -46,7 +46,7 @@ class Test_bilevel_lbp(unittest.TestCase):
         lbp = examples.bard511_list_L0.create()
         lbp.check()
 
-        opt = LinearBilevelSolver('pao.bilevel.blp_global')
+        opt = SolverFactory('pao.bilevel.blp_global')
         opt.solve(lbp)
 
         self.assertTrue(math.isclose(lbp.U.xR.values[0], 4))
@@ -56,7 +56,7 @@ class Test_bilevel_lbp(unittest.TestCase):
         lbp = examples.bard511_list.create()
         lbp.check()
 
-        opt = LinearBilevelSolver('pao.bilevel.blp_global')
+        opt = SolverFactory('pao.bilevel.blp_global')
         opt.solve(lbp)
 
         self.assertTrue(math.isclose(lbp.U.xR.values[0], 4))
@@ -66,7 +66,7 @@ class Test_bilevel_lbp(unittest.TestCase):
         lbp = examples.besancon27.create()
         lbp.check()
 
-        opt = LinearBilevelSolver('pao.bilevel.blp_global')
+        opt = SolverFactory('pao.bilevel.blp_global')
         opt.solve(lbp)
 
         self.assertTrue(math.isclose(lbp.U.xR.values[0], 0))
@@ -81,7 +81,7 @@ class Test_bilevel_FA(unittest.TestCase):
         lbp = examples.bard511.create()
         lbp.check()
 
-        opt = LinearBilevelSolver('pao.lbp.FA')
+        opt = SolverFactory('pao.lbp.FA')
         opt.solve(lbp)
 
         self.assertTrue(math.isclose(lbp.U.xR.values[0], 4))
@@ -91,7 +91,7 @@ class Test_bilevel_FA(unittest.TestCase):
         lbp = examples.bard511_L0.create()
         lbp.check()
 
-        opt = LinearBilevelSolver('pao.lbp.FA')
+        opt = SolverFactory('pao.lbp.FA')
         opt.solve(lbp)
 
         self.assertTrue(math.isclose(lbp.U.xR.values[0], 4))
@@ -101,7 +101,7 @@ class Test_bilevel_FA(unittest.TestCase):
         lbp = examples.bard511_L1.create()
         lbp.check()
 
-        opt = LinearBilevelSolver('pao.lbp.FA')
+        opt = SolverFactory('pao.lbp.FA')
         opt.solve(lbp)
 
         self.assertTrue(math.isclose(lbp.U.xR.values[0], 4))
@@ -111,7 +111,7 @@ class Test_bilevel_FA(unittest.TestCase):
         lbp = examples.bard511_list_L0.create()
         lbp.check()
 
-        opt = LinearBilevelSolver('pao.lbp.FA')
+        opt = SolverFactory('pao.lbp.FA')
         opt.solve(lbp)
 
         self.assertTrue(math.isclose(lbp.U.xR.values[0], 4))
@@ -121,7 +121,7 @@ class Test_bilevel_FA(unittest.TestCase):
         lbp = examples.bard511_list.create()
         lbp.check()
 
-        opt = LinearBilevelSolver('pao.lbp.FA')
+        opt = SolverFactory('pao.lbp.FA')
         opt.solve(lbp)
 
         self.assertTrue(math.isclose(lbp.U.xR.values[0], 4))
@@ -131,7 +131,7 @@ class Test_bilevel_FA(unittest.TestCase):
         lbp = examples.besancon27.create()
         lbp.check()
 
-        opt = LinearBilevelSolver('pao.lbp.FA')
+        opt = SolverFactory('pao.lbp.FA')
         opt.solve(lbp)
 
         self.assertTrue(math.isclose(lbp.U.xR.values[0], 0))
@@ -141,7 +141,7 @@ class Test_bilevel_FA(unittest.TestCase):
         lbp = examples.getachew_ex1.create()
         lbp.check()
 
-        opt = LinearBilevelSolver('pao.lbp.FA')
+        opt = SolverFactory('pao.lbp.FA')
         opt.solve(lbp)
 
         self.assertTrue(math.isclose(lbp.U.xR.values[0], 8))
@@ -151,7 +151,7 @@ class Test_bilevel_FA(unittest.TestCase):
         lbp = examples.getachew_ex2.create()
         lbp.check()
 
-        opt = LinearBilevelSolver('pao.lbp.FA')
+        opt = SolverFactory('pao.lbp.FA')
         opt.solve(lbp)
 
         self.assertTrue(math.isclose(lbp.U.xR.values[0], 6))
@@ -161,7 +161,7 @@ class Test_bilevel_FA(unittest.TestCase):
         lbp = examples.pineda.create()
         lbp.check()
 
-        opt = LinearBilevelSolver('pao.lbp.FA')
+        opt = SolverFactory('pao.lbp.FA')
         opt.solve(lbp)
 
         self.assertTrue(math.isclose(lbp.U.xR.values[0], 2))
@@ -175,7 +175,7 @@ class Test_bilevel_REG(unittest.TestCase):
         lbp = examples.bard511.create()
         lbp.check()
 
-        opt = LinearBilevelSolver('pao.lbp.REG')
+        opt = SolverFactory('pao.lbp.REG')
         opt.solve(lbp)
 
         self.assertTrue(math.isclose(lbp.U.xR.values[0], 4, abs_tol=1e-4))
@@ -185,7 +185,7 @@ class Test_bilevel_REG(unittest.TestCase):
         lbp = examples.bard511_L0.create()
         lbp.check()
 
-        opt = LinearBilevelSolver('pao.lbp.REG')
+        opt = SolverFactory('pao.lbp.REG')
         opt.solve(lbp)
 
         self.assertTrue(math.isclose(lbp.U.xR.values[0], 4, abs_tol=1e-4))
@@ -195,7 +195,7 @@ class Test_bilevel_REG(unittest.TestCase):
         lbp = examples.bard511_L1.create()
         lbp.check()
 
-        opt = LinearBilevelSolver('pao.lbp.REG')
+        opt = SolverFactory('pao.lbp.REG')
         opt.solve(lbp)
 
         self.assertTrue(math.isclose(lbp.U.xR.values[0], 4, abs_tol=1e-4))
@@ -205,7 +205,7 @@ class Test_bilevel_REG(unittest.TestCase):
         lbp = examples.bard511_list_L0.create()
         lbp.check()
 
-        opt = LinearBilevelSolver('pao.lbp.REG')
+        opt = SolverFactory('pao.lbp.REG')
         opt.solve(lbp)
 
         self.assertTrue(math.isclose(lbp.U.xR.values[0], 4, abs_tol=1e-4))
@@ -215,7 +215,7 @@ class Test_bilevel_REG(unittest.TestCase):
         lbp = examples.bard511_list.create()
         lbp.check()
 
-        opt = LinearBilevelSolver('pao.lbp.REG')
+        opt = SolverFactory('pao.lbp.REG')
         opt.solve(lbp)
 
         self.assertTrue(math.isclose(lbp.U.xR.values[0], 4, abs_tol=1e-4))
@@ -225,7 +225,7 @@ class Test_bilevel_REG(unittest.TestCase):
         lbp = examples.besancon27.create()
         lbp.check()
 
-        opt = LinearBilevelSolver('pao.lbp.REG')
+        opt = SolverFactory('pao.lbp.REG')
         opt.solve(lbp)
 
         self.assertTrue(math.isclose(lbp.U.xR.values[0], 0, abs_tol=1e-4))
@@ -235,7 +235,7 @@ class Test_bilevel_REG(unittest.TestCase):
         lbp = examples.getachew_ex1.create()
         lbp.check()
 
-        opt = LinearBilevelSolver('pao.lbp.REG')
+        opt = SolverFactory('pao.lbp.REG')
         opt.solve(lbp)
 
         self.assertTrue(math.isclose(lbp.U.xR.values[0], 8, abs_tol=1e-4))
@@ -245,7 +245,7 @@ class Test_bilevel_REG(unittest.TestCase):
         lbp = examples.getachew_ex2.create()
         lbp.check()
 
-        opt = LinearBilevelSolver('pao.lbp.REG')
+        opt = SolverFactory('pao.lbp.REG')
         opt.solve(lbp)
 
         self.assertTrue(math.isclose(lbp.U.xR.values[0], 6, abs_tol=1e-4))
@@ -255,7 +255,7 @@ class Test_bilevel_REG(unittest.TestCase):
         lbp = examples.pineda.create()
         lbp.check()
 
-        opt = LinearBilevelSolver('pao.lbp.REG')
+        opt = SolverFactory('pao.lbp.REG')
         opt.solve(lbp)
 
         self.assertTrue(math.isclose(lbp.U.xR.values[0], 2, abs_tol=1e-4))
@@ -269,7 +269,7 @@ class Test_bilevel_PCCG(unittest.TestCase):
         lbp = examples.bard511.create()
         lbp.check()
 
-        opt = LinearBilevelSolver('pao.lbp.PCCG')
+        opt = SolverFactory('pao.lbp.PCCG')
         opt.solve(lbp)
 
         self.assertTrue(math.isclose(lbp.U.xR.values[0], 4, abs_tol=1e-4))
@@ -279,7 +279,7 @@ class Test_bilevel_PCCG(unittest.TestCase):
         lbp = examples.bard511_L0.create()
         lbp.check()
 
-        opt = LinearBilevelSolver('pao.lbp.PCCG')
+        opt = SolverFactory('pao.lbp.PCCG')
         opt.solve(lbp)
 
         self.assertTrue(math.isclose(lbp.U.xR.values[0], 4, abs_tol=1e-4))
@@ -289,7 +289,7 @@ class Test_bilevel_PCCG(unittest.TestCase):
         lbp = examples.bard511_L1.create()
         lbp.check()
 
-        opt = LinearBilevelSolver('pao.lbp.PCCG')
+        opt = SolverFactory('pao.lbp.PCCG')
         opt.solve(lbp)
 
         self.assertTrue(math.isclose(lbp.U.xR.values[0], 4, abs_tol=1e-4))
@@ -299,7 +299,7 @@ class Test_bilevel_PCCG(unittest.TestCase):
         lbp = examples.bard511_list_L0.create()
         lbp.check()
 
-        opt = LinearBilevelSolver('pao.lbp.PCCG')
+        opt = SolverFactory('pao.lbp.PCCG')
         opt.solve(lbp)
 
         self.assertTrue(math.isclose(lbp.U.xR.values[0], 4, abs_tol=1e-4))
@@ -309,7 +309,7 @@ class Test_bilevel_PCCG(unittest.TestCase):
         lbp = examples.bard511_list.create()
         lbp.check()
 
-        opt = LinearBilevelSolver('pao.lbp.PCCG')
+        opt = SolverFactory('pao.lbp.PCCG')
         opt.solve(lbp)
 
         self.assertTrue(math.isclose(lbp.U.xR.values[0], 4, abs_tol=1e-4))
@@ -319,7 +319,7 @@ class Test_bilevel_PCCG(unittest.TestCase):
         lbp = examples.besancon27.create()
         lbp.check()
 
-        opt = LinearBilevelSolver('pao.lbp.PCCG')
+        opt = SolverFactory('pao.lbp.PCCG')
         opt.solve(lbp)
 
         self.assertTrue(math.isclose(lbp.U.xR.values[0], 0, abs_tol=1e-4))
@@ -329,7 +329,7 @@ class Test_bilevel_PCCG(unittest.TestCase):
         lbp = examples.getachew_ex1.create()
         lbp.check()
 
-        opt = LinearBilevelSolver('pao.lbp.PCCG')
+        opt = SolverFactory('pao.lbp.PCCG')
         opt.solve(lbp)
 
         self.assertTrue(math.isclose(lbp.U.xR.values[0], 8, abs_tol=1e-4))
@@ -339,7 +339,7 @@ class Test_bilevel_PCCG(unittest.TestCase):
         lbp = examples.getachew_ex2.create()
         lbp.check()
 
-        opt = LinearBilevelSolver('pao.lbp.PCCG')
+        opt = SolverFactory('pao.lbp.PCCG')
         opt.solve(lbp)
 
         self.assertTrue(math.isclose(lbp.U.xR.values[0], 6, abs_tol=1e-4))
@@ -349,7 +349,7 @@ class Test_bilevel_PCCG(unittest.TestCase):
         lbp = examples.pineda.create()
         lbp.check()
 
-        opt = LinearBilevelSolver('pao.lbp.PCCG')
+        opt = SolverFactory('pao.lbp.PCCG')
         opt.solve(lbp)
 
         self.assertTrue(math.isclose(lbp.U.xR.values[0], 2, abs_tol=1e-4))
@@ -359,7 +359,7 @@ class Test_bilevel_PCCG(unittest.TestCase):
         lbp = examples.toyexample1.create()
         lbp.check()
 
-        opt = LinearBilevelSolver('pao.lbp.PCCG')
+        opt = SolverFactory('pao.lbp.PCCG')
         opt.solve(lbp)
 
         self.assertEqual(lbp.U.xZ.values[0], 2)
@@ -369,7 +369,7 @@ class Test_bilevel_PCCG(unittest.TestCase):
         lbp = examples.toyexample2.create()
         lbp.check()
 
-        opt = LinearBilevelSolver('pao.lbp.PCCG')
+        opt = SolverFactory('pao.lbp.PCCG')
         opt.solve(lbp)
 
         self.assertEqual(lbp.U.xZ.values[0], 8)
@@ -379,7 +379,7 @@ class Test_bilevel_PCCG(unittest.TestCase):
         lbp = examples.toyexample3.create()
         lbp.check()
 
-        opt = LinearBilevelSolver('pao.lbp.PCCG')
+        opt = SolverFactory('pao.lbp.PCCG')
         opt.solve(lbp)
 
         self.assertTrue(math.isclose(lbp.U.xR.values[0], 3, abs_tol=1e-4))
@@ -396,7 +396,7 @@ class XTest_bilevel_ld(object):
         lbp.check()
         lbp.print()
 
-        opt = LinearBilevelSolver('pao.bilevel.ld')
+        opt = SolverFactory('pao.bilevel.ld')
         opt.solve(lbp)
 
         self.assertTrue(math.isclose(lbp.U.xR.values[0], 0))

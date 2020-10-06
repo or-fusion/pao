@@ -17,14 +17,14 @@ import pyutilib
 import pyomo.environ as pe
 import pyomo.opt
 from pyomo.mpec import ComplementarityList, complements
-from ..solver import LinearBilevelSolver, LinearBilevelSolverBase, LinearBilevelResults
+from ..solver import SolverFactory, LinearBilevelSolverBase, LinearBilevelResults
 from ..repn import LinearBilevelProblem
 from ..convert_repn import convert_LinearBilevelProblem_to_standard_form, convert_sense, convert_binaries_to_integers
 from .. import pyomo_util
 from .pccg_solver import execute_PCCG_solver
 
 
-@LinearBilevelSolver.register(
+@SolverFactory.register(
         name='pao.lbp.PCCG',
         doc='A solver for linear bilevel programs using using projected column constraint generation')
 class LinearBilevelSolver_PCCG(LinearBilevelSolverBase):
