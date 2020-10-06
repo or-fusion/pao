@@ -1,8 +1,10 @@
+import copy
 import itertools
 import numpy as np
 import pyomo.environ as pe
 from pyomo.repn import generate_standard_repn
 from pyomo.core.base import SortComponents, is_fixed
+from scipy.sparse import dok_matrix
 
 from pao.lbp import LinearBilevelProblem
 from .components import SubModel
@@ -13,7 +15,8 @@ def _bound_equals(exp, num):
         return False
     if is_fixed(exp):
         return pe.value(exp) == num
-    return False
+    return False                        # pragma: no cover
+                                        # WEH - will we ever reach this point?  What if the LB is a mutable parameter?
 
 
 class Node(object):
@@ -28,7 +31,7 @@ class Node(object):
         self.orepn = []
         self.crepn = []
         self.fixedvars = set()
-        self.unfixedvars = set()
+        self.unfixedvars = set()    # unfixed variables used in expressions
         self.xR = {}
         self.xZ = {}
         self.xB = {}
@@ -47,6 +50,7 @@ class Node(object):
         if v.is_binary():
             vidmap[vid] = (2, self.nid, len(self.xB))
             self.xB[len(self.xB)] = vid
+
         elif v.is_integer():
             #
             # The _bounds_equals function only returns True if the 
@@ -60,7 +64,9 @@ class Node(object):
                 self.xB[len(self.xB)] = vid
             else:
                 vidmap[vid] = (1, self.nid, len(self.xZ))
+                #print(len(self.xZ), self.nid, vid)
                 self.xZ[len(self.xZ)] = vid
+
         else:
             assert (v.is_continuous()), "Variable '%s' has a domain type that is not continuous, integer or binary" % str(v)
             vidmap[vid] = (0, self.nid, len(self.xR))
@@ -111,11 +117,12 @@ class Node(object):
 
     def initialize_level(self, level, inequalities, var, vidmap, levelmap):
         #
-        # c.U
+        # c
         #
         assert (len(self.orepn) <= 1), "PAO model has %d objectives specified, but a LinearBilevelProblem can have no more than one" % len(self.orepn)
         if len(self.orepn) == 1:
-            level.d = pe.value(self.orepn[0].constant)
+            repn = self.orepn[0][0]
+            level.d = pe.value(repn.constant)
 
             c_xR = {}
             c_xZ = {}
@@ -125,9 +132,10 @@ class Node(object):
                 c_xZ[i] = {}
                 c_xB[i] = {}
 
-            for i,c  in enumerate(self.orepn[0].linear_coefs):
-                vid = id(self.orepn[0].linear_vars[i])
+            for i,c  in enumerate(repn.linear_coefs):
+                vid = id(repn.linear_vars[i])
                 t, nid, j = vidmap[vid]
+                #print(t,nid,j)
                 if t == 0:
                     c_xR[nid][j] = pe.value(c)
                 elif t == 1:
@@ -161,10 +169,71 @@ class Node(object):
                         level.c.U.xB = tmp
                     else:
                         level.c.L[j-1].xB = tmp
-                    
+        #
+        # A
+        #
+        if len(self.crepn) > 0:
+            A_xR = {}
+            A_xZ = {}
+            A_xB = {}
+            for i in levelmap:
+                A_xR[i] = {}
+                A_xZ[i] = {}
+                A_xB[i] = {}
+            b = {}
+            nrows = len(self.crepn)
+
+            for k in range(len(self.crepn)):
+                repn = self.crepn[k][0]
+                for i,c  in enumerate(repn.linear_coefs):
+                    vid = id(repn.linear_vars[i])
+                    t, nid, j = vidmap[vid]
+                    if t == 0:
+                        A_xR[nid][k,j] = pe.value(c)
+                    elif t == 1:
+                        A_xZ[nid][k,j] = pe.value(c)
+                    elif t == 2:
+                        A_xB[nid][k,j] = pe.value(c)
+                b[k] = self.crepn[k][1] - repn.constant
+
+            for j in levelmap:
+                node = levelmap[j]
+                if len(A_xR[j]) > 0:
+                    mat = dok_matrix((nrows, len(node.xR)))
+                    for key, val in A_xR[j].items():
+                        mat[key] = val
+                    if j == 0:
+                        level.A.U.xR = mat
+                    else:
+                        level.A.L[j-1].xR = mat
+                if len(A_xZ[j]) > 0:
+                    mat = dok_matrix((nrows, len(node.xZ)))
+                    for key, val in A_xZ[j].items():
+                        mat[key] = val
+                    if j == 0:
+                        level.A.U.xZ = mat
+                    else:
+                        level.A.L[j-1].xZ = mat
+                if len(A_xB[j]) > 0:
+                    mat = dok_matrix((nrows, len(node.xB)))
+                    for key, val in A_xB[j].items():
+                        mat[key] = val
+                    if j == 0:
+                        level.A.U.xB = mat
+                    else:
+                        level.A.L[j-1].xB = mat
+                
             
 
-def collect_multilevel_tree(block, var, vidmap={}, sortOrder=SortComponents.unsorted, fixed=set()):
+def negate_repn(repn):
+    trepn = copy.copy(repn)
+    trepn.constant *= -1
+    trepn.linear_coefs = list(-1*repn.linear_coefs[i] for i in range(len(repn.linear_coefs)))
+    trepn.linear_vars = list(repn.linear_vars)
+    return trepn
+
+
+def collect_multilevel_tree(block, var, vidmap={}, sortOrder=SortComponents.unsorted, fixed=set(), inequalities=None):
     """
     Traverse the model and generate a tree of the SubModel components
     """
@@ -175,9 +244,9 @@ def collect_multilevel_tree(block, var, vidmap={}, sortOrder=SortComponents.unso
     #
     # Recurse, collecting Submodel components
     #
-    fixedvars = fixedvars | curr.fixedvars
+    fixedvars = fixed | curr.fixedvars
     curr.children = \
-        [collect_multilevel_tree(submodel, var, vidmap, fixed=fixedvars) 
+        [collect_multilevel_tree(submodel, var, vidmap, fixed=fixedvars, inequalities=inequalities) 
          for submodel in block.component_objects(SubModel, active=True, descend_into=True, sort=sortOrder)]
     #
     # Collect objectives and constraints in the current submodel.
@@ -191,10 +260,11 @@ def collect_multilevel_tree(block, var, vidmap={}, sortOrder=SortComponents.unso
         degree = repn.polynomial_degree()
         if degree == 0:
             continue # trivial, so skip
-        curr.orepn.append( repn )
+        curr.orepn.append( (repn,) )
     #
     # Constraints
     #
+    block.zzz_PAO_SlackVariables = pe.VarList(domain=pe.NonNegativeReals)
     for cdata in block.component_data_objects(pe.Constraint, active=True, sort=sortOrder, descend_into=True):
         if (not cdata.has_lb()) and (not cdata.has_ub()):
             assert not cdata.equality, "Constraint '%s' is an equality with an infinite right-hand-side" % cdata.name
@@ -213,8 +283,38 @@ def collect_multilevel_tree(block, var, vidmap={}, sortOrder=SortComponents.unso
                     assert pe.value(cdata.body) <= pe.value(cdata.upper), "Constraint '%s' is constant but it is not satisfied (upper-bound)" % cdata.name
             # trivial, so skip
             continue                            # pragma: no cover
-        curr.crepn.append( repn )
-
+        else:
+            if inequalities:
+                if cdata.equality:
+                    val = pe.value(cdata.lower)
+                    curr.crepn.append( (repn, val) )
+                    curr.crepn.append( (negate_repn(repn), -val) )
+                else:
+                    if cdata.lower is None and cdata.upper is None:             #pragma: no cover
+                        # unbounded constraint
+                        continue
+                    if cdata.lower is not None:
+                        curr.crepn.append( (negate_repn(repn), -pe.value(cdata.lower)) )
+                    if cdata.upper is not None:
+                        curr.crepn.append( (repn, pe.value(cdata.upper)) )
+            else:
+                if cdata.equality:
+                    curr.crepn.append( (repn, pe.value(cdata.lower)) )
+                else:
+                    if cdata.lower is None and cdata.upper is None:             #pragma: no cover
+                        # unbounded constraint
+                        continue
+                    if cdata.lower is not None:
+                        trepn = negate_repn(repn)
+                        trepn.linear_coefs.append(1)
+                        trepn.linear_vars.append(block.zzz_PAO_SlackVariables.add())
+                        curr.crepn.append( (trepn, -pe.value(cdata.lower)) )
+                    if cdata.upper is not None:
+                        repn.linear_coefs = list(repn.linear_coefs)
+                        repn.linear_vars = list(repn.linear_vars)
+                        repn.linear_coefs.append(1)
+                        repn.linear_vars.append(block.zzz_PAO_SlackVariables.add())
+                        curr.crepn.append( (repn, pe.value(cdata.upper)) )
     #
     # Collect the variables used by the children
     #
@@ -226,37 +326,49 @@ def collect_multilevel_tree(block, var, vidmap={}, sortOrder=SortComponents.unso
     # as fixed and which are not used in submodels
     #
     knownvars = curr.fixedvars | childvars
+    newvars = []
     for repn in itertools.chain(curr.orepn, curr.crepn):
-        for v in repn.linear_vars:
+        for v in repn[0].linear_vars:
             i = id(v)
             if i not in knownvars:
                 curr.unfixedvars.add(i)
                 var[i] = v
-        for v,w in repn.quadratic_vars:
-            i = id(v)
-            if i not in knownvars:
-                curr.unfixedvars.add(i)
-                var[i] = v
-            i = id(w)
-            if i not in knownvars:
-                curr.unfixedvars.add(i)
-                var[i] = v
+                newvars.append(i)
+                knownvars.add(i)
+        if False:                                   # pragma: no cover
+            for v,w in repn[0].quadratic_vars:
+                i = id(v)
+                if i not in knownvars:
+                    curr.unfixedvars.add(i)
+                    var[i] = v
+                    newvars.append(i)
+                    knownvars.add(i)
+                i = id(w)
+                if i not in knownvars:
+                    curr.unfixedvars.add(i)
+                    var[i] = v
+                    newvars.append(i)
+                    knownvars.add(i)
+    #print("NID", curr.nid)
+    #print("Fixed", len(curr.fixedvars))
+    #print("Unfixed", len(curr.unfixedvars))
+    #print("Child Unfixed", len(childvars))
     #
-    # Categorize variables
+    # Categorize the new variables that were found
     #
     if sortOrder == SortComponents.unsorted:
-        for i,v in var.items():
-            curr.categorize_variable(i,v, vidmap)
+        for i in newvars:
+            curr.categorize_variable(i,var[i], vidmap)
     else:
-        for i,_,v in sorted(((i,v.name,v) for i,v in var.items()), key=lambda arg: arg[1]):
-            curr.categorize_variable(i,v, vidmap)
+        for k,_,w in sorted(((i,var[i].name,var[i]) for i in newvars), key=lambda arg: arg[1]):
+                curr.categorize_variable(k,w, vidmap)
     #
     # Return root of this tree
     #
     return curr
 
 
-def convert_pyomo2LinearBilevelProblem1(model, determinism=1, inequalities=True):
+def convert_pyomo2LinearBilevelProblem1(model, *, determinism=1, inequalities=True):
     """
     Traverse the model an generate a LinearBilevelProblem.  Generate errors
     if this problem cannot be represented in this form.
@@ -281,7 +393,7 @@ def convert_pyomo2LinearBilevelProblem1(model, determinism=1, inequalities=True)
     #
     var = {}
     vidmap = {}
-    tree = collect_multilevel_tree(model, var, vidmap, sortOrder=sortOrder)
+    tree = collect_multilevel_tree(model, var, vidmap, sortOrder=sortOrder, inequalities=inequalities)
     #
     # We must have a least one SubModel
     #
