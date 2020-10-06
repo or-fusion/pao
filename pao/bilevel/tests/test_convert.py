@@ -215,7 +215,7 @@ class TestMultilevelTree(unittest.TestCase):
         M.s = SubModel(fixed=M.x)
         M.s.o = pe.Objective(expr=5+6*M.x+7*sum(M.y[i] for i in M.y)+8*sum(M.z[i] for i in M.z))
 
-        lbp = convert_pyomo2LinearBilevelProblem(M, inequalities=True)
+        lbp,_ = convert_pyomo2LinearBilevelProblem(M, inequalities=True)
         
         self.assertEqual(len(lbp.U.xR), len(M.x))
         self.assertEqual(len(lbp.L.xZ), len(M.z)-1)
@@ -252,7 +252,7 @@ class TestMultilevelTree(unittest.TestCase):
         
         M.s = SubModel(fixed=M.x)
 
-        lbp = convert_pyomo2LinearBilevelProblem(M, inequalities=True)
+        lbp,_ = convert_pyomo2LinearBilevelProblem(M, inequalities=True)
         
         self.assertEqual(len(lbp.U.xR), len(M.x))
         self.assertEqual(len(lbp.U.xZ), len(M.z))
@@ -294,7 +294,7 @@ class TestMultilevelTree(unittest.TestCase):
         M.s.c2 = pe.Constraint(expr=M.x[0] <= np.PINF)
         M.s.c3 = pe.Constraint(expr=M.p <= 2)
 
-        lbp = convert_pyomo2LinearBilevelProblem(M, inequalities=True)
+        lbp,_ = convert_pyomo2LinearBilevelProblem(M, inequalities=True)
         
         self.assertEqual(len(lbp.U.xR), len(M.x))
         self.assertEqual(len(lbp.L.xR), len(M.X))
@@ -330,7 +330,7 @@ class TestMultilevelTree(unittest.TestCase):
         M.s = SubModel(fixed=M.x)
         #M.s.c = pe.Constraint(expr=M.x[0]+sum(M.y[i] for i in M.y)+sum(M.z[i] for i in M.z) == 0)
 
-        lbp = convert_pyomo2LinearBilevelProblem(M, inequalities=True)
+        lbp,_ = convert_pyomo2LinearBilevelProblem(M, inequalities=True)
         
         self.assertEqual(len(lbp.U.xR), len(M.x))
         self.assertEqual(len(lbp.U.xZ), len(M.z))
@@ -363,7 +363,7 @@ class TestMultilevelTree(unittest.TestCase):
         M.s = SubModel(fixed=M.x)
         #M.s.c = pe.Constraint(expr=M.x[0]+sum(M.y[i] for i in M.y)+sum(M.z[i] for i in M.z) == 0)
 
-        lbp = convert_pyomo2LinearBilevelProblem(M, inequalities=False)
+        lbp,_ = convert_pyomo2LinearBilevelProblem(M, inequalities=False)
         
         self.assertEqual(len(lbp.U.xR), len(M.x))
         self.assertEqual(len(lbp.U.xZ), len(M.z))
@@ -402,7 +402,7 @@ class TestMultilevelTree(unittest.TestCase):
         M.s = SubModel(fixed=M.x)
         M.s.c = pe.Constraint(expr=M.X[0]+sum(M.Y[i] for i in M.Y)+sum(M.Z[i] for i in M.Z) == 0)
 
-        lbp = convert_pyomo2LinearBilevelProblem(M, inequalities=True)
+        lbp,_ = convert_pyomo2LinearBilevelProblem(M, inequalities=True)
         
         self.assertEqual(len(lbp.U.xR), len(M.x))
         self.assertEqual(len(lbp.U.xZ), len(M.z))
@@ -465,7 +465,7 @@ class TestMultilevelTree(unittest.TestCase):
         M.s = SubModel(fixed=M.x)
         M.s.c = pe.Constraint(expr=M.X[0]+sum(M.Y[i] for i in M.Y)+sum(M.Z[i] for i in M.Z) == 0)
 
-        lbp = convert_pyomo2LinearBilevelProblem(M, inequalities=False)
+        lbp,_ = convert_pyomo2LinearBilevelProblem(M, inequalities=False)
         
         self.assertEqual(len(lbp.U.xR), len(M.x)+4)
         self.assertEqual(len(lbp.U.xZ), len(M.z))

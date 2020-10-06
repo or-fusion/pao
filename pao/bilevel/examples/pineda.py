@@ -14,10 +14,10 @@ def create():
     M.L = SubModel(fixed=(M.xR))
     M.L.xR = pe.Var(bounds=(0,None))
 
-    M.o = Objective(expr=M.xR + M.L.xR)
+    M.o = pe.Objective(expr=M.xR + M.L.xR, sense=pe.maximize)
 
-    M.L.o = Objective(expr=M.L.xR)
-    M.L.c = Constraint(expr=100*M.xR - M.L.xR <= 100)
+    M.L.o = pe.Objective(expr=M.L.xR)
+    M.L.c = pe.Constraint(expr=100*M.xR - M.L.xR <= 100)
 
     return M
 

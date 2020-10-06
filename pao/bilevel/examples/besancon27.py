@@ -19,7 +19,7 @@ def create():
     M.o = pe.Objective(expr=M.xR, sense=pe.minimize)
     M.c = pe.Constraint(expr= M.xR/10 + M.L.xR >= 1)
 
-    M.o = pe.Objective(expr=M.L.xR, sense=pe.maximize)
+    M.L.o = pe.Objective(expr=M.L.xR, sense=pe.maximize)
     M.L.c = pe.Constraint(expr= -M.xR/10 + M.L.xR <= 1)
 
     return M

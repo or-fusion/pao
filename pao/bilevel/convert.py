@@ -122,6 +122,8 @@ class Node(object):
         assert (len(self.orepn) <= 1), "PAO model has %d objectives specified, but a LinearBilevelProblem can have no more than one" % len(self.orepn)
         if len(self.orepn) == 1:
             repn = self.orepn[0][0]
+            if self.orepn[0][1] == pe.maximize:
+                level.minimize = False
             level.d = pe.value(repn.constant)
 
             c_xR = {}
@@ -180,7 +182,7 @@ class Node(object):
                 A_xR[i] = {}
                 A_xZ[i] = {}
                 A_xB[i] = {}
-            b = {}
+            b = []
             nrows = len(self.crepn)
 
             for k in range(len(self.crepn)):
@@ -194,7 +196,9 @@ class Node(object):
                         A_xZ[nid][k,j] = pe.value(c)
                     elif t == 2:
                         A_xB[nid][k,j] = pe.value(c)
-                b[k] = self.crepn[k][1] - repn.constant
+                b.append(self.crepn[k][1] - repn.constant)
+
+            level.b = b
 
             for j in levelmap:
                 node = levelmap[j]
@@ -260,7 +264,7 @@ def collect_multilevel_tree(block, var, vidmap={}, sortOrder=SortComponents.unso
         degree = repn.polynomial_degree()
         if degree == 0:
             continue # trivial, so skip
-        curr.orepn.append( (repn,) )
+        curr.orepn.append( (repn, odata.sense) )
     #
     # Constraints
     #
@@ -368,6 +372,32 @@ def collect_multilevel_tree(block, var, vidmap={}, sortOrder=SortComponents.unso
     return curr
 
 
+class PyomoSubmodel_SolutionManager_LBP(object):
+
+    def __init__(self, var, vidmap):
+        self.var = var
+        self.vidmap = vidmap
+
+    def copy_from_to(self, *, lbp, pyomo):
+        for vid in self.vidmap:
+            v = self.var[vid]
+            t, nid, j = self.vidmap[vid]
+            if nid == 0:
+                if t == 0:
+                    v.value = lbp.U.xR.values[j]
+                elif t == 1:
+                    v.value = lbp.U.xZ.values[j]
+                elif t == 2:
+                    v.value = lbp.U.xB.values[j]
+            else:
+                if t == 0:
+                    v.value = lbp.L[nid-1].xR.values[j]
+                elif t == 1:
+                    v.value = lbp.L[nid-1].xZ.values[j]
+                elif t == 2:
+                    v.value = lbp.L[nid-1].xB.values[j]
+
+
 def convert_pyomo2LinearBilevelProblem1(model, *, determinism=1, inequalities=True):
     """
     Traverse the model an generate a LinearBilevelProblem.  Generate errors
@@ -424,9 +454,10 @@ def convert_pyomo2LinearBilevelProblem1(model, *, determinism=1, inequalities=Tr
     #
     Node.global_list = []
 
-    return M
+    return M, PyomoSubmodel_SolutionManager_LBP(var, vidmap)
     
 
 # WEH - I suspect we'll try out multiple conversion functions, but this will be the default function
 convert_pyomo2LinearBilevelProblem = convert_pyomo2LinearBilevelProblem1
+convert_pyomo2lbp = convert_pyomo2LinearBilevelProblem1
 

@@ -1,6 +1,6 @@
 #
 # Example from Getachew, Mersha and Dempe, 2005.
-# Constraints in the upper-level
+# Constraints in the lower-level
 #
 from pao.lbp import *
 
@@ -12,7 +12,7 @@ def create():
     U.c.U.xR = [-1]
     U.c.L.xR = [-2]
 
-    U.b = [12, 14]
+    #U.b = [12, 14]
 
     L = M.add_lower(nxR=1)
     L.c.L.xR = [-1]
