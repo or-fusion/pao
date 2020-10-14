@@ -2,8 +2,8 @@
 #
 #  Pyomo: Python Optimization Modeling Objects
 #  Copyright 2017 National Technology and Engineering Solutions of Sandia, LLC
-#  Under the terms of Contract DE-NA0003525 with National Technology and 
-#  Engineering Solutions of Sandia, LLC, the U.S. Government retains certain 
+#  Under the terms of Contract DE-NA0003525 with National Technology and
+#  Engineering Solutions of Sandia, LLC, the U.S. Government retains certain
 #  rights in this software.
 #  This software is distributed under the 3-clause BSD License.
 #  ___________________________________________________________________________
@@ -32,21 +32,20 @@ except ImportError:
 # TODO: Add glpk in solvers list
 
 solvers = pyomo.opt.check_available_solvers('cplex','gurobi')
-pao_solvers = ['pao.bilevel.stochastic_ld']
+pao_solvers = ['pao.bilevel.ccg']
 
 current_dir = dirname(abspath(__file__))
 aux_dir = join(dirname(abspath(__file__)),'auxiliary')
 
-# models for bilevel solution tests
-solution_model_names = ['sip_example1']
+# models for integer bilevel solution tests
+solution_model_names = ['yueA1','yueA2','yueA3']
 solution_models = [join(current_dir, 'auxiliary', '{}.py'.format(i)) for i in solution_model_names]
-solutions = [join(current_dir, 'auxiliary','solution','{}.txt'.format(i)) for i in solution_model_names]
+solutions = [-22, -20, -243.500]
 
 # cartesian product of lists for a full coverage unittest run
 cartesian_solutions = [elem for elem in itertools.product(*[solvers,pao_solvers,zip(solution_model_names,solution_models,solutions)])]
 
-
-class TestStochasticBilevelSolve(unittest.TestCase):
+class TestBilevelSolve(unittest.TestCase):
     """
     Testing for bilevel solutions that use the runtime parameters specified in cartesian_solutions list
 
@@ -79,21 +78,16 @@ class TestStochasticBilevelSolve(unittest.TestCase):
         from importlib.machinery import SourceFileLoader
         namespace = SourceFileLoader(name,model).load_module()
         instance = namespace.pyomo_create_model()
-        weights = instance.weights
-        kwargs = {'subproblem_objective_weights': weights}
+
         solver = SolverFactory(pao_solver)
         solver.options.solver = numerical_solver
-        results = solver.solve(instance, **kwargs, tee=False)
+        results = solver.solve(instance, tee=False)
 
         self.assertTrue(results.solver.termination_condition == pyomo.opt.TerminationCondition.optimal)
 
         test_objective = self.getObjectiveInstance(instance)
-        solution_objective = self.getObjectiveSolution(solution, test_objective.keys())
-        for key,val in test_objective.items():
-            if key in solution_objective.keys():
-                solution_val = solution_objective[key]
-                comparison = math.isclose(val,solution_val,rel_tol=1e-3)
-                self.assertTrue(comparison)
+        comparison = math.isclose(test_objective,solution,rel_tol=1e-3)
+        self.assertTrue(comparison)
 
     def getObjectiveSolution(self, filename, keys):
         """ Gets the objective solutions from the known solution file that maps to
@@ -123,29 +117,22 @@ class TestStochasticBilevelSolve(unittest.TestCase):
                         ans[key] = val
         return ans
 
-    def getObjectiveInstance(self, instance, root_name=None, ans=dict()):
-        """ Gets the objective solutions from the unittest instance
+    def getObjectiveInstance(self, instance):
+        """ Gets the master problem objective solution from the unittest instance
 
         Parameters
         ----------
         instance : `string`
-        root_name: `string`
-        ans: `dict`
+        ans: `float`
 
         Returns
         -------
-        `dict`
+        `float`
         """
 
         for (name, data) in instance.component_map(active=True).items():
             if isinstance(data, Objective):
-                if not root_name is None:
-                    name = ("%s.%s" % (root_name, name))
-                ans[name] = value(data)
-            if isinstance(data, SubModel):
-                root_name = name
-                self.getObjectiveInstance(data, root_name, ans)
-        return ans
+                return value(data)
 
 
 

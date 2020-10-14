@@ -14,7 +14,7 @@ pao.bilevel.plugins.transform
 Definition of a base class for bilevel transformation.
 """
 
-from pyomo.core import Transformation, Var, ComponentUID, Block
+from pyomo.core import Transformation, Var
 from ..components import SubModel
 import logging
 

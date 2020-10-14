@@ -33,8 +33,9 @@ aux_dir = join(dirname(abspath(__file__)),'auxiliary')
 # models for bilevel highpoint relaxation tests
 reformulation_model_names = ['besancon27']
 reformulation_models = [join(current_dir, 'auxiliary', '{}.py'.format(i)) for i in reformulation_model_names]
-reformulations = [join(current_dir, 'auxiliary','reformulation','{}.txt'.format(i)) for i in reformulation_model_names]
+reformulations = [join(current_dir, 'auxiliary','reformulation','{}_hpr.txt'.format(i)) for i in reformulation_model_names]
 
+# TODO: Add glpk in solvers list
 solvers = pyomo.opt.check_available_solvers('cplex','glpk','gurobi','ipopt')
 
 # models for bilevel solution tests
@@ -79,6 +80,8 @@ class TestBilevelHighpoint():#unittest.TestCase):
         xfrm = TransformationFactory('pao.bilevel.highpoint')
         xfrm.apply_to(instance, deterministic=True)
 
+        print(name)
+        instance.pprint()
         with open(join(aux_dir, name + '_highpoint.out'), 'w') as ofile:
             instance.pprint(ostream=ofile)
 

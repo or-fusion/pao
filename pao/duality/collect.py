@@ -97,13 +97,16 @@ def collect_dual_representation(block, fixed_modelvars):
                 # Variables should not be fixed
                 #if var.fixed:
                 #    continue
+                parent = var.parent_component()
+                if parent is None:
+                    raise RuntimeError("ERROR: Variable %s encountered that is not owned by a Pyomo model" % str(var))
                 try:
                     # The variable is in the subproblem
-                    varname = var.parent_component().getname(fully_qualified=True,
+                    varname = parent.getname(fully_qualified=True,
                                                              relative_to=block)
                 except RuntimeError:
                     # The variable is somewhere else in the model
-                    varname = var.parent_component().getname(fully_qualified=True,
+                    varname = parent.getname(fully_qualified=True,
                                                              relative_to=block.model())
                 varndx = var.index()
                 all_vars[varname, varndx] = var

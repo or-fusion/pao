@@ -20,6 +20,7 @@ Nov, 2019.
 
 TODO: Currently handling linear subproblem; need to extend to
 convex subproblem duality
+TODO: This is incomplete, currently worked on by She'ifa
 """
 
 import time
@@ -29,19 +30,7 @@ import pyomo.common
 from pyomo.opt import TerminationCondition
 from pyomo.core import TransformationFactory, Var, Set, Block
 from .solver3 import BilevelSolver3
-
-safe_termination_conditions = [
-    TerminationCondition.maxTimeLimit,
-    TerminationCondition.maxIterations,
-    TerminationCondition.minFunctionValue,
-    TerminationCondition.minStepLength,
-    TerminationCondition.globallyOptimal,
-    TerminationCondition.locallyOptimal,
-    TerminationCondition.feasible,
-    TerminationCondition.optimal,
-    TerminationCondition.maxEvaluations,
-    TerminationCondition.other,
-]
+from .solver_helpers import *
 
 @pyomo.opt.SolverFactory.register('pao.bilevel.norvep',
                                   doc='Solver for near-optimal vertex enumeration procedure')
@@ -62,13 +51,6 @@ class BilevelSolver5(pyomo.opt.OptSolver):
     def _apply_solver(self):
         start_time = time.time()
 
-        def _check_termination_condition(results):
-            # do we want to be more restrictive of termination conditions?
-            # do we want to have different behavior for sub-optimal termination?
-            if results.solver.termination_condition not in safe_termination_conditions:
-                raise Exception('Problem encountered during solve, termination_condition {}'.format(
-                    results.solver.termination_condition))
-
         # construct the high-point problem (LL feasible, no LL objective)
         # s0 <- solve the high-point
         # if s0 infeasible then return high_point_infeasible
@@ -84,7 +66,7 @@ class BilevelSolver5(pyomo.opt.OptSolver):
         for c in self._instance.component_objects(Block, descend_into=False):
             if '_hp' in c.name:
                 c.activate()
-                opt = SolverFactory(solver)
+                opt = pyomo.opt.SolverFactory(solver)
                 results = opt.solve(c)
                 _check_termination_condition(results)
                 c.deactivate()
