@@ -9,7 +9,13 @@ PAO currently supports the following versions of Python:
 Using CONDA
 ~~~~~~~~~~~
 
-Coming soon.
+We recommend installation with *conda*, which is included with the
+Anaconda distribution of Python. You can install PAO in your system
+Python installation by executing the following in a shell:
+
+::
+   
+   conda install -c conda-forge pao
 
 Using PIP
 ~~~~~~~~~

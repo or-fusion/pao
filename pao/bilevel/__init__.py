@@ -16,3 +16,6 @@ bilevel programs.
 """
 
 from pao.bilevel.components import *
+from .convert import convert_pyomo2LinearBilevelProblem
+from . import examples
+from .solver import SolverFactory

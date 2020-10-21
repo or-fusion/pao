@@ -53,7 +53,7 @@ class BilevelSolver3(pyomo.opt.OptSolver):
         #
         solver = self.options.solver
         if not self.options.solver:
-            solver = 'glpk'
+            solver = 'ipopt'
 
         #
         # Use the with block here so that deactivation of the

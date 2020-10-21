@@ -6,12 +6,15 @@
 PAO Documentation | DRAFT
 =========================
 
-PAO is a Python-based package for Adversarial Optimization.  PAO extends
-the modeling concepts in `Pyomo <https://github.com/Pyomo/pyomo>`_
-to enable the expression and solution of multi-level optimization
-problems. The goal of this package is to provide a general   modeling
-and analysis capability, and application exemplars serve to illustrate
-PAO's general capabilities.
+PAO is a Python-based package for Adversarial Optimization.  The goal of
+this package is to provide a general modeling and analysis capability for
+bilevel, trilevel and other optimization forms that express adversarial
+dynamics.  PAO integrates two different modeling abstractions:
+
+* *Tailored models* that express objective and constraints in a manner that is typically used to express the mathematical form of these problems (e.g. using vector and matrix data types).
+
+* *General algebraic models* that extend the modeling concepts in the `Pyomo <https://github.com/Pyomo/pyomo>`_ algebraic modeling language to express problems with a simple algebraic syntax.
+
 
 .. toctree::
    :maxdepth: 2
@@ -32,11 +35,12 @@ PAO Resources
 
 PAO development is hosted at GitHub:
 
-* https://github.com/pyomocommunity/pao
+* https://github.com/or-fusion/pao
 
-The Pyomo Community GitHub organization is used to coordinate installation of PAO with other Pyomo extensions:
+The OR-Fusion GitHub organization is used to coordinate installation of
+PAO with other OR-related capabilities:
 
-* https://github.com/pyomocommunity
+* https://github.com/or-fusion
 
 Ask a question on StackOverflow:
 
