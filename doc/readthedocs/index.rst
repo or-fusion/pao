@@ -9,11 +9,11 @@ PAO Documentation | DRAFT
 PAO is a Python-based package for Adversarial Optimization.  The goal of
 this package is to provide a general modeling and analysis capability for
 bilevel, trilevel and other optimization forms that express adversarial
-dynamics.  PAO integrates two levels of modeling abstraction:
+dynamics.  PAO integrates two different modeling abstractions:
 
-* *Compact models* that represent the data used to express objective and constraints in the explict manner that is typically used to express the mathematical form of these problems (e.g. using vector and matrix data types).
+* *Tailored models* that express objective and constraints in a manner that is typically used to express the mathematical form of these problems (e.g. using vector and matrix data types).
 
-* *Algebraic models* that extend the modeling concepts in the `Pyomo <https://github.com/Pyomo/pyomo>`_ algebraic modeling language to expres problems with simple algebraic syntax.
+* *General algebraic models* that extend the modeling concepts in the `Pyomo <https://github.com/Pyomo/pyomo>`_ algebraic modeling language to express problems with a simple algebraic syntax.
 
 
 .. toctree::
