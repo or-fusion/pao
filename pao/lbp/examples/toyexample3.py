@@ -12,33 +12,28 @@ def create():
 
     U = M.add_upper(nxR=1, nxZ=1)
     U.minimize = True
-    U.xR.lower_bounds = [0]
-    U.xZ.lower_bounds = [0]
+    U.x.lower_bounds = [0,0]
 
     L = M.add_lower(nxR=1, nxZ=1)
-    L.xR.lower_bounds = [0]
-    L.xZ.lower_bounds = [0]
+    L.x.lower_bounds = [0, 0]
     L.minimize = False
 
-    U.c.U.xR = [20]
-    U.c.U.xZ = [-38]
-    U.c.L.xR = [1]
-    U.c.L.xZ = [42]
+    U.c.U.x = [20, -38]
+    U.c.L.x = [1, 42]
 
-    U.A.U.xR = [[7], [6]]
-    U.A.U.xZ = [[5], [9]]
-    U.A.L.xR = [[0], [10]]
-    U.A.L.xZ = [[7], [2]]
-    U.b = [62,117]
+    U.A.U.x = [[7, 5],
+               [6, 9]]
+    U.A.L.x = [[0, 7],
+               [10, 2]]
+    U.b = [62, 117]
 
-    L.c.L.xR = [39]
-    L.c.L.xZ = [27]
+    L.c.L.x = [39, 27]
 
-    L.A.U.xR = [[8], [9]]
-    #L.A.U.xZ = [[-3], [3]]
-    L.A.L.xR = [[2], [2]]
-    L.A.L.xZ = [[8], [1]]
-    L.b = [53,28]
+    L.A.U.x = [[8, 0],
+               [9, 0]]
+    L.A.L.x = [[2, 8], 
+               [2, 1]]
+    L.b = [53, 28]
 
     return M
 

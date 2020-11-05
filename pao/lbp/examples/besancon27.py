@@ -12,23 +12,23 @@ def create():
 
     # Variables
     U = M.add_upper(nxR=1)
-    U.xR.lower_bounds = [0]
+    U.x.lower_bounds = [0]
 
     L = M.add_lower(nxR=1)
 
     # Objectives
-    U.c.U.xR = [1]
+    U.c.U.x = [1]
 
-    L.c.L.xR = [1]
+    L.c.L.x = [1]
     L.minimize = False
 
     # Constraints
-    U.A.U.xR = [[-1/10]]
-    U.A.L.xR = [[-1]]
+    U.A.U.x = [[-1/10]]
+    U.A.L.x = [[-1]]
     U.b = [-1]
 
-    L.A.U.xR = [[-1/10]]
-    L.A.L.xR = [[1]]
+    L.A.U.x = [[-1/10]]
+    L.A.L.x = [[1]]
     L.b = [1]
 
     return M

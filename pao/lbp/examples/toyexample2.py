@@ -12,23 +12,23 @@ def create():
 
     U = M.add_upper(nxZ=1)
     U.minimize = True
-    U.xZ.lower_bounds = [0]
+    U.x.lower_bounds = [0]
 
     L = M.add_lower(nxZ=1)
-    L.xZ.lower_bounds = [0]
+    L.x.lower_bounds = [0]
     L.minimize = False
 
-    U.c.U.xZ = [-1]
-    U.c.L.xZ = [-2]
+    U.c.U.x = [-1]
+    U.c.L.x = [-2]
 
-    U.A.U.xZ = [[-2], [1]]
-    U.A.L.xZ = [[3], [1]]
+    U.A.U.x = [[-2], [1]]
+    U.A.L.x = [[3], [1]]
     U.b = [12,14]
 
-    L.c.L.xZ = [1]
+    L.c.L.x = [1]
 
-    L.A.U.xZ = [[-3], [3]]
-    L.A.L.xZ = [[1], [1]]
+    L.A.U.x = [[-3], [3]]
+    L.A.L.x = [[1], [1]]
     L.b = [-3,30]
 
     return M
