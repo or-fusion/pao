@@ -31,7 +31,8 @@ def read(*rnames):
 requires = [
     'Pyomo',
     'parameterized',
-    'scipy'
+    'scipy',
+    'pycddlib'
     ]
 
 from setuptools import setup

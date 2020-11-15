@@ -32,8 +32,10 @@ except ImportError:
 # TODO: Add more reformulation and solution tests
 
 # only runs with no error when solvers = ['ipopt'] and pao_solvers = ['pao.bilevel.blp_local']
+#solvers=pyomo.opt.check_available_solvers('gurobi','cplex')
 solvers = ['ipopt'] #pyomo.opt.check_available_solvers('cplex','glpk','gurobi','ipopt')
-pao_solvers = ['pao.bilevel.blp_local']#,'pao.bilevel.blp_global']
+#pao_solvers = ['pao.bilevel.blp_local']#,'pao.bilevel.blp_global']
+pao_solvers=['pao.bilevel.blp_global']
 # TODO: Add glpk in solvers2 list
 solvers2 = pyomo.opt.check_available_solvers('cplex','gurobi','ipopt')
 pao_solvers2 = ['pao.bilevel.ld']
@@ -58,7 +60,7 @@ solutions2 = [join(current_dir, 'auxiliary','solution','{}.txt'.format(i)) for i
 # cartesian product of lists for a full coverage unittest run
 cartesian_solutions = [elem for elem in itertools.product(*[solvers,pao_solvers,zip(solution_model_names,solution_models,solutions)])]
 cartesian_solutions2 = [elem for elem in itertools.product(*[solvers2,pao_solvers2,zip(solution_model_names2,solution_models2,solutions2)])]
-cartesian_solutions = cartesian_solutions2#cartesian_solutions + cartesian_solutions2
+#cartesian_solutions = cartesian_solutions2#cartesian_solutions + cartesian_solutions2
 
 class TestBilevelReformulate(unittest.TestCase):
     """

@@ -492,9 +492,8 @@ class BilevelSolver6(pyomo.opt.OptSolver):
             for _vid, var in c_vars.items():
                 (A, A_q, sign, b) = matrix_repn.coef_matrices(submodel, var)
                 coef = A + dot(A_q.toarray(), _fixed)
-                for _cid in sub_cons.keys():
-                    idx = list(sub_cons.keys()).index(_cid)
-                    lhs_expr[_vid] += float(coef[idx])*m._iter_pi[(k,_cid)]
+                idx = list(sub_cons.keys()).index(_cid)
+                lhs_expr[_vid] += float(coef[idx])*m._iter_pi[(k,_cid)]
 
                 (C, C_q, C_constant) = matrix_repn.cost_vectors(submodel, var)
                 rhs_expr[_vid] = float(C + dot(C_q,_fixed))
