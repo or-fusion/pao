@@ -10,25 +10,25 @@ from pao.lbp import *
 def create():
     M = LinearBilevelProblem()
 
-    # Variables
     U = M.add_upper(nxR=1)
+    L = U.add_lower(nxR=1)
+
+    # Variables
     U.x.lower_bounds = [0]
 
-    L = M.add_lower(nxR=1)
-
     # Objectives
-    U.c.U.x = [1]
+    U.c[U] = [1]
 
-    L.c.L.x = [1]
+    L.c[L] = [1]
     L.minimize = False
 
     # Constraints
-    U.A.U.x = [[-1/10]]
-    U.A.L.x = [[-1]]
+    U.A[U] = [[-1/10]]
+    U.A[L] = [[-1]]
     U.b = [-1]
 
-    L.A.U.x = [[-1/10]]
-    L.A.L.x = [[1]]
+    L.A[U] = [[-1/10]]
+    L.A[L] = [[1]]
     L.b = [1]
 
     return M

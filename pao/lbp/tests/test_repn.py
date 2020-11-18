@@ -5,6 +5,15 @@ from pao.lbp import *
 from pao.lbp.repn import SimplifiedList, LinearLevelRepn, LevelVariable, LevelValues, LevelValueWrapper
 
 
+class A(object):
+
+    def __init__(self, i=0):
+        self.i = i
+
+    def clone(self):
+        return A(self.i)
+
+
 class Test_SimplifiedList(unittest.TestCase):
 
     def test_init(self):
@@ -12,32 +21,32 @@ class Test_SimplifiedList(unittest.TestCase):
         self.assertEqual(len(l._data),0)
 
     def test_clone1(self):
-        class A(object):
-            def __init__(self, i=0):
-                self.i = i
         l = SimplifiedList()
-        l.append(A())
-        l.insert(2, A(2))
+        a0 = A()
+        a1 = A(1)
+        a1.clone()
+        l.append(a0)
+        l.append(a1)
         ans = l.clone()
         self.assertEqual(len(ans), 2)
         
     def test_clone2(self):
-        class A(object):
-            def __init__(self, i=0):
-                self.i = i
-            def clone(self):
-                return A(self.i+1)
         l = SimplifiedList()
-        l.append(A())
-        l.insert(2, A(2))
+        a0 = A()
+        a1 = A(1)
+        l.append(a0)
+        l.append(a1)
+        self.assertEqual(len(l), 2)
+        self.assertEqual(l[0].i, 0)
+        self.assertEqual(l[1].i, 1)
+
         ans = l.clone()
         self.assertEqual(len(ans), 2)
-        self.assertEqual(ans[-1].i, 3)
+        self.assertEqual(ans[0].i, 0)
+        self.assertEqual(ans[1].i, 1)
+        self.assertEqual(ans[-1].i, 1)
         
     def test_insert(self):
-        class A(object):
-            def __init__(self, i=0):
-                self.i = i
         l = SimplifiedList()
         l.append(A())
         self.assertEqual(len(l), 1)
@@ -46,17 +55,18 @@ class Test_SimplifiedList(unittest.TestCase):
         
     def test_iter(self):
         l = SimplifiedList()
-        l.append(0)
-        l.append(2)
-        l.append(1)
-        self.assertEqual([v for v in l], [0,2,1])
+        a0 = A(0)
+        l.append(a0)
+        a2 = A(2)
+        l.append(a2)
+        a1 = A(1)
+        l.append(a1)
+        self.assertEqual([v.i for v in l], [0,2,1])
 
     def test_getitem(self):
-        class A(object):
-            def __init__(self, i=0):
-                self.i = i
         l = SimplifiedList()
-        l.append(A())
+        a = A()
+        l.append(a)
         self.assertEqual(len(l), 1)
         self.assertEqual(l[0].i, 0)
         self.assertEqual(len(l), 1)
@@ -66,27 +76,10 @@ class Test_SimplifiedList(unittest.TestCase):
         except IndexError:
             pass
         
-    def test_getitem_clone(self):
-        class A(object):
-            def __init__(self, i=0):
-                self.i = i
-        l = SimplifiedList(clone=A(1))
-        l.append(A())
-        self.assertEqual(len(l), 1)
-        self.assertEqual(l[0].i, 0)
-        self.assertEqual(len(l), 1)
-
-        self.assertEqual(l[2].i, 1)
-        self.assertEqual(len(l), 3)
-        self.assertEqual(l[1].i, 1)
-        self.assertEqual(len(l), 3)
-        
     def test_setitem(self):
-        class A(object):
-            def __init__(self, i=0):
-                self.i = i
         l = SimplifiedList()
-        l.append(A())
+        a = A()
+        l.append(a)
         self.assertEqual(len(l), 1)
         self.assertEqual(l[0].i, 0)
         self.assertEqual(len(l), 1)
@@ -98,9 +91,6 @@ class Test_SimplifiedList(unittest.TestCase):
             pass
 
     def test_delitem(self):
-        class A(object):
-            def __init__(self, i=0):
-                self.i = i
         l = SimplifiedList()
         l.append(A(1))
         l.append(A(2))
@@ -117,14 +107,13 @@ class Test_SimplifiedList(unittest.TestCase):
 
     def test_len(self):
         l = SimplifiedList()
-        l.append(1)
-        l.append(2)
+        a1 = A(1)
+        a2 = A(2)
+        l.append(a1)
+        l.append(a2)
         self.assertEqual(len(l), len(l._data))
 
     def test_getattr(self):
-        class A(object):
-            def __init__(self, i=0):
-                self.i = i
         l = SimplifiedList()
         try:
             l.i
@@ -132,10 +121,13 @@ class Test_SimplifiedList(unittest.TestCase):
         except:
             pass
        
-        l.append(A(1))
+        a1 = A(1)
+        l.append(a1)
+        x = l.i
         self.assertEqual(l.i, 1) 
 
-        l.append(A(2))
+        a2 = A(2)
+        l.append(a2)
         try:
             l.i
             self.fail("Expected AssertionError")
@@ -145,9 +137,6 @@ class Test_SimplifiedList(unittest.TestCase):
         self.assertEqual( getattr(l, '_foo', None), None )
 
     def test_setattr(self):
-        class A(object):
-            def __init__(self, i=0):
-                self.i = i
         l = SimplifiedList()
         try:
             l.i = 0
@@ -155,10 +144,11 @@ class Test_SimplifiedList(unittest.TestCase):
         except:
             pass
 
-        l.append(A(1))
+        a1 = A(1)
+        l.append(a1)
         l.i = 0
 
-        l.append(A(1))
+        l.append(a1)
         try:
             l.i = 0
             self.fail("Expected AssertionError")
@@ -210,27 +200,32 @@ class Test_LevelVariable(unittest.TestCase):
 
         l = LevelVariable(3,0,0)
         l.lower_bounds = [1,2,3]
-        l.resize(3, 0, 0, lb=np.NINF)
+        l._resize(3, 0, 0, lb=np.NINF)
         self.assertEqual(list(l.lower_bounds), [1,2,3])
 
         l = LevelVariable(3,0,0)
         l.lower_bounds = [1,2,3]
         l.upper_bounds = [4,5,6]
-        l.resize(2,0,0, lb=4)
+        l._resize(2,0,0, lb=4)
         self.assertEqual(list(l.lower_bounds), [1,2])
         self.assertEqual(list(l.upper_bounds), [4,5])
 
         l = LevelVariable(3,0,0)
         l.lower_bounds = [1,2,3]
         l.upper_bounds = [3,4,5]
-        l.resize(4,0,0, lb=4, ub=6)
+        l._resize(4,0,0, lb=4, ub=6)
         self.assertEqual(list(l.lower_bounds), [1,2,3,4])
         self.assertEqual(list(l.upper_bounds), [3,4,5,6])
 
         l = LevelVariable(3,0,0)
-        l.resize(4,0,0, lb=4)
+        l._resize(4,0,0, lb=4)
         self.assertEqual(list(l.lower_bounds), [np.NINF,np.NINF,np.NINF,4])
         self.assertEqual(list(l.upper_bounds), [np.PINF,np.PINF,np.PINF,np.PINF])
+
+        l = LevelVariable(3,4,5)
+        l._resize(2,3,4, lb=4)
+        self.assertEqual(list(l.lower_bounds), [np.NINF,np.NINF,np.NINF,np.NINF,np.NINF,0,0,0,0])
+        self.assertEqual(list(l.upper_bounds), [np.PINF,np.PINF,np.PINF,np.PINF,np.PINF,1,1,1,1])
 
 class Test_LevelValues(unittest.TestCase):
 
@@ -304,28 +299,42 @@ class Test_LevelValueWrapper(unittest.TestCase):
 
     def test_len(self):
         l = LevelValueWrapper('foo', matrix=True)
-        l.L
+        self.assertEqual(len(l), 0)
+        L = LinearLevelRepn(1,2,3)
+        l[L] = [1,2,3]
         self.assertEqual(len(l), 1)
 
     def test_getattr(self):
         l = LevelValueWrapper('foo', matrix=True)
-        l.foo
-        self.assertEqual(list(l._values.keys()), ['foo'])
-        self.assertEqual(type(l.foo), LevelValues)
-        l.L
-        self.assertEqual(len(l.L),1)
-        self.assertEqual(set(l._values.keys()), set(['foo','L']))
-        #
-        getattr(l, "_foo", False)
+        try:
+            l.foo
+        except AttributeError:
+            pass
+        try:
+            l.L
+        except AttributeError:
+            pass
         
     def test_clone(self):
         l = LevelValueWrapper('foo', matrix=True)
-        l.foo
-        l.L
+        try:
+            l.foo
+        except AttributeError:
+            pass
+        try:
+            l.L
+        except AttributeError:
+            pass
         ans = l.clone()
-        self.assertEqual(list(ans._values.keys()), ['foo','L'])
-        self.assertEqual(type(ans.foo), LevelValues)
-        self.assertEqual(len(ans.L),1)
+        self.assertEqual(list(ans._values.keys()), [])
+        try:
+            ans.foo
+        except AttributeError:
+            pass
+        try:
+            ans.L
+        except AttributeError:
+            pass
         
 
 class Test_LinearLevelRepn(unittest.TestCase):
@@ -339,6 +348,18 @@ class Test_LinearLevelRepn(unittest.TestCase):
         self.assertEqual(len(l.A), 0)
         self.assertEqual(l.b.size, 0)
         self.assertEqual(l.inequalities, True)
+        self.assertEqual(l.equalities, False)
+
+    def test_inequalities(self):
+        l = LinearLevelRepn(1,2,3)
+        self.assertEqual(l.inequalities, True)
+        self.assertEqual(l.equalities, False)
+        l.inequalities=False
+        self.assertEqual(l.inequalities, False)
+        self.assertEqual(l.equalities, True)
+        l.equalities=False
+        self.assertEqual(l.inequalities, True)
+        self.assertEqual(l.equalities, False)
 
     def test_setattr(self):
         l = LinearLevelRepn(1,2,3)
@@ -361,11 +382,35 @@ class Test_LinearBilevelProblem(unittest.TestCase):
     def test_init(self):
         blp = LinearBilevelProblem()
         self.assertEqual(blp.name, None)
-        self.assertEqual(type(blp.L), SimplifiedList)
         
     def test_init_name(self):
         blp = LinearBilevelProblem('foo')
         self.assertEqual(blp.name, 'foo')
+
+    def test_names(self):
+        blp = LinearBilevelProblem()
+        A = blp.add_upper(nxR=1, nxZ=2, nxB=3, name='A')
+        B = A.add_lower(nxR=1, nxZ=2, nxB=3, name='B')
+        C = A.add_lower(nxR=1, nxZ=2, nxB=3, name='C')
+        self.assertEqual(A.name, 'A')
+        self.assertEqual(B.name, 'B')
+        self.assertEqual(C.name, 'C')
+
+    def test_levels(self):
+        blp = LinearBilevelProblem()
+        A = blp.add_upper(nxR=1, nxZ=2, nxB=3, name='A')
+        B = A.add_lower(nxR=1, nxZ=2, nxB=3, name='B')
+        C = A.add_lower(nxR=1, nxZ=2, nxB=3, name='C')
+        D = B.add_lower(nxR=1, nxZ=2, nxB=3, name='D')
+        E = B.add_lower(nxR=1, nxZ=2, nxB=3, name='E')
+        names = [L.name for L in blp.levels()]
+
+        self.assertEqual(names, ['A', 'B', 'D', 'E', 'C'])
+        self.assertEqual(A.UL(), None)
+        self.assertEqual(B.UL().id, A.id)
+        self.assertEqual(C.UL().id, A.id)
+        self.assertEqual(D.UL().id, B.id)
+        self.assertEqual(E.UL().id, B.id)
 
     def test_add_upper(self):
         blp = LinearBilevelProblem()
@@ -375,86 +420,397 @@ class Test_LinearBilevelProblem(unittest.TestCase):
 
     def test_add_lower(self):
         blp = LinearBilevelProblem()
-        L = blp.add_lower(nxR=1, nxZ=2, nxB=3)
-        self.assertEqual(len(L.x), 6)
-        self.assertEqual(id(L), id(blp.L))
+        U = blp.add_upper(nxR=1)
+        L = []
+        L.append( U.add_lower(nxR=1, nxZ=2, nxB=3) )
+        self.assertEqual(len(L[0].x), 6)
+        self.assertEqual(id(L[0]), id(blp.U.LL[0]))
 
-        L = blp.add_lower(nxR=1, nxZ=2, nxB=3)
+        L.append( blp.U.add_lower(nxR=1, nxZ=2, nxB=3) )
         self.assertEqual(len(L[1].x), 6)
-        self.assertEqual(id(L[0]), id(blp.L[0]))
-        self.assertEqual(id(L[1]), id(blp.L[1]))
+        self.assertEqual(id(L[0]), id(blp.U.LL[0]))
+        self.assertEqual(id(L[1]), id(blp.U.LL[1]))
 
     def test_clone(self):
         blp = LinearBilevelProblem()
         U = blp.add_upper(nxR=1, nxZ=2, nxB=3)
-        L = blp.add_lower(nxR=1, nxZ=2, nxB=3)
-        L = blp.add_lower(nxR=1, nxZ=2, nxB=3)
+        U.add_lower(nxR=1, nxZ=2, nxB=4)
+        U.add_lower(nxR=1, nxZ=2, nxB=5)
+
+        U.c[U] = [0]*6
+        U.A[U] = [[1]*6]
+        U.b = [0]
 
         ans = blp.clone()
+
         self.assertEqual(len(ans.U.x), 6)
+        self.assertEqual(len(ans.U.c[U]), 6)
+        self.assertEqual(len(ans.U.c[U]), 6)
+        self.assertEqual(len(U.LL[0].x), 7)
+        self.assertEqual(len(U.LL[1].x), 8)
 
-        self.assertEqual(len(ans.L[0].x), 6)
+    def test_resize(self):
+        def tmp():
+            blp = LinearBilevelProblem()
+            U = blp.add_upper(nxR=1, nxZ=2, nxB=3)
+            L0 = U.add_lower(nxR=1, nxZ=2, nxB=4, name='L0')
+            L1 = U.add_lower(nxR=1, nxZ=2, nxB=5, name='L1')
+            L2 = L0.add_lower(nxR=1, nxZ=3, nxB=4, name='L2')
+            L3 = L0.add_lower(nxR=1, nxZ=4, nxB=4, name='L3')
+            L4 = L1.add_lower(nxR=2, nxZ=2, nxB=4, name='L4')
+            L5 = L1.add_lower(nxR=3, nxZ=2, nxB=4, name='L5')
 
-        self.assertEqual(len(ans.L[1].x), 6)
+            U.c[U] = [-1]*6
+            U.A[U] = [[1]*6]
+            U.c[L0] = [2]*7
+            U.A[L0] = [[3]*7]
+            U.c[L1] = [2]*8
+            U.A[L1] = [[3]*8]
+            U.c[L2] = [4]*8
+            U.A[L2] = [[5]*8]
+            U.c[L3] = [6]*9
+            U.A[L3] = [[7]*9]
+            U.c[L4] = [8]*8
+            U.A[L4] = [[9]*8]
+            U.c[L5] = [10]*9
+            U.A[L5] = [[11]*9]
+            U.b = [0]
+
+            L0.c[U] = [-1]*6
+            L0.A[U] = [[1]*6]
+            L0.c[L0] = [2]*7
+            L0.A[L0] = [[3]*7]
+            L0.c[L2] = [4]*8
+            L0.A[L2] = [[5]*8]
+            L0.c[L3] = [6]*9
+            L0.A[L3] = [[7]*9]
+            U.b = [1]
+
+            L2.c[U] = [-1]*6
+            L2.A[U] = [[1]*6]
+            L2.c[L0] = [2]*7
+            L2.A[L0] = [[3]*7]
+            L2.c[L2] = [4]*8
+            L2.A[L2] = [[5]*8]
+            U.b = [2]
+
+            L3.c[U] = [-1]*6
+            L3.A[U] = [[1]*6]
+            L3.c[L0] = [2]*7
+            L3.A[L0] = [[3]*7]
+            L3.c[L3] = [6]*9
+            L3.A[L3] = [[7]*9]
+            U.b = [3]
+
+            L1.c[U] = [-1]*6
+            L1.A[U] = [[1]*6]
+            L1.c[L1] = [2]*8
+            L1.A[L1] = [[3]*8]
+            L1.c[L4] = [8]*8
+            L1.A[L4] = [[9]*8]
+            L1.c[L5] = [10]*9
+            L1.A[L5] = [[11]*9]
+            U.b = [4]
+
+            L4.c[U] = [-1]*6
+            L4.A[U] = [[1]*6]
+            L4.c[L1] = [2]*8
+            L4.A[L1] = [[3]*8]
+            L4.c[L4] = [8]*8
+            L4.A[L4] = [[9]*8]
+            U.b = [5]
+
+            L5.c[U] = [-1]*6
+            L5.A[U] = [[1]*6]
+            L5.c[L1] = [2]*8
+            L5.A[L1] = [[3]*8]
+            L5.c[L5] = [10]*9
+            L5.A[L5] = [[11]*9]
+            U.b = [6]
+
+            return blp, U, L0, L1, L2, L3, L4, L5
+
+        #
+        # U.resize
+        #
+        blp, U, L0, L1, L2, L3, L4, L5 = tmp()
+        U.resize(nxR=2, nxZ=3, nxB=4)
+        self.assertEqual(list(U.c[U]), [-1, 0, -1, -1, 0, -1, -1, -1, 0])
+        self.assertEqual(list(L0.c[U]), [-1, 0, -1, -1, 0, -1, -1, -1, 0])
+        self.assertEqual(list(L1.c[U]), [-1, 0, -1, -1, 0, -1, -1, -1, 0])
+        self.assertEqual(list(L2.c[U]), [-1, 0, -1, -1, 0, -1, -1, -1, 0])
+        self.assertEqual(list(L3.c[U]), [-1, 0, -1, -1, 0, -1, -1, -1, 0])
+        self.assertEqual(list(L4.c[U]), [-1, 0, -1, -1, 0, -1, -1, -1, 0])
+        self.assertEqual(list(L5.c[U]), [-1, 0, -1, -1, 0, -1, -1, -1, 0])
+
+        self.assertEqual([U.A[U].todok()[0,i] for i in range(U.A[U].shape[1])], [1,0,1,1,0,1,1,1,0])
+        self.assertEqual([L0.A[U].todok()[0,i] for i in range(L0.A[U].shape[1])], [1,0,1,1,0,1,1,1,0])
+        self.assertEqual([L1.A[U].todok()[0,i] for i in range(L1.A[U].shape[1])], [1,0,1,1,0,1,1,1,0])
+        self.assertEqual([L2.A[U].todok()[0,i] for i in range(L2.A[U].shape[1])], [1,0,1,1,0,1,1,1,0])
+        self.assertEqual([L3.A[U].todok()[0,i] for i in range(L3.A[U].shape[1])], [1,0,1,1,0,1,1,1,0])
+        self.assertEqual([L4.A[U].todok()[0,i] for i in range(L4.A[U].shape[1])], [1,0,1,1,0,1,1,1,0])
+        self.assertEqual([L5.A[U].todok()[0,i] for i in range(L5.A[U].shape[1])], [1,0,1,1,0,1,1,1,0])
+
+        self.assertEqual(list(U.c[L0]), [2]*7)
+        self.assertEqual(list(U.c[L1]), [2]*8)
+        self.assertEqual(list(U.c[L2]), [4]*8)
+        self.assertEqual(list(U.c[L3]), [6]*9)
+        self.assertEqual(list(U.c[L4]), [8]*8)
+        self.assertEqual(list(U.c[L5]), [10]*9)
+
+        self.assertEqual([U.A[L0].todok()[0,i] for i in range(U.A[L0].shape[1])], [3]*7)
+        self.assertEqual([U.A[L1].todok()[0,i] for i in range(U.A[L1].shape[1])], [3]*8)
+        self.assertEqual([U.A[L2].todok()[0,i] for i in range(U.A[L2].shape[1])], [5]*8)
+        self.assertEqual([U.A[L3].todok()[0,i] for i in range(U.A[L3].shape[1])], [7]*9)
+        self.assertEqual([U.A[L4].todok()[0,i] for i in range(U.A[L4].shape[1])], [9]*8)
+        self.assertEqual([U.A[L5].todok()[0,i] for i in range(U.A[L5].shape[1])], [11]*9)
+
+        self.assertEqual(list(L0.c[L0]), [2]*7)
+        self.assertEqual(list(L0.c[L2]), [4]*8)
+        self.assertEqual(list(L0.c[L3]), [6]*9)
+
+        self.assertEqual([L0.A[L0].todok()[0,i] for i in range(L0.A[L0].shape[1])], [3]*7)
+        self.assertEqual([L0.A[L2].todok()[0,i] for i in range(L0.A[L2].shape[1])], [5]*8)
+        self.assertEqual([L0.A[L3].todok()[0,i] for i in range(L0.A[L3].shape[1])], [7]*9)
+
+        self.assertEqual(list(L1.c[L1]), [2]*8)
+        self.assertEqual(list(L1.c[L4]), [8]*8)
+        self.assertEqual(list(L1.c[L5]), [10]*9)
+
+        self.assertEqual([L1.A[L1].todok()[0,i] for i in range(L1.A[L1].shape[1])], [3]*8)
+        self.assertEqual([L1.A[L4].todok()[0,i] for i in range(L1.A[L4].shape[1])], [9]*8)
+        self.assertEqual([L1.A[L5].todok()[0,i] for i in range(L1.A[L5].shape[1])], [11]*9)
+
+        self.assertEqual(list(L2.c[L0]), [2]*7)
+        self.assertEqual(list(L2.c[L2]), [4]*8)
+
+        self.assertEqual([L2.A[L0].todok()[0,i] for i in range(L2.A[L0].shape[1])], [3]*7)
+        self.assertEqual([L2.A[L2].todok()[0,i] for i in range(L2.A[L2].shape[1])], [5]*8)
+
+        self.assertEqual(list(L3.c[L0]), [2]*7)
+        self.assertEqual(list(L3.c[L3]), [6]*9)
+
+        self.assertEqual([L3.A[L0].todok()[0,i] for i in range(L3.A[L0].shape[1])], [3]*7)
+        self.assertEqual([L3.A[L3].todok()[0,i] for i in range(L3.A[L3].shape[1])], [7]*9)
+
+        self.assertEqual(list(L4.c[L1]), [2]*8)
+        self.assertEqual(list(L4.c[L4]), [8]*8)
+
+        self.assertEqual([L4.A[L1].todok()[0,i] for i in range(L4.A[L1].shape[1])], [3]*8)
+        self.assertEqual([L4.A[L4].todok()[0,i] for i in range(L4.A[L4].shape[1])], [9]*8)
+
+        self.assertEqual(list(L5.c[L1]), [2]*8)
+        self.assertEqual(list(L5.c[L5]), [10]*9)
+
+        self.assertEqual([L5.A[L1].todok()[0,i] for i in range(L5.A[L1].shape[1])], [3]*8)
+        self.assertEqual([L5.A[L5].todok()[0,i] for i in range(L5.A[L5].shape[1])], [11]*9)
+
+        #
+        # L0.resize
+        #
+        blp, U, L0, L1, L2, L3, L4, L5 = tmp()
+        L0.resize(nxR=2, nxZ=3, nxB=4)
+        self.assertEqual(list(U.c[U]),  [-1, -1, -1, -1, -1, -1])
+        self.assertEqual(list(L0.c[U]), [-1, -1, -1, -1, -1, -1])
+        self.assertEqual(list(L1.c[U]), [-1, -1, -1, -1, -1, -1])
+        self.assertEqual(list(L2.c[U]), [-1, -1, -1, -1, -1, -1])
+        self.assertEqual(list(L3.c[U]), [-1, -1, -1, -1, -1, -1])
+        self.assertEqual(list(L4.c[U]), [-1, -1, -1, -1, -1, -1])
+        self.assertEqual(list(L5.c[U]), [-1, -1, -1, -1, -1, -1])
+
+        self.assertEqual([U.A[U].todok()[0,i] for i in range(U.A[U].shape[1])], [1,1,1,1,1,1])
+        self.assertEqual([L0.A[U].todok()[0,i] for i in range(L0.A[U].shape[1])], [1,1,1,1,1,1])
+        self.assertEqual([L1.A[U].todok()[0,i] for i in range(L1.A[U].shape[1])], [1,1,1,1,1,1])
+        self.assertEqual([L2.A[U].todok()[0,i] for i in range(L2.A[U].shape[1])], [1,1,1,1,1,1])
+        self.assertEqual([L3.A[U].todok()[0,i] for i in range(L3.A[U].shape[1])], [1,1,1,1,1,1])
+        self.assertEqual([L4.A[U].todok()[0,i] for i in range(L4.A[U].shape[1])], [1,1,1,1,1,1])
+        self.assertEqual([L5.A[U].todok()[0,i] for i in range(L5.A[U].shape[1])], [1,1,1,1,1,1])
+
+        self.assertEqual(list(U.c[L0]),  [2,0,2,2,0,2,2,2,2])
+        self.assertEqual(list(L0.c[L0]), [2,0,2,2,0,2,2,2,2])
+        self.assertEqual(list(L2.c[L0]), [2,0,2,2,0,2,2,2,2])
+        self.assertEqual(list(L3.c[L0]), [2,0,2,2,0,2,2,2,2])
+
+        self.assertEqual([U.A[L0].todok()[0,i] for i in range(U.A[L0].shape[1])],   [3,0,3,3,0,3,3,3,3])
+        self.assertEqual([L0.A[L0].todok()[0,i] for i in range(L0.A[L0].shape[1])], [3,0,3,3,0,3,3,3,3])
+        self.assertEqual([L2.A[L0].todok()[0,i] for i in range(L2.A[L0].shape[1])], [3,0,3,3,0,3,3,3,3])
+        self.assertEqual([L3.A[L0].todok()[0,i] for i in range(L3.A[L0].shape[1])], [3,0,3,3,0,3,3,3,3])
+
+        self.assertEqual(list(U.c[L1]), [2]*8)
+        self.assertEqual(list(U.c[L2]), [4]*8)
+        self.assertEqual(list(U.c[L3]), [6]*9)
+        self.assertEqual(list(U.c[L4]), [8]*8)
+        self.assertEqual(list(U.c[L5]), [10]*9)
+
+        self.assertEqual([U.A[L1].todok()[0,i] for i in range(U.A[L1].shape[1])], [3]*8)
+        self.assertEqual([U.A[L2].todok()[0,i] for i in range(U.A[L2].shape[1])], [5]*8)
+        self.assertEqual([U.A[L3].todok()[0,i] for i in range(U.A[L3].shape[1])], [7]*9)
+        self.assertEqual([U.A[L4].todok()[0,i] for i in range(U.A[L4].shape[1])], [9]*8)
+        self.assertEqual([U.A[L5].todok()[0,i] for i in range(U.A[L5].shape[1])], [11]*9)
+
+        self.assertEqual(list(L0.c[L2]), [4]*8)
+        self.assertEqual(list(L0.c[L3]), [6]*9)
+
+        self.assertEqual([L0.A[L2].todok()[0,i] for i in range(L0.A[L2].shape[1])], [5]*8)
+        self.assertEqual([L0.A[L3].todok()[0,i] for i in range(L0.A[L3].shape[1])], [7]*9)
+
+        self.assertEqual(list(L1.c[L1]), [2]*8)
+        self.assertEqual(list(L1.c[L4]), [8]*8)
+        self.assertEqual(list(L1.c[L5]), [10]*9)
+
+        self.assertEqual([L1.A[L1].todok()[0,i] for i in range(L1.A[L1].shape[1])], [3]*8)
+        self.assertEqual([L1.A[L4].todok()[0,i] for i in range(L1.A[L4].shape[1])], [9]*8)
+        self.assertEqual([L1.A[L5].todok()[0,i] for i in range(L1.A[L5].shape[1])], [11]*9)
+
+        self.assertEqual(list(L2.c[L2]), [4]*8)
+
+        self.assertEqual([L2.A[L2].todok()[0,i] for i in range(L2.A[L2].shape[1])], [5]*8)
+
+        self.assertEqual(list(L3.c[L3]), [6]*9)
+
+        self.assertEqual([L3.A[L3].todok()[0,i] for i in range(L3.A[L3].shape[1])], [7]*9)
+
+        self.assertEqual(list(L4.c[L1]), [2]*8)
+        self.assertEqual(list(L4.c[L4]), [8]*8)
+
+        self.assertEqual([L4.A[L1].todok()[0,i] for i in range(L4.A[L1].shape[1])], [3]*8)
+        self.assertEqual([L4.A[L4].todok()[0,i] for i in range(L4.A[L4].shape[1])], [9]*8)
+
+        self.assertEqual(list(L5.c[L1]), [2]*8)
+        self.assertEqual(list(L5.c[L5]), [10]*9)
+
+        self.assertEqual([L5.A[L1].todok()[0,i] for i in range(L5.A[L1].shape[1])], [3]*8)
+        self.assertEqual([L5.A[L5].todok()[0,i] for i in range(L5.A[L5].shape[1])], [11]*9)
+
+        #
+        # L3.resize
+        #
+        blp, U, L0, L1, L2, L3, L4, L5 = tmp()
+        L3.resize(nxR=2, nxZ=3, nxB=4)
+        self.assertEqual(list(U.c[U]),  [-1, -1, -1, -1, -1, -1])
+        self.assertEqual(list(L0.c[U]), [-1, -1, -1, -1, -1, -1])
+        self.assertEqual(list(L1.c[U]), [-1, -1, -1, -1, -1, -1])
+        self.assertEqual(list(L2.c[U]), [-1, -1, -1, -1, -1, -1])
+        self.assertEqual(list(L3.c[U]), [-1, -1, -1, -1, -1, -1])
+        self.assertEqual(list(L4.c[U]), [-1, -1, -1, -1, -1, -1])
+        self.assertEqual(list(L5.c[U]), [-1, -1, -1, -1, -1, -1])
+
+        self.assertEqual([U.A[U].todok()[0,i] for i in range(U.A[U].shape[1])], [1,1,1,1,1,1])
+        self.assertEqual([L0.A[U].todok()[0,i] for i in range(L0.A[U].shape[1])], [1,1,1,1,1,1])
+        self.assertEqual([L1.A[U].todok()[0,i] for i in range(L1.A[U].shape[1])], [1,1,1,1,1,1])
+        self.assertEqual([L2.A[U].todok()[0,i] for i in range(L2.A[U].shape[1])], [1,1,1,1,1,1])
+        self.assertEqual([L3.A[U].todok()[0,i] for i in range(L3.A[U].shape[1])], [1,1,1,1,1,1])
+        self.assertEqual([L4.A[U].todok()[0,i] for i in range(L4.A[U].shape[1])], [1,1,1,1,1,1])
+        self.assertEqual([L5.A[U].todok()[0,i] for i in range(L5.A[U].shape[1])], [1,1,1,1,1,1])
+
+        self.assertEqual(list(U.c[L0]),  [2,2,2,2,2,2,2])
+        self.assertEqual(list(L0.c[L0]), [2,2,2,2,2,2,2])
+        self.assertEqual(list(L2.c[L0]), [2,2,2,2,2,2,2])
+        self.assertEqual(list(L3.c[L0]), [2,2,2,2,2,2,2])
+
+        self.assertEqual([U.A[L0].todok()[0,i] for i in range(U.A[L0].shape[1])], [3]*7)
+        self.assertEqual([L0.A[L0].todok()[0,i] for i in range(L0.A[L0].shape[1])], [3]*7)
+        self.assertEqual([L2.A[L0].todok()[0,i] for i in range(L2.A[L0].shape[1])], [3]*7)
+        self.assertEqual([L3.A[L0].todok()[0,i] for i in range(L3.A[L0].shape[1])], [3]*7)
+
+        self.assertEqual(list(U.c[L3]),  [6,0,6,6,6,6,6,6,6])
+        self.assertEqual(list(L0.c[L3]), [6,0,6,6,6,6,6,6,6])
+        self.assertEqual(list(L3.c[L3]), [6,0,6,6,6,6,6,6,6])
+
+        self.assertEqual([U.A[L3].todok()[0,i] for i in range(U.A[L3].shape[1])],   [7,0,7,7,7,7,7,7,7])
+        self.assertEqual([L0.A[L3].todok()[0,i] for i in range(L0.A[L3].shape[1])], [7,0,7,7,7,7,7,7,7])
+        self.assertEqual([L3.A[L3].todok()[0,i] for i in range(L3.A[L3].shape[1])], [7,0,7,7,7,7,7,7,7])
+
+        self.assertEqual(list(U.c[L1]), [2]*8)
+        self.assertEqual(list(U.c[L2]), [4]*8)
+        self.assertEqual(list(U.c[L4]), [8]*8)
+        self.assertEqual(list(U.c[L5]), [10]*9)
+
+        self.assertEqual([U.A[L1].todok()[0,i] for i in range(U.A[L1].shape[1])], [3]*8)
+        self.assertEqual([U.A[L2].todok()[0,i] for i in range(U.A[L2].shape[1])], [5]*8)
+        self.assertEqual([U.A[L4].todok()[0,i] for i in range(U.A[L4].shape[1])], [9]*8)
+        self.assertEqual([U.A[L5].todok()[0,i] for i in range(U.A[L5].shape[1])], [11]*9)
+
+        self.assertEqual(list(L0.c[L2]), [4]*8)
+
+        self.assertEqual([L0.A[L2].todok()[0,i] for i in range(L0.A[L2].shape[1])], [5]*8)
+
+        self.assertEqual(list(L1.c[L1]), [2]*8)
+        self.assertEqual(list(L1.c[L4]), [8]*8)
+        self.assertEqual(list(L1.c[L5]), [10]*9)
+
+        self.assertEqual([L1.A[L1].todok()[0,i] for i in range(L1.A[L1].shape[1])], [3]*8)
+        self.assertEqual([L1.A[L4].todok()[0,i] for i in range(L1.A[L4].shape[1])], [9]*8)
+        self.assertEqual([L1.A[L5].todok()[0,i] for i in range(L1.A[L5].shape[1])], [11]*9)
+
+        self.assertEqual(list(L2.c[L2]), [4]*8)
+
+        self.assertEqual([L2.A[L2].todok()[0,i] for i in range(L2.A[L2].shape[1])], [5]*8)
+
+        self.assertEqual(list(L4.c[L1]), [2]*8)
+        self.assertEqual(list(L4.c[L4]), [8]*8)
+
+        self.assertEqual([L4.A[L1].todok()[0,i] for i in range(L4.A[L1].shape[1])], [3]*8)
+        self.assertEqual([L4.A[L4].todok()[0,i] for i in range(L4.A[L4].shape[1])], [9]*8)
 
     def test_check_matrix_initialization(self):
         blp = LinearBilevelProblem()
         U = blp.add_upper(nxR=2, nxZ=3, nxB=4)
-        L = blp.add_lower(nxR=1, nxZ=2, nxB=3)
+        L = U.add_lower(nxR=1, nxZ=2, nxB=3)
 
         U.b = [1,2,3]
 
-        U.A.U.x = [[1,0,1,0,0,1,0,0,0],
-                   [0,0,0,0,0,0,0,0,0],
-                   [0,0,0,0,0,0,0,0,0]]
-        U.A.L.x = [[1,1,0,1,0,0],
-                   [0,0,0,0,0,0],
-                   [0,0,0,0,0,0]]
+        U.A[U] = [[1,0,1,0,0,1,0,0,0],
+                  [0,0,0,0,0,0,0,0,0],
+                  [0,0,0,0,0,0,0,0,0]]
+        U.A[L] = [[1,1,0,1,0,0],
+                  [0,0,0,0,0,0],
+                  [0,0,0,0,0,0]]
 
-        U.L = [1,2,3,4]
+        U.LL = [1,2,3,4]
 
-        L.A.U.x = [[1,0,1,0,0,1,0,0,0],
-                   [0,0,0,0,0,0,0,0,0],
-                   [0,0,0,0,0,0,0,0,0]]
-        L.A.L.x = [[1,1,0,1,0,0],
-                   [0,0,0,0,0,0],
-                   [0,0,0,0,0,0]]
+        L.A[U] = [[1,0,1,0,0,1,0,0,0],
+                  [0,0,0,0,0,0,0,0,0],
+                  [0,0,0,0,0,0,0,0,0]]
+        L.A[L] = [[1,1,0,1,0,0],
+                  [0,0,0,0,0,0],
+                  [0,0,0,0,0,0]]
 
-        self.assertEqual(U.A.U.x.shape, (3,9))
+        self.assertEqual(U.A[U].shape, (3,9))
 
     def test_check_opposite_objectives(self):
         blp = LinearBilevelProblem()
         U = blp.add_upper(nxR=1, nxZ=1, nxB=1)
-        U.c.U.x = [1, 2, 3]
-        U.c.L.x = [4, 5, 6]
+        L = U.add_lower(nxR=1, nxZ=1, nxB=1)
+        U.c[U] = [1, 2, 3]
+        U.c[L] = [4, 5, 6]
         U.d = 7
-        L = blp.add_lower(nxR=1, nxZ=1, nxB=1)
-        L.c.U.x = [-1, -2, -3]
-        L.c.L.x = [-4, -5, -6]
+        L.c[U] = [-1, -2, -3]
+        L.c[L] = [-4, -5, -6]
         U.d = -7
         self.assertEqual( blp.check_opposite_objectives(U,L), True )
 
-        L.c.U.x = [1, 2, 3]
+        L.c[U] = [1, 2, 3]
         self.assertEqual( blp.check_opposite_objectives(U,L), False )
-        L.c.U.x = [-1, -2, -3]
+        L.c[U] = [-1, -2, -3]
         self.assertEqual( blp.check_opposite_objectives(U,L), True )
 
-        L.c.L.x = [4, 5, 6]
+        L.c[L] = [4, 5, 6]
         self.assertEqual( blp.check_opposite_objectives(U,L), False )
-        L.c.L.x = [-4, -5, -6]
+        L.c[L] = [-4, -5, -6]
         self.assertEqual( blp.check_opposite_objectives(U,L), True )
 
-        L.c.L.x = None
+        L.c[L] = None
         self.assertEqual( blp.check_opposite_objectives(U,L), False )
-        U.c.L.x = None
+        U.c[L] = None
         self.assertEqual( blp.check_opposite_objectives(U,L), True )
 
         blp = LinearBilevelProblem()
         U = blp.add_upper(nxR=1, nxZ=1, nxB=1)
-        U.c.U.x = [1, 2, 3]
-        U.c.L.x = [4, 5, 6]
+        U.c[U] = [1, 2, 3]
+        U.c[L] = [4, 5, 6]
         U.d = 7
-        L = blp.add_lower(nxR=1, nxZ=1, nxB=1)
+        L = U.add_lower(nxR=1, nxZ=1, nxB=1)
         L.c = U.c
         L.minimize = False
         self.assertEqual( blp.check_opposite_objectives(U,L), True )

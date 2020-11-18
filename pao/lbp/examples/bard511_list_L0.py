@@ -10,18 +10,19 @@ def create():
     M = LinearBilevelProblem()
 
     U = M.add_upper(nxR=1)
+    L = U.add_lower(nxR=1)
+
     U.x.lower_bounds = [0]
-    U.c.U.x = [1]
-    U.c.L[0].x = [-4]
+    U.c[U] = [1]
+    U.c[L] = [-4]
 
-    L = M.add_lower(nxR=1)
-    L[0].x.lower_bounds = [0]
-    L[0].c.L[0].x = [1]
+    L.x.lower_bounds = [0]
+    L.c[L] = [1]
 
-    L[0].A.U.x = [[-1], [-2], [2], [3]]
-    L[0].A.L[0].x = [[-1], [1], [1], [-2]]
+    L.A[U] = [[-1], [-2], [2], [3]]
+    L.A[L] = [[-1], [1], [1], [-2]]
 
-    L[0].b = [-3, 0, 12, 4]
+    L.b = [-3, 0, 12, 4]
 
     return M
 

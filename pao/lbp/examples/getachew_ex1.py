@@ -9,22 +9,23 @@ def create():
     M = LinearBilevelProblem()
 
     U = M.add_upper(nxR=1)
-    U.c.U.x = [-1]
-    U.c.L.x = [-2]
+    L = U.add_lower(nxR=1)
 
-    U.A.U.x = [[-2],
-               [1]]
-    U.A.L.x = [[3],
-               [1]]
+    U.c[U] = [-1]
+    U.c[L] = [-2]
+
+    U.A[U] = [[-2],
+              [1]]
+    U.A[L] = [[3],
+              [1]]
     U.b = [12, 14]
 
-    L = M.add_lower(nxR=1)
-    L.c.L.x = [-1]
+    L.c[L] = [-1]
 
-    L.A.U.x = [[-3],
-               [3]]
-    L.A.L.x = [[1], 
-               [1]]
+    L.A[U] = [[-3],
+              [3]]
+    L.A[L] = [[1], 
+              [1]]
     L.b = [-3, 30]
 
     return M

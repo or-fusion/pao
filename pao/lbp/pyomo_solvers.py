@@ -118,13 +118,14 @@ class BilevelSolver2_LinearBilevelProblem(PyomoSolverBase_LinearBilevelProblem):
         #
         # Confirm that we only have one lower-level problem (for now)
         #
-        assert (len(M.L) == 1), "Solver '%s' can only solve a LinearBilevelProblem with one lower-level problem" % self.solver_type
+        assert (len(M.U.LL) == 1), "Solver '%s' can only solve a LinearBilevelProblem with one lower-level problem" % self.solver_type
+        assert (len(M.U.LL[0].LL) == 0), "Solver '%s' can only solve a LinearBilevelProblem that is bilevel" % self.solver_type
         #
         # No binary or integer lower level variables
         #
-        for L in M.L:
-            assert (len(L.xZ) == 0), "Cannot use solver %s with model with integer lower-level variables" % self.solver_type
-            assert (len(L.xB) == 0), "Cannot use solver %s with model with binary lower-level variables" % self.solver_type
+        for L in M.U.LL:
+            assert (L.x.nxZ == 0), "Cannot use solver %s with model with integer lower-level variables" % self.solver_type
+            assert (L.x.nxB == 0), "Cannot use solver %s with model with binary lower-level variables" % self.solver_type
         #
         # Upper and lower objectives are the opposite of each other
         #

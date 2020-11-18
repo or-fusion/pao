@@ -36,18 +36,18 @@ class LinearBilevelSolver_REG(LinearBilevelSolverBase):
         # TODO: For now, we just deal with the case where there is a single lower-level.  Later, we
         # will generalize this.
         #
-        assert (len(lbp.L) == 1), "Only one lower-level is handled right now"
+        assert (len(lbp.U.LL) == 1 and len(lbp.U.LL[0].LL) == 0), "Only one lower-level is handled right now"
         #
         # No binary or integer upper-level variables
         #
-        assert (len(lbp.U.xZ) == 0), "Cannot use solver %s with model with integer upper-level variables" % self.name
-        assert (len(lbp.U.xB) == 0), "Cannot use solver %s with model with binary upper-level variables" % self.name
+        assert (lbp.U.x.nxZ == 0), "Cannot use solver %s with model with integer upper-level variables" % self.name
+        assert (lbp.U.x.nxB == 0), "Cannot use solver %s with model with binary upper-level variables" % self.name
         #
         # No binary or integer lower-level variables
         #
-        for i in range(len(lbp.L)):
-            assert (len(lbp.L[i].xZ) == 0), "Cannot use solver %s with model with integer lower-level variables" % self.name
-            assert (len(lbp.L[i].xB) == 0), "Cannot use solver %s with model with binary lower-level variables" % self.name
+        for L in lbp.U.LL:
+            assert (L.x.nxZ == 0), "Cannot use solver %s with model with integer lower-level variables" % self.name
+            assert (L.x.nxB == 0), "Cannot use solver %s with model with binary lower-level variables" % self.name
 
     def solve(self, lbp, options=None, **config_options):
         #
