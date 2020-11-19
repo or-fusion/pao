@@ -38,7 +38,7 @@ class LBP_SolutionManager(object):
                     for j in range(L.x.nxB):
                         L.x.values[j+L.x.nxR+L.x.nxZ] = round(pe.value(LxB[L.id][j]))
 
-    def load_from(self, data):
+    def load_from(self, data):      # pragma: no cover
         # TODO - should we copy the data from a Pyomo model?  or a Pyomo results object?
         #           
         assert (False), "LBP_SolutionManager.load_from() is not implemented yet"

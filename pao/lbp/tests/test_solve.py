@@ -23,28 +23,8 @@ class XTest_bilevel_lbp(object):
         self.assertTrue(math.isclose(lbp.U.x.values[0], 4))
         self.assertTrue(math.isclose(lbp.U.LL.x.values[0], 4))
 
-    def test_bard511_L0(self):
-        lbp = examples.bard511_L0.create()
-        lbp.check()
-
-        opt = SolverFactory('pao.bilevel.blp_global')
-        opt.solve(lbp)
-
-        self.assertTrue(math.isclose(lbp.U.x.values[0], 4))
-        self.assertTrue(math.isclose(lbp.U.LL.x.values[0], 4))
-
     def Xtest_bard511_L1(self):
         lbp = examples.bard511_L1.create()
-        lbp.check()
-
-        opt = SolverFactory('pao.bilevel.blp_global')
-        opt.solve(lbp)
-
-        self.assertTrue(math.isclose(lbp.U.x.values[0], 4))
-        self.assertTrue(math.isclose(lbp.U.LL.x.values[0], 4))
-
-    def test_bard511_list_L0(self):
-        lbp = examples.bard511_list_L0.create()
         lbp.check()
 
         opt = SolverFactory('pao.bilevel.blp_global')
@@ -88,28 +68,8 @@ class Test_bilevel_FA(unittest.TestCase):
         self.assertTrue(math.isclose(lbp.U.x.values[0], 4))
         self.assertTrue(math.isclose(lbp.U.LL.x.values[0], 4))
 
-    def test_bard511_L0(self):
-        lbp = examples.bard511_L0.create()
-        lbp.check()
-
-        opt = SolverFactory('pao.lbp.FA')
-        opt.solve(lbp)
-
-        self.assertTrue(math.isclose(lbp.U.x.values[0], 4))
-        self.assertTrue(math.isclose(lbp.U.LL.x.values[0], 4))
-
     def Xtest_bard511_L1(self):
         lbp = examples.bard511_L1.create()
-        lbp.check()
-
-        opt = SolverFactory('pao.lbp.FA')
-        opt.solve(lbp)
-
-        self.assertTrue(math.isclose(lbp.U.x.values[0], 4))
-        self.assertTrue(math.isclose(lbp.U.LL.x.values[0], 4))
-
-    def test_bard511_list_L0(self):
-        lbp = examples.bard511_list_L0.create()
         lbp.check()
 
         opt = SolverFactory('pao.lbp.FA')
@@ -182,28 +142,8 @@ class Test_bilevel_REG(unittest.TestCase):
         self.assertTrue(math.isclose(lbp.U.x.values[0], 4, abs_tol=1e-4))
         self.assertTrue(math.isclose(lbp.U.LL.x.values[0], 4, abs_tol=1e-4))
 
-    def test_bard511_L0(self):
-        lbp = examples.bard511_L0.create()
-        lbp.check()
-
-        opt = SolverFactory('pao.lbp.REG')
-        opt.solve(lbp)
-
-        self.assertTrue(math.isclose(lbp.U.x.values[0], 4, abs_tol=1e-4))
-        self.assertTrue(math.isclose(lbp.U.LL.x.values[0], 4, abs_tol=1e-4))
-
     def Xtest_bard511_L1(self):
         lbp = examples.bard511_L1.create()
-        lbp.check()
-
-        opt = SolverFactory('pao.lbp.REG')
-        opt.solve(lbp)
-
-        self.assertTrue(math.isclose(lbp.U.x.values[0], 4, abs_tol=1e-4))
-        self.assertTrue(math.isclose(lbp.U.LL.x.values[0], 4, abs_tol=1e-4))
-
-    def test_bard511_list_L0(self):
-        lbp = examples.bard511_list_L0.create()
         lbp.check()
 
         opt = SolverFactory('pao.lbp.REG')
@@ -276,28 +216,8 @@ class Test_bilevel_PCCG(unittest.TestCase):
         self.assertTrue(math.isclose(lbp.U.x.values[0], 4, abs_tol=1e-4))
         self.assertTrue(math.isclose(lbp.U.LL.x.values[0], 4, abs_tol=1e-4))
 
-    def test_bard511_L0(self):
-        lbp = examples.bard511_L0.create()
-        lbp.check()
-
-        opt = SolverFactory('pao.lbp.PCCG')
-        opt.solve(lbp)
-
-        self.assertTrue(math.isclose(lbp.U.x.values[0], 4, abs_tol=1e-4))
-        self.assertTrue(math.isclose(lbp.U.LL.x.values[0], 4, abs_tol=1e-4))
-
     def Xtest_bard511_L1(self):
         lbp = examples.bard511_L1.create()
-        lbp.check()
-
-        opt = SolverFactory('pao.lbp.PCCG')
-        opt.solve(lbp)
-
-        self.assertTrue(math.isclose(lbp.U.x.values[0], 4, abs_tol=1e-4))
-        self.assertTrue(math.isclose(lbp.U.LL.x.values[0], 4, abs_tol=1e-4))
-
-    def test_bard511_list_L0(self):
-        lbp = examples.bard511_list_L0.create()
         lbp.check()
 
         opt = SolverFactory('pao.lbp.PCCG')

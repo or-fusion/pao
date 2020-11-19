@@ -67,80 +67,35 @@ def _find_nonpositive_variables(V, inequalities):
     nxZ = V.nxZ
     changes.nxR_old = nxR
     changes.nxZ_old = nxZ
-    #print(V.lower_bounds, V.upper_bounds)
-    if V.upper_bounds is None:
-        if V.lower_bounds is None:
-            # variable unbounded
-            for i in range(nxV):
-                changes.append( VChangeUnbounded(real=i<nxR, v=i, w=nxV+i) )
-            #print("HERE0")
-            nxR = 2*nxR
-            nxZ = 2*nxZ
-        else:
-            # variable bounded below
-            for i in range(nxV):
-                lb = V.lower_bounds[i]
-                if lb == 0:
-                    # Ignore non-negative variables
-                    continue
-                elif lb == np.NINF:
-                    # bound is -infinity
-                    if i<V.nxR:
-                        changes.append( VChangeUnbounded(real=True, v=i, w=nxR) )
-                        nxR += 1
-                    else:
-                        changes.append( VChangeUnbounded(real=False, v=i, w=nxZ) )
-                        nxZ += 1
-                else:
-                    # bound is constant
-                    changes.append( VChangeLowerBound(real=i<V.nxR, v=i, lb=lb) )
-    else:
-        #print("YES")
-        if V.lower_bounds is None:
-            # Variables are unbounded below
-            for i in range(nxV):
-                ub = V.upper_bounds[i]
-                if ub == np.PINF:
-                    # Unbounded variable
-                    if i<V.nxR:
-                        changes.append( VChangeUnbounded(real=True, v=i, w=nxR) )
-                        nxR += 1
-                    else:
-                        changes.append( VChangeUnbounded(real=False, v=i, w=nxZ) )
-                        nxZ += 1
-                else:
-                    changes.append( VChangeUpperBound(real=i<V.nxR, v=i, ub=ub) )
-        else:
-            #print("YES", nxV)
-            # Variables are bounded
-            for i in range(nxV):
-                lb = V.lower_bounds[i]
-                ub = V.upper_bounds[i]
-                #print(lb, ub)
-                if ub == np.PINF:
-                    if lb == 0:
-                        #print("HERE0")
-                        continue
-                    elif lb == np.NINF:
-                        # Unbounded variable
-                        if i<V.nxR:
-                            changes.append( VChangeUnbounded(real=True, v=i, w=nxR) )
-                            #print("HERE1")
-                            nxR += 1
-                        else:
-                            changes.append( VChangeUnbounded(real=False, v=i, w=nxZ) )
-                            #print("HERE2")
-                            nxZ += 1
-                    else:
-                        changes.append( VChangeLowerBound(real=i<V.nxR, v=i, lb=lb) )
-                elif lb == np.NINF:
-                    changes.append( VChangeUpperBound(real=i<V.nxR, v=i, ub=ub) )
-                elif inequalities:
-                    changes.append( VChangeRange(real=i<V.nxR, v=i, lb=lb, ub=ub) )
-                else:
-                    changes.append( VChangeRange(real=i<V.nxR, v=i, lb=lb, ub=ub, w=nxR) )
-                    #print("HERE2")
+
+    for i in range(nxV):
+        lb = V.lower_bounds[i]
+        ub = V.upper_bounds[i]
+        #print(lb, ub)
+        if ub == np.PINF:
+            if lb == 0:
+                #print("HERE0")
+                continue
+            elif lb == np.NINF:
+                # Unbounded variable
+                if i<V.nxR:
+                    changes.append( VChangeUnbounded(real=True, v=i, w=nxR) )
+                    #print("HERE1")
                     nxR += 1
+                else:
+                    changes.append( VChangeUnbounded(real=False, v=i, w=nxZ) )
+                    #print("HERE2")
+                    nxZ += 1
+            else:
+                changes.append( VChangeLowerBound(real=i<V.nxR, v=i, lb=lb) )
+        elif lb == np.NINF:
+            changes.append( VChangeUpperBound(real=i<V.nxR, v=i, ub=ub) )
+        elif inequalities:
+            changes.append( VChangeRange(real=i<V.nxR, v=i, lb=lb, ub=ub) )
+        else:
+            changes.append( VChangeRange(real=i<V.nxR, v=i, lb=lb, ub=ub, w=nxR) )
+            #print("HERE2")
+            nxR += 1
 
     # Reset the variable id for integers, given the final value of nxR
     for c in changes:
@@ -231,13 +186,6 @@ def _process_changes(changes, V, c, d, A, b, add_rows=False):
             if A is not None:
                 # i is index of the vth column in the A matrix
                 i = Acsc.indptr[v]
-                #if Acsc.indptr.size == v+1:
-                #    #print(chg)
-                #    #print(v, chg.v, i, chg.w)
-                #    #print(Acsc.shape)
-                #    #print(Acsc.indptr)
-                #    #print(Acsc.indices)
-                #    #print(Acsc.data)
                 inext = Acsc.indptr[v+1]
                 while i<inext:
                     row = Acsc.indices[i]
@@ -248,18 +196,15 @@ def _process_changes(changes, V, c, d, A, b, add_rows=False):
         return c, d, None, b
 
     Bdok = dok_matrix((nrows, changes.nxR+changes.nxZ+V.nxB))
+    #print(Bdok.shape)
+    #print(Acsc.shape)
     # Collect the items from B
     for k,v in B.items():
         Bdok[k] = v
     # Merge in the items from A, shifting columns
     Adok = Acsc.todok()
     for k,v in Adok.items():
-        i,j = k
-        if j >= changes.nxR_old+changes.nxZ_old:
-            j += (changes.nxR-changes.nxR_old) + (changes.nxZ-changes.nxZ_old)
-        elif j >= changes.nxR_old:
-            j += (changes.nxR-changes.nxR_old)
-        Bdok[i,j] = v
+        Bdok[k] = v
     return c, d, Bdok.tocoo(), b
 
 
@@ -274,9 +219,9 @@ def convert_to_nonnegative_variables(ans, inequalities):
         L.resize(nxR=changes[L.id].nxR, nxZ=changes[L.id].nxZ, nxB=L.x.nxB)
         L.x.lower_bounds = np.zeros(len(L.x))
 
-        print(L.name)
-        for chg in changes[L.id]:
-            print(chg)
+        #print(L.name)
+        #for chg in changes[L.id]:
+        #    print(chg)
     #
     # Process changes 
     #
@@ -300,7 +245,7 @@ def convert_to_nonnegative_variables(ans, inequalities):
     return changes
 
 
-def combine_matrices(A, B):
+def combine_matrices(A, B):         #pragma: nocover
     """
     Combining matrices with different shapes
 
@@ -335,8 +280,6 @@ def convert_to_minimization(ans):
 
 
 def add_ineq_constraints(mat):
-    if mat is None:
-        return None
     x=mat.tocoo()
     nrows = mat.shape[0]
     d = -1 * x.data
@@ -359,7 +302,6 @@ def convert_constraints(ans, inequalities):
                 L.b = np.concatenate((L.b, bnew))
                 for i in L.A:
                     L.A[i] = add_ineq_constraints(L.A[i])
-
     else:
         #
         # Add slack variables to create equality constraints from inequalities
@@ -372,53 +314,9 @@ def convert_constraints(ans, inequalities):
                 if B is None:
                     continue
                 B = B.todok()
-                #print(X.name, L.name, B.shape, len(L.b), nxR)
                 for i in range(len(L.b)):
                     B[i,nxR+i] = 1
                 L.A[L] = B
-
-        """
-        if U.inequalities and len(U.b) > 0:
-            nxR = U.x.nxR
-            U.x.resize( nxR + len(U.b), U.x.nxZ, U.x.nxB, lb=0 )
-            B = dok_matrix((len(U.b), len(U.x)))
-            for k,v in U.A[U].todok().items():
-                ii,jj = k
-                if ii<nxR:
-                    B[ii,jj] = v
-                else:
-                    B[ii,jj+len(U.b)] = v
-            for i in range(len(U.b)):
-                B[i,i+nxR] = 1
-            for i in range(len(U.b)):
-                if U.c[U] is not None:
-                    U.c[U] = np.append(U.c[U], 0)
-                for L_ in L:
-                    if L_.c[U] is not None:
-                        L_.c[U] = np.append(L_.c[U], 0)
-            U.A[U] = B
-            for i in range(len(L)):
-                if L[i].A[U] is not None:
-                    L[i].A[U].resize( (L[i].A[U].shape[0], U.x.nxR) )
-
-        for i in range(len(L)):
-            if L[i].inequalities and len(L[i].b) > 0:
-                nxR = L[i].x.nxR
-                L[i].x.resize( nxR + len(L[i].b), L[i].x.nxZ, L[i].x.nxB, lb=0 )
-                B = dok_matrix((len(L[i].b), len(L[i].x)))
-                #for k,v in L[i].A[U].todok().items():
-                for k in range(len(L[i].b)):
-                    B[k,j] = 1
-                    j += 1
-                    if U.c[L[i]] is not None:
-                        U.c[L[i]] = np.append(U.c[L[i]], 0)
-                    if L[i].c[L[i]] is not None:
-                        L[i].c[L[i]] = np.append(L[i].c[L[i]], 0)
-                L[i].A[L[i]] = combine_matrices(L[i].A[L[i]], B)
-
-                if U.A[L[i]] is not None:
-                    U.A[L[i]].resize( (U.A[L[i]].shape[0], L[i].x.nxR) )
-        """
     #
     # Update inequality values
     #

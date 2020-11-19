@@ -176,7 +176,7 @@ class LinearBilevelSolver_REG(LinearBilevelSolverBase):
 
         return M
 
-    def _debug(self):
+    def _debug(self):           # pragma: no cover
         for j in M.U.xR:
             print("U",j,pe.value(M.U.xR[j]))
         for j in M.L.xR:

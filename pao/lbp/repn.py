@@ -128,10 +128,8 @@ class LevelVariable(object):
         print("  nxR: "+str(self.nxR))
         print("  nxZ: "+str(self.nxZ))
         print("  nxB: "+str(self.nxB))
-        if self.lower_bounds is not None:
-            print("  lower bounds: "+str(self.lower_bounds))
-        if self.upper_bounds is not None:
-            print("  upper bounds: "+str(self.upper_bounds))
+        print("  lower bounds: "+str(self.lower_bounds))
+        print("  upper bounds: "+str(self.upper_bounds))
         print("  nonzero values:")
         for i,v in enumerate(self.values):
             if v is not None and v != 0:
@@ -141,13 +139,15 @@ class LevelVariable(object):
                     print("    %d: %f" % (i, v))
 
     def __setattr__(self, name, value):
-        if name == 'lower_bounds' and value is not None:
+        if name == 'lower_bounds':
+            assert (value is not None), "Cannot specify null lower bounds array"
             # Add this check in the model checks
             assert (len(value) == self.num), "The variable has length %s but specifying a lower bounds with length %s" % (str(self.num), str(len(value)))
             if type(value) is list:
                 value = np.array(value, dtype=np.float64)
             super().__setattr__(name, value)
-        elif name == 'upper_bounds' and value is not None:
+        elif name == 'upper_bounds':
+            assert (value is not None), "Cannot specify null upper bounds array"
             # Add this check in the model checks
             assert (len(value) == self.num), "The variable has length %s but specifying a upper bounds with length %s" % (str(self.num), str(len(value)))
             if type(value) is list:
@@ -222,16 +222,17 @@ class LevelValueWrapper(object):
 
     def __len__(self):
         _values = getattr(self, '_values')
-        n = 0
-        for val in _values.values():
-            n += len(val)
-        return n
+        return len(_values)
+        #n = 0
+        #for val in _values.values():
+        #    n += len(val)
+        #return n
 
     def __iter__(self):
         yield from self._values.keys()
 
     def __getattr__(self, name):
-        if name.startswith('_'):
+        if name.startswith('_'):                # pragma: no cover
             return super().__getattr__(name)
         else:
             raise AttributeError("No attributes in this object")
@@ -284,9 +285,12 @@ class LinearLevelRepn(object):
 
     _counter = 0
 
-    def __init__(self, nxR, nxZ, nxB):
-        self.id = LinearLevelRepn._counter
-        LinearLevelRepn._counter += 1
+    def __init__(self, nxR, nxZ, nxB, id=None):
+        if id is None:
+            self.id = LinearLevelRepn._counter
+            LinearLevelRepn._counter += 1
+        else:
+            self.id = id
 
         self.x = LevelVariable(nxR, nxZ, nxB)    # variables at this level
         self.c = LevelValueWrapper("c") # objective coefficients at this level
@@ -302,8 +306,8 @@ class LinearLevelRepn(object):
 
         self.name = None                # a string descriptor for this level
 
-    def add_lower(self, *, nxR=0, nxZ=0, nxB=0, name=None):
-        tmp = LinearLevelRepn(nxR, nxZ, nxB)
+    def add_lower(self, *, nxR=0, nxZ=0, nxB=0, name=None, id=None):
+        tmp = LinearLevelRepn(nxR, nxZ, nxB, id=id)
         if name is None:
             tmp.name = self.name + ".LL[%d]" % len(self.LL)
         else:
@@ -489,9 +493,9 @@ class LinearBilevelProblem(object):
         self.name = name
         self.U = None
 
-    def add_upper(self, *, nxR=0, nxZ=0, nxB=0, name=None):
+    def add_upper(self, *, nxR=0, nxZ=0, nxB=0, name=None, id=None):
         assert (self.U is None), "Cannot create a second upper-level in a LinearBilevelProblem"
-        self.U = LinearLevelRepn(nxR, nxZ, nxB)
+        self.U = LinearLevelRepn(nxR, nxZ, nxB, id=id)
         if name is None:
             self.U.name = "U"
         else:

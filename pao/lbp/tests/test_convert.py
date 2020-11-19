@@ -1710,13 +1710,14 @@ class Test_Integers(unittest.TestCase):
 
 class Test_Examples(unittest.TestCase):
 
+    # NOTE - this is one of the few tests with binaries that have nonzero A-matrix coefficients
     def test_simple1(self):
         lbp = LinearBilevelProblem()
-        U = lbp.add_upper(nxR=6, nxZ=0, nxB=0)
+        U = lbp.add_upper(nxR=4, nxZ=1, nxB=1)
         U.equalities = True
         U.x.lower_bounds = [np.NINF, -1,      np.NINF, -2, 0,       0]
-        U.x.upper_bounds = [np.PINF, np.PINF, 5,        2, np.PINF, np.PINF]
-        U.c[U] = [3, -1, 0, 0, 0, 0]
+        U.x.upper_bounds = [np.PINF, np.PINF, 5,        2, np.PINF, 1]
+        U.c[U] = [3, -1, 0, 0, 1, 1]
         U.A[U] = [[-1, 6, -1, 1, -1, 0],
                   [ 0, 7,  0, 1,  0, 0],
                   [ 0, 0,  1, 1,  0, 1]]
@@ -1730,7 +1731,7 @@ class Test_Examples(unittest.TestCase):
 
         self.assertEqual(ans.U.d, 1)
         self.assertEqual(len(ans.U.c[U]), len(lbp.U.c[U])+2)
-        self.assertEqual(list(ans.U.c[U]), [3, -1, 0, 0, 0, 0, -3, 0])
+        self.assertEqual(list(ans.U.c[U]), [3, -1, 0, 0, -3, 0, 1, 1])
         self.assertEqual(ans.U.A[U].shape[0], lbp.U.A[U].shape[0]+1)
         self.assertEqual(ans.U.A[U].shape[1], lbp.U.A[U].shape[1]+2)
 
@@ -1740,6 +1741,57 @@ class Test_Examples(unittest.TestCase):
         self.assertEqual(ans.U.b[2], -1)
         self.assertEqual(ans.U.b[3], 4)
         self.assertEqual(len(ans.U.x), len(lbp.U.x)+2)
+
+
+    # NOTE - An example where the upper-level doesn't have constraints with its own variables
+    #        Q - Can this ever happen?
+    def test_simple2(self):
+        lbp = LinearBilevelProblem()
+        U = lbp.add_upper(nxB=1)
+        L = U.add_lower(nxR=4, nxZ=1, nxB=1)
+
+        U.inequalities = True
+        U.A[L] = [[-1, 6, -1, 1, -1, 0],
+                  [ 0, 7,  0, 1,  0, 0],
+                  [ 0, 0,  1, 1,  0, 1]]
+        U.b = [-3, 5, 2]
+
+        L.inequalities = True
+        L.x.lower_bounds = [np.NINF, -1,      np.NINF, -2, 0,       0]
+        L.x.upper_bounds = [np.PINF, np.PINF, 5,        2, np.PINF, 1]
+
+        L.c[U] = [-1]
+        L.c[L] = [3, -1, 0, 0, 1, 1]
+
+        L.A[U] = [[1], [2], [3]]
+        L.A[L] = [[-1, 6, -1, 1, -1, 0],
+                  [ 0, 7,  0, 1,  0, 0],
+                  [ 0, 0,  1, 1,  0, 1]]
+        L.b = [-3, 5, 2]
+        #lbp.print()
+        lbp.check()
+
+        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(lbp)
+        #ans.print()
+        ans.check()
+
+        self.assertEqual(ans.U.LL.d, 1)
+        self.assertEqual(len(ans.U.LL.c[U]), len(lbp.U.LL.c[U])+3)
+        self.assertEqual(len(ans.U.LL.c[L]), len(lbp.U.LL.c[L])+5)
+        self.assertEqual(list(ans.U.LL.c[L]), [3, -1, 0, 0, 0, 0, 0, -3, 0, 1, 1])
+        self.assertEqual(ans.U.LL.A[U].shape[0], lbp.U.LL.A[U].shape[0]+1)
+        self.assertEqual(ans.U.LL.A[U].shape[1], lbp.U.LL.A[U].shape[1]+3)
+        self.assertEqual(ans.U.LL.A[L].shape[0], lbp.U.LL.A[L].shape[0]+1)
+        self.assertEqual(ans.U.LL.A[L].shape[1], lbp.U.LL.A[L].shape[1]+5)
+
+        self.assertEqual(len(ans.U.LL.b), len(lbp.U.LL.b)+1)
+        self.assertEqual(ans.U.LL.b[0], 10)
+        self.assertEqual(ans.U.LL.b[1], 14)
+        self.assertEqual(ans.U.LL.b[2], -1)
+        self.assertEqual(ans.U.LL.b[3], 4)
+
+        self.assertEqual(len(ans.U.x), len(lbp.U.x)+3)
+        self.assertEqual(len(ans.U.LL.x), len(lbp.U.LL.x)+5)
 
 
 if __name__ == "__main__":

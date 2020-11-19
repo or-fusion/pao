@@ -227,6 +227,7 @@ class Test_LevelVariable(unittest.TestCase):
         self.assertEqual(list(l.lower_bounds), [np.NINF,np.NINF,np.NINF,np.NINF,np.NINF,0,0,0,0])
         self.assertEqual(list(l.upper_bounds), [np.PINF,np.PINF,np.PINF,np.PINF,np.PINF,1,1,1,1])
 
+
 class Test_LevelValues(unittest.TestCase):
 
     def test_init(self):
@@ -300,9 +301,23 @@ class Test_LevelValueWrapper(unittest.TestCase):
     def test_len(self):
         l = LevelValueWrapper('foo', matrix=True)
         self.assertEqual(len(l), 0)
-        L = LinearLevelRepn(1,2,3)
-        l[L] = [1,2,3]
-        self.assertEqual(len(l), 1)
+        L0 = LinearLevelRepn(1,2,3)
+        L1 = LinearLevelRepn(1,2,3)
+        l[L0] = [1,2,3]
+        l[L1] = [1,2,3]
+        self.assertEqual(len(l), 2)
+
+    def test_iter(self):
+        l = LevelValueWrapper('foo', matrix=True)
+        self.assertEqual(len(l), 0)
+        L0 = LinearLevelRepn(1,2,3)
+        L1 = LinearLevelRepn(1,2,3)
+        L2 = LinearLevelRepn(1,2,3)
+        l[L0] = [1,2,3]
+        l[L1] = [1,2,3]
+        l[L2] = [1,2,3]
+        self.assertEqual(len(l), 3)
+        self.assertEqual(sorted(i for i in l), sorted([L0.id, L1.id, L2.id]))
 
     def test_getattr(self):
         l = LevelValueWrapper('foo', matrix=True)
@@ -315,6 +330,16 @@ class Test_LevelValueWrapper(unittest.TestCase):
         except AttributeError:
             pass
         
+    def test_setgetitem(self):
+        l = LevelValueWrapper('foo', matrix=False)
+        L0 = LinearLevelRepn(1,2,3)
+        L1 = LinearLevelRepn(1,2,3)
+        l[L0] = [1,2,3]
+        l[L1.id] = [4,5,6]
+        self.assertEqual(len(l), 2)
+        self.assertEqual(list(l[L0.id]), [1,2,3])
+        self.assertEqual(list(l[L1]), [4,5,6])
+
     def test_clone(self):
         l = LevelValueWrapper('foo', matrix=True)
         try:
@@ -398,19 +423,20 @@ class Test_LinearBilevelProblem(unittest.TestCase):
 
     def test_levels(self):
         blp = LinearBilevelProblem()
-        A = blp.add_upper(nxR=1, nxZ=2, nxB=3, name='A')
-        B = A.add_lower(nxR=1, nxZ=2, nxB=3, name='B')
-        C = A.add_lower(nxR=1, nxZ=2, nxB=3, name='C')
-        D = B.add_lower(nxR=1, nxZ=2, nxB=3, name='D')
-        E = B.add_lower(nxR=1, nxZ=2, nxB=3, name='E')
+        A = blp.add_upper(nxR=1, nxZ=2, nxB=3, name='A', id=100)
+        B = A.add_lower(nxR=1, nxZ=2, nxB=3, name='B', id=-1)
+        C = A.add_lower(nxR=1, nxZ=2, nxB=3, name='C', id=2)
+        D = B.add_lower(nxR=1, nxZ=2, nxB=3, name='D', id=10)
+        E = B.add_lower(nxR=1, nxZ=2, nxB=3, name='E', id=11)
+        self.assertEqual(A.id, 100)
         names = [L.name for L in blp.levels()]
 
         self.assertEqual(names, ['A', 'B', 'D', 'E', 'C'])
         self.assertEqual(A.UL(), None)
-        self.assertEqual(B.UL().id, A.id)
-        self.assertEqual(C.UL().id, A.id)
-        self.assertEqual(D.UL().id, B.id)
-        self.assertEqual(E.UL().id, B.id)
+        self.assertEqual(B.UL().id, 100)
+        self.assertEqual(C.UL().id, 100)
+        self.assertEqual(D.UL().id, -1)
+        self.assertEqual(E.UL().id, -1)
 
     def test_add_upper(self):
         blp = LinearBilevelProblem()

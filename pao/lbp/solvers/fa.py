@@ -172,7 +172,7 @@ class LinearBilevelSolver_FA(LinearBilevelSolverBase):
 
         return M
 
-    def _debug(self, M):
+    def _debug(self, M):    # pragma: no cover
         for j in M.U.xR:
             print("U",j,pe.value(M.U.xR[j]))
         for j in M.L.xR:
@@ -181,5 +181,4 @@ class LinearBilevelSolver_FA(LinearBilevelSolverBase):
             print("lam",j,pe.value(M.kkt.lam[j]))
         for j in M.kkt.nu:
             print("nu",j,pe.value(M.kkt.nu[j]))
-
 
