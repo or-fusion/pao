@@ -111,13 +111,15 @@ def _find_nonpositive_variables(V, inequalities):
                 else:
                     changes.append( VChangeUpperBound(real=i<V.nxR, v=i, ub=ub) )
         else:
-            #print("YES", nxR)
+            #print("YES", nxV)
             # Variables are bounded
             for i in range(nxV):
                 lb = V.lower_bounds[i]
                 ub = V.upper_bounds[i]
+                #print(lb, ub)
                 if ub == np.PINF:
                     if lb == 0:
+                        #print("HERE0")
                         continue
                     elif lb == np.NINF:
                         # Unbounded variable
@@ -127,6 +129,7 @@ def _find_nonpositive_variables(V, inequalities):
                             nxR += 1
                         else:
                             changes.append( VChangeUnbounded(real=False, v=i, w=nxZ) )
+                            #print("HERE2")
                             nxZ += 1
                     else:
                         changes.append( VChangeLowerBound(real=i<V.nxR, v=i, lb=lb) )
@@ -153,19 +156,7 @@ def _find_nonpositive_variables(V, inequalities):
     return changes
 
 
-def _process_changes(changes, V, c_, d, A, b, add_rows=False):
-    # Copy c, inserting empty columns
-    if c_ is not None:
-        c = np.zeros(changes.nxR + changes.nxZ + V.nxB)
-        for i in range(changes.nxR_old):
-            c[i] = c_[i]
-        for i in range(changes.nxZ_old):
-            c[i + changes.nxR] = c_[i + changes.nxR_old]
-        for i in range(V.nxB):
-            c[i + changes.nxR + changes.nxZ] = c_[i + changes.nxR_old + changes.nxZ_old]
-    else:
-        c = None
-
+def _process_changes(changes, V, c, d, A, b, add_rows=False):
     d = copy.copy(d)
     b = copy.copy(b)
 
@@ -178,7 +169,6 @@ def _process_changes(changes, V, c_, d, A, b, add_rows=False):
 
     B = {}
     for chg in changes:
-        print(chg)
         v = chg.v
         if type(chg) is VChangeLowerBound:      # real variable bounded below
             lb = chg.lb
@@ -274,73 +264,40 @@ def _process_changes(changes, V, c_, d, A, b, add_rows=False):
 
 
 def convert_to_nonnegative_variables(ans, inequalities):
-    U = ans.U
-    L = U.L
     #
-    # Collect real variables that are changing
+    # Collect real and integer variables that are changing
     #
-    UxV = U.x
-    #print(UxV.nxR, UxV.nxZ, UxV.nxB, len(UxV))
-    changes_U = _find_nonpositive_variables(UxV, inequalities)
-    UxV.resize(changes_U.nxR, changes_U.nxZ, UxV.nxB)
-    UxV.lower_bounds = np.zeros(changes_U.nxR + changes_U.nxZ + UxV.nxB)
-    changes_L = {}
-    for i in range(len(L)):
-        LxV = L[i].x
-        changes_L_ = _find_nonpositive_variables(LxV, inequalities)
-        LxV.resize(changes_L_.nxR, changes_L_.nxZ, LxV.nxB)
-        LxV.lower_bounds = np.zeros(changes_L_.nxR + changes_L_.nxZ + LxV.nxB)
-        changes_L[i] = changes_L_
+    changes = {}
+    #ans.print()
+    for L in ans.levels():
+        changes[L.id] = _find_nonpositive_variables(L.x, inequalities)
+        L.resize(nxR=changes[L.id].nxR, nxZ=changes[L.id].nxZ, nxB=L.x.nxB)
+        L.x.lower_bounds = np.zeros(len(L.x))
+
+        print(L.name)
+        for chg in changes[L.id]:
+            print(chg)
     #
-    # Process changes related to upper-level variables
+    # Process changes 
     #
-    if len(changes_U) > 0:
-        UxV = U.x
-        #UcUxV = U.c.U.x #getattr(U.c.U, vstr)
-        #UAUxV = U.A.U.x #getattr(U.A.U, vstr)
-        U.c[U], U.d, U.A[U], U.b = \
-                _process_changes(changes_U, UxV, U.c[U], U.d, U.A[U], U.b, add_rows=True)
-        #setattr(U.c.U, vstr, UcUxV)
-        #setattr(U.A.U, vstr, UAUxV)
-        for i in range(len(L)):
-            #LcUxV = getattr(L[i].c.U, vstr)
-            #LAUxV = getattr(L[i].A.U, vstr)
-            L[i].c[U], L[i].d, L[i].A[U], L[i].b = \
-                _process_changes(changes_U, UxV, L[i].c[U], L[i].d, L[i].A[U], L[i].b)
-            #setattr(L[i].c.U, vstr, LcUxV)
-            #setattr(L[i].A.U, vstr, LAUxV)
-    #
-    # Process changes related to lower-level variables
-    #
-    for i in range(len(L)):
-        LxV = L[i].x
-        if len(changes_L[i]) > 0:
-            #UcLxV = getattr(U.c.L[i], vstr)
-            #UALxV = getattr(U.A.L[i], vstr)
-            U.c[L[i]], U.d, U.A[L[i]], U.b = \
-                    _process_changes(changes_L[i], LxV, U.c[L[i]], U.d, U.A[L[i]], U.b)
-            #setattr(U.c.L[i], vstr, UcLxV)
-            #setattr(U.A.L[i], vstr, UALxV)
-            #
-            #LcLxV = getattr(L[i].c.L[i], vstr)
-            #LALxV = getattr(L[i].A.L[i], vstr)
-            L[i].c[L[i]], L[i].d, L[i].A[L[i]], L[i].b = \
-                    _process_changes(changes_L[i], LxV, L[i].c[L[i]], L[i].d, L[i].A[L[i]], L[i].b, add_rows=True)
-            #setattr(L[i].c.L[i], vstr, LcLxV)
-            #setattr(L[i].A.L[i], vstr, LALxV)
+    for L in ans.levels():
+        if len(changes[L.id]) > 0:
+            for X in L.levels():
+                X.c[L], X.d, X.A[L], X.b = \
+                    _process_changes(changes[L.id], L.x, X.c[L], X.d, X.A[L], X.b, add_rows=L.id == X.id)
     #
     # Resize constraint matrices
     #
     # After processing upper and lower variables, we may have added constraints.  The other
     # upper/lower constraint matrices need to be resized as well.
     #
-    for i in range(len(L)):
-        if U.A[L[i]] is not None:
-            U.A[L[i]].resize( [len(U.b), len(L[i].x)] )
-        if L[i].A[U] is not None:
-            L[i].A[U].resize( [len(L[i].b), len(U.x)] )
+    #for i in range(len(L)):
+    #    if U.A[L[i]] is not None:
+    #        U.A[L[i]].resize( [len(U.b), len(L[i].x)] )
+    #    if L[i].A[U] is not None:
+    #        L[i].A[U].resize( [len(L[i].b), len(U.x)] )
     #
-    return changes_U, changes_L
+    return changes
 
 
 def combine_matrices(A, B):
@@ -364,22 +321,17 @@ def combine_matrices(A, B):
     return ans
 
 
-def convert_sense(level, U, L):
-    level.minimize = True
-    level.d *= -1
-    if level.c[U] is not None:
-        level.c[U] *= -1
-    for i in range(len(L)):
-        if level.c[L[i]] is not None:
-            level.c[L[i]] *= -1
+def convert_sense(L):
+    if not L.minimize:
+        L.minimize = True
+        L.d *= -1
+        for i in L.c:
+            L.c[i] *= -1
 
 
 def convert_to_minimization(ans):
-    if not ans.U.minimize:
-        convert_sense(ans.U, ans.U, ans.U.L)
-    for i in range(len(ans.U.L)):
-        if not ans.U.L[i].minimize:
-            convert_sense(ans.U.L[i], ans.U, ans.U.L)
+    for L in ans.levels():
+        convert_sense(L)
 
 
 def add_ineq_constraints(mat):
@@ -395,31 +347,37 @@ def add_ineq_constraints(mat):
     
 
 def convert_constraints(ans, inequalities):
-    U = ans.U
-    L = U.L
     if inequalities:
         #
         # Creating inequality constraints from equalities by 
         # duplicating constraints
         #
-        if not U.inequalities:
-            bnew = np.copy(U.b)
-            bnew *= -1
-            U.b = np.concatenate((U.b, bnew))
-            U.A[U] = add_ineq_constraints(U.A[U])
-            for i in range(len(L)):
-                U.A[L[i]] = add_ineq_constraints(U.A[L[i]])
-        for i in range(len(L)):
-            if not L[i].inequalities:
-                bnew = np.copy(L[i].b)
+        for L in ans.levels():
+            if not L.inequalities:
+                bnew = np.copy(L.b)
                 bnew *= -1
-                L[i].b = np.concatenate((L[i].b, bnew))
-                L[i].A[U] = add_ineq_constraints(L[i].A[U])
-                L[i].A[L[i]] = add_ineq_constraints(L[i].A[L[i]])
+                L.b = np.concatenate((L.b, bnew))
+                for i in L.A:
+                    L.A[i] = add_ineq_constraints(L.A[i])
+
     else:
         #
         # Add slack variables to create equality constraints from inequalities
         #
+        for L in ans.levels():
+            if L.inequalities and len(L.b) > 0:
+                nxR = L.x.nxR
+                L.resize( nxR=nxR + len(L.b), nxZ=L.x.nxZ, nxB=L.x.nxB, lb=0 )
+                B = L.A[L]
+                if B is None:
+                    continue
+                B = B.todok()
+                #print(X.name, L.name, B.shape, len(L.b), nxR)
+                for i in range(len(L.b)):
+                    B[i,nxR+i] = 1
+                L.A[L] = B
+
+        """
         if U.inequalities and len(U.b) > 0:
             nxR = U.x.nxR
             U.x.resize( nxR + len(U.b), U.x.nxZ, U.x.nxB, lb=0 )
@@ -460,58 +418,52 @@ def convert_constraints(ans, inequalities):
 
                 if U.A[L[i]] is not None:
                     U.A[L[i]].resize( (U.A[L[i]].shape[0], L[i].x.nxR) )
+        """
     #
     # Update inequality values
     #
-    U.inequalities = inequalities
-    for i in range(len(L)):
-        L[i].inequalities = inequalities
+    for L in ans.levels():
+        L.inequalities = inequalities
 
 
-def get_multipliers(lbp, changes_U, changes_L):
-    # 
-    # If there were no changes, then the multiplier is 1
-    #
-    multipliers_U =   [[(i,1)] for i in lbp.U.x]
-    multipliers_L = [ [[(i,1)] for i in lbp.U.L[j].x] for j in range(len(lbp.U.L)) ]
-    for chg in changes_U:
-        if type(chg) is VChangeUpperBound:
-            multipliers_U[ chg.v ] = [(chg.v,-1)]
-        elif type(chg) is VChangeUnbounded:
-            multipliers_U[ chg.v ] = [(chg.v,1), (chg.w,-1)]
-    for i in changes_L:
-        for chg in changes_L[i]:
+def get_multipliers(lbp, changes):
+    multipliers = {}
+    for L in lbp.levels():
+        # 
+        # If there were no changes, then the multiplier is 1
+        #
+        multipliers[L.id] =   [[(i,1)] for i in L.x]
+        for chg in changes[L.id]:
             if type(chg) is VChangeUpperBound:
-                multipliers_L[i][ chg.v ] = [(chg.v,-1)]
+                multipliers[L.id][ chg.v ] = [(chg.v,-1)]
             elif type(chg) is VChangeUnbounded:
-                multipliers_L[i][ chg.v ] = [(chg.v,1), (chg.w,-1)]
-    return multipliers_U, multipliers_L
+                multipliers[L.id][ chg.v ] = [(chg.v,1), (chg.w,-1)]
+    return multipliers
 
 
 def convert_binaries_to_integers(lbp):
-    if len(lbp.U.xB) > 0:
-        nxZ = len(lbp.U.xZ)
-        nxB = len(lbp.U.xB)
-        lbp.U.xZ.resize(nxZ+nxB, lb=0, ub=1)
-        lbp.U.xB.resize(0)
+    for L in lbp.levels():
+        if L.x.nxB > 0:
+            L.x._resize(nxR=L.x.nxR, nxZ=L.x.nxZ+L.x.nxB, nxB=0, lb=0, ub=1)
 
-        if nxZ == 0:
-            lbp.U.c.U.xZ = lbp.U.c.U.xB
-            lbp.U.A.U.xZ = lbp.U.A.U.xB
-        else:
-            lbp.U.c.U.xZ = np.concatenate((lbp.U.c.U.xZ, lbp.U.c.U.xB))
-            lbp.U.A.U.xZ = hstack([lbp.U.A.U.xZ, lbp.U.A.U.xB], format='csr')
-        lbp.U.c.U.xB = None
-        lbp.U.A.U.xB = None
-        for i in range(len(lbp.U.L)):
+"""
             if nxZ == 0:
-                lbp.U.L[i].c.U.xZ = lbp.U.L[i].c.U.xB
-                lbp.U.L[i].A.U.xZ = lbp.U.L[i].A.U.xB
+                lbp.U.c.U.xZ = lbp.U.c.U.xB
+                lbp.U.A.U.xZ = lbp.U.A.U.xB
             else:
-                lbp.U.L[i].c.U.xZ = np.concatenate((lbp.U.L[i].c.U.xZ, lbp.U.L[i].c.U.xB))
-                lbp.U.L[i].A.U.xZ = hstack([lbp.U.L[i].A.U.xZ, lbp.U.L[i].A.U.xB], format='csr')
-            lbp.U.L[i].c.U.xB = None
-            lbp.U.L[i].A.U.xB = None
+                lbp.U.c.U.xZ = np.concatenate((lbp.U.c.U.xZ, lbp.U.c.U.xB))
+                lbp.U.A.U.xZ = hstack([lbp.U.A.U.xZ, lbp.U.A.U.xB], format='csr')
+            lbp.U.c.U.xB = None
+            lbp.U.A.U.xB = None
+            for i in range(len(lbp.U.L)):
+                if nxZ == 0:
+                    lbp.U.L[i].c.U.xZ = lbp.U.L[i].c.U.xB
+                    lbp.U.L[i].A.U.xZ = lbp.U.L[i].A.U.xB
+                else:
+                    lbp.U.L[i].c.U.xZ = np.concatenate((lbp.U.L[i].c.U.xZ, lbp.U.L[i].c.U.xB))
+                    lbp.U.L[i].A.U.xZ = hstack([lbp.U.L[i].A.U.xZ, lbp.U.L[i].A.U.xB], format='csr')
+                lbp.U.L[i].c.U.xB = None
+                lbp.U.L[i].A.U.xB = None
 
     for i in range(len(lbp.U.L)):
         if len(lbp.U.L[i].xB) > 0:
@@ -537,7 +489,7 @@ def convert_binaries_to_integers(lbp):
                     lbp.L[i].A.L[i].xZ = hstack([lbp.L[i].A.L[i].xZ, lbp.L[i].A.L[i].xB], format='csr')
                 lbp.L[i].c.L[i].xB = None
                 lbp.L[i].A.L[i].xB = None
-
+"""
 
 def convert_LinearBilevelProblem_to_standard_form(lbp, inequalities=False):
     """
@@ -562,11 +514,19 @@ def convert_LinearBilevelProblem_to_standard_form(lbp, inequalities=False):
     #
     # Normalize variables
     #
-    changes_Ux, changes_Lx = convert_to_nonnegative_variables(ans, inequalities)
+    changes = convert_to_nonnegative_variables(ans, inequalities)
+    #
+    # Resize matrices
+    #
+    for L in ans.levels():
+        for X in L.levels():
+            A = X.A[L]
+            if A is not None:
+                A.resize( [len(X.b), len(L.x)] )
     #
     # Setup multipliers that are used to convert variables back to the original model
     #
-    multipliers_Ux, multipliers_Lx = get_multipliers(lbp, changes_Ux, changes_Lx)
+    multipliers = get_multipliers(lbp, changes)
 
-    return ans, LBP_SolutionManager( multipliers_Ux, multipliers_Lx )
+    return ans, LBP_SolutionManager(multipliers)
 

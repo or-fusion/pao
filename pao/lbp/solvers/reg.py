@@ -119,6 +119,9 @@ class LinearBilevelSolver_REG(LinearBilevelSolverBase):
         return results
 
     def _create_pyomo_model(self, repn, rho):
+        U = repn.U
+        L = repn.U.LL[0]
+
         #
         # Create Pyomo model
         #
@@ -128,32 +131,37 @@ class LinearBilevelSolver_REG(LinearBilevelSolverBase):
         M.kkt = pe.Block()
 
         # upper- and lower-level variables
-        pyomo_util._create_variables(repn.U, M.U)
-        pyomo_util._create_variables(repn.L, M.L)
+        pyomo_util.add_variables(M.U, U)
+        pyomo_util.add_variables(M.L, L)
         # dual variables
-        M.kkt.lam = pe.Var(range(len(repn.L.b)))                                    # equality constraints
-        M.kkt.nu = pe.Var(range(len(repn.L.xR)), within=pe.NonNegativeReals)        # variable bounds
+        M.kkt.lam = pe.Var(range(len(L.b)))                                    # equality constraints
+        M.kkt.nu = pe.Var(range(len(L.x)), within=pe.NonNegativeReals)         # variable bounds
 
         # objective
-        e = pyomo_util.dot(repn.U.c.U, repn.U, num=1) + pyomo_util.dot(repn.U.c.L, repn.L, num=1) + repn.U.d
+        e1 = pyomo_util.dot(U.c[U], U.x, num=1)
+        e2 = pyomo_util.dot(U.c[L], L.x, num=1)
+        e3 = U.d
+        print(type(e1), type(e2), type(e3))
+        print(e1, e2, e3)
+        e = pyomo_util.dot(U.c[U], U.x, num=1) + pyomo_util.dot(U.c[L], L.x, num=1) + U.d
         M.o = pe.Objective(expr=e)
 
         # upper-level constraints
-        pyomo_util.add_linear_constraints(M.U, repn.U.A, repn.U, repn.L, repn.U.b, repn.U.inequalities)
+        pyomo_util.add_linear_constraints(M.U, U.A, U, L, U.b, U.inequalities)
         # lower-level constraints
-        pyomo_util.add_linear_constraints(M.L, repn.L.A, repn.U, repn.L, repn.L.b, repn.L.inequalities)
+        pyomo_util.add_linear_constraints(M.L, L.A, U, L, L.b, L.inequalities)
 
         # stationarity
         M.kkt.stationarity = pe.ConstraintList() 
-        # L_A_L_xR' * lam
-        L_A_L_xR_T = repn.L.A.L.xR.transpose().todok()
-        X = pyomo_util.dot( L_A_L_xR_T, M.kkt.lam )
-        for i in range(len(repn.L.c.L.xR)):
+        # L_A_L' * lam
+        L_A_L_T = L.A[L].transpose().todok()
+        X = pyomo_util.dot( L_A_L_T, M.kkt.lam )
+        for i in range(len(L.c[L])):
             #e = 0
             #for j in M.kkt.lam:
-            #    e += L_A_L_xR_T[i,j] * M.kkt.lam[j]
-            #M.kkt.stationarity.add( repn.L.c.L.xR[i] + e - M.kkt.nu[i] == 0 )
-            M.kkt.stationarity.add( repn.L.c.L.xR[i] + X[i] - M.kkt.nu[i] == 0 )
+            #    e += L_A_L_T[i,j] * M.kkt.lam[j]
+            #M.kkt.stationarity.add( L.c[L][i] + e - M.kkt.nu[i] == 0 )
+            M.kkt.stationarity.add( L.c[L][i] + X[i] - M.kkt.nu[i] == 0 )
 
         # complementarity slackness - variables
         M.kkt.slackness = ComplementarityList()

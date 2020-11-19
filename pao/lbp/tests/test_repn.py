@@ -10,7 +10,7 @@ class A(object):
     def __init__(self, i=0):
         self.i = i
 
-    def clone(self):
+    def clone(self, parent=None):
         return A(self.i)
 
 

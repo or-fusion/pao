@@ -4,15 +4,24 @@
 #
 import numpy as np
 import pyomo.environ as pe
-from .repn import LinearLevelRepn, LevelValues, SimplifiedList
+from .repn import LinearLevelRepn, LevelValues, SimplifiedList, LevelVariable
 
 
 def dot(A, x, num=None):
+    print("HERE",type(A), type(x), num)
+    if A is None:
+        if num is not None:
+            if num > 1:
+                return np.zeros(num)
+            return 0
+        return None
     if type(x) is SimplifiedList:
         x = x[0]
+    elif type(x) is LevelVariable:
+        x = x.pyvar
     if type(A) is SimplifiedList:
         A = A[0]
-    if type(A) is LevelValues:
+    elif type(A) is LevelValues:
         assert type(x) is LinearLevelRepn, "Unexpected type %s" % str(type(x))
         if num is not None:
             ans = np.zeros(num)
@@ -45,53 +54,80 @@ def dot(A, x, num=None):
         Acoo = A.tocoo()
         e = [0] * Acoo.shape[0]
         for i,j,v in zip(Acoo.row, Acoo.col, Acoo.data):
+            print(i,j,v)
             e[i] += v*x[j]
-        return e
+        return np.array(e)
 
 def add_variables(block, level):
-    if len(level.xR) > 0:
-        block.xR = pe.Var(range(0,level.xR.num), within=pe.Reals)
-        level.xR.var = np.array([block.xR[i] for i in range(0,level.xR.num)])
-        if level.xR.lower_bounds is not None:
-            for i,v in block.xR.items():
-                lb = level.xR.lower_bounds[i]
-                if not lb is np.NINF:
-                    v.setlb( lb )
-        if level.xR.upper_bounds is not None:
-            for i,v in block.xR.items():
-                ub = level.xR.upper_bounds[i]
-                if not ub is np.PINF:
-                    v.setub( ub )
+    pyvar = []
+    if level.x.nxR > 0:
+        block.xR = pe.Var(range(0,level.x.nxR), within=pe.Reals)
+        for i in range(level.x.nxR):
+            pyvar.append(block.xR[i])
     else:
         block.xR = None
-    if len(level.xZ) > 0:
-        block.xZ = pe.Var(range(0,level.xZ.num), within=pe.Integers)
-        level.xZ.var = np.array([block.xZ[i] for i in range(0,level.xZ.num)])
-        if level.xZ.lower_bounds:
-            for i,v in block.xZ.items():
-                lb = level.xZ.lower_bounds[i]
-                if not lb is np.NINF:
-                    v.setlb( lb )
-        if level.xZ.upper_bounds:
-            for i,v in block.xZ.items():
-                ub = level.xZ.upper_bounds[i]
-                if not ub is np.PINF:
-                    v.setub( ub )
+    if level.x.nxZ > 0:
+        block.xZ = pe.Var(range(0,level.x.nxZ), within=pe.Integers)
+        for i in range(level.x.nxZ):
+            pyvar.append(block.xZ[i])
     else:
         block.xZ = None
-    if len(level.xB) > 0:
-        block.xB = pe.Var(range(0,level.xB.num), within=pe.Binaries)
-        level.xB.var = np.array([block.xB[i] for i in range(0,level.xB.num)])
+    if level.x.nxB > 0:
+        block.xB = pe.Var(range(0,level.x.nxB), within=pe.Binaries)
+        for i in range(level.x.nxB):
+            pyvar.append(block.xB[i])
     else:
         block.xB = None
+
+    level.x.pyvar = np.array(pyvar)
+
+    if level.x.lower_bounds is not None:
+        i=0
+        while i<level.x.nxR:
+            lb = level.x.lower_bounds[i]
+            if not lb is np.NINF:
+                block.xR[i].setlb( lb )
+            i += 1
+        while i<level.x.nxZ:
+            lb = level.x.lower_bounds[i]
+            if not lb is np.NINF:
+                block.xZ[i].setlb( lb )
+            i += 1
+        while i<level.x.nxB:
+            lb = level.x.lower_bounds[i]
+            block.xB[i].setlb( lb )
+            i += 1
+
+    if level.x.upper_bounds is not None:
+        i=0
+        while i<level.x.nxR:
+            ub = level.x.upper_bounds[i]
+            if not ub is np.PINF:
+                block.xR[i].setub( ub )
+            i += 1
+        while i<level.x.nxZ:
+            ub = level.x.upper_bounds[i]
+            if not ub is np.PINF:
+                block.xZ[i].setub( ub )
+            i += 1
+        while i<level.x.nxB:
+            ub = level.x.upper_bounds[i]
+            block.xB[i].setub( ub )
+            i += 1
 
 
 def add_linear_constraints(block, A, U, L, b, inequalities):
     if b is None:
         return
     nc = b.size
-    e = dot(A.U, U, num=nc) + dot(A.L, L, num=nc)
+    if nc == 0:
+        return
+    e = dot(A[U], U.x, num=nc) + dot(A[L], L.x, num=nc)
 
+    print(type(e),type(b))
+    print(dot(A[U], U.x, num=nc))
+    print("e",e)
+    print("b",b)
     block.c = pe.ConstraintList()
     for i in range(len(e)):
         if type(e[i]) in [int,float]:
@@ -130,7 +166,7 @@ def _create_variables(level, block):
     add_variables(block, level)
 
 def _linear_expression(nc, A, level):
-    return dot(A, level, num=nc)
+    return dot(A, level.x, num=nc)
     e = np.zeros(nc)
     if len(level.xR) > 0 and A.xR is not None:
         e = e + dot(A.xR, level.xR.var)
@@ -141,7 +177,7 @@ def _linear_expression(nc, A, level):
     return e
 
 def _linear_objective(c, d, U, L, block, minimize):
-    e = _linear_expression(1, c.U, U) + _linear_expression(1, c.L, L) + d
+    e = _linear_expression(1, c[U], U) + _linear_expression(1, c[L], L) + d
     if minimize:
         block.o = pe.Objective(expr=e)
     else:

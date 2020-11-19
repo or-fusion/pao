@@ -19,9 +19,9 @@ class SimplifiedList(collections.abc.MutableSequence):
     def __init__(self):
         self._data = []
 
-    def clone(self):
+    def clone(self, parent=None):
         ans = SimplifiedList()
-        ans._data = [ val.clone() for val in self._data ]
+        ans._data = [ val.clone(parent=parent) for val in self._data ]
         return ans
 
     def append(self, val):
@@ -69,6 +69,7 @@ class LevelVariable(object):
         self.nxB = nxB
         self.num = nxR+nxZ+nxB
         self.values = [None]*self.num
+        self.pyvar = [None]*self.num
         if lb is None:
             self.lower_bounds = np.array([np.NINF]*self.num)
         else:
@@ -82,8 +83,9 @@ class LevelVariable(object):
             self.upper_bounds[i+nxR+nxZ] = 1
 
     def clone(self):
-        ans = LevelVariable(self.nxR, self.nxZ, self.nxB, self.lower_bounds, self.upper_bounds)
+        ans = LevelVariable(self.nxR, self.nxZ, self.nxB, np.copy(self.lower_bounds), np.copy(self.upper_bounds))
         ans.values = copy.copy(self.values)
+        ans.pyvar = self.pyvar
         return ans
 
     def __len__(self):
@@ -101,6 +103,7 @@ class LevelVariable(object):
         curr_num = self.num
         self.num = num
         self.values = [None]*num
+        self.pyvar = [None]*num
 
         tlower = self.lower_bounds
         tupper = self.upper_bounds
@@ -224,6 +227,9 @@ class LevelValueWrapper(object):
             n += len(val)
         return n
 
+    def __iter__(self):
+        yield from self._values.keys()
+
     def __getattr__(self, name):
         if name.startswith('_'):
             return super().__getattr__(name)
@@ -231,7 +237,10 @@ class LevelValueWrapper(object):
             raise AttributeError("No attributes in this object")
 
     def __getitem__(self, lvl):
-        i = lvl.id
+        if type(lvl) is int:
+            i = lvl
+        else:
+            i = lvl.id
         _values = self._values
         retval = _values.get(i, None)
         if retval is None:
@@ -240,7 +249,10 @@ class LevelValueWrapper(object):
     
 
     def __setitem__(self, lvl, value):
-        i = lvl.id
+        if type(lvl) is int:
+            i = lvl
+        else:
+            i = lvl.id
         _values = self._values
         if value is None:
             if i in _values:
@@ -316,22 +328,15 @@ class LinearLevelRepn(object):
     def equalities(self, val):
         self._inequalities = not val
 
-    def resize(self, *, nxR=0, nxZ=0, nxB=0):
+    def resize(self, *, nxR=0, nxZ=0, nxB=0, lb=np.NINF, ub=np.PINF):
         old = Bunch(nxR=self.x.nxR, nxZ=self.x.nxZ, nxB=self.x.nxB)
         new = Bunch(nxR=nxR, nxZ=nxZ, nxB=nxB)
-        self.x._resize(nxR=nxR, nxZ=nxZ, nxB=nxB)
+        self.x._resize(nxR=nxR, nxZ=nxZ, nxB=nxB, lb=lb, ub=ub)
         #
-        # Walk down the tree, updating c[self] and A[self]
+        # Walk the tree, updating c[self] and A[self]
         #
-        for L in self._sublevels():
+        for L in self.levels():
             L._update(level=self, new=new, old=old)
-        #
-        # Walk up the tree, updating c[self] and A[self]
-        #
-        U = self.UL()
-        while U is not None:
-            U._update(level=self, new=new, old=old) 
-            U = U.UL()
 
     def _update(self, *, level, new, old):
         #
@@ -343,7 +348,6 @@ class LinearLevelRepn(object):
         #print("nxZ", min(new.nxZ,old.nxZ))
         #print(self.name, level.name)
         c = self.c[level]
-        #print(list(c))
         if c is not None:
             c_ = np.zeros(new.nxR+new.nxZ+new.nxB)          # RHS of the constraints
             #print(len(c_), len(c))
@@ -356,16 +360,15 @@ class LinearLevelRepn(object):
             for i in range(min(new.nxB,old.nxB)):
                 #print(i, i+new.nxR+new.nxZ, i+old.nxR+old.nxZ)
                 c_[i+new.nxR+new.nxZ] = c[i+old.nxR+old.nxZ]
-            #print(list(c_))
             self.c[level] = c_
-            #print(list(self.c[level]))
         #
         # Update 'A'
         #
         A = self.A[level]
         if A is not None:
+            A = A.todok()
             A_ = dok_matrix((A.shape[0], new.nxR+new.nxZ+new.nxB), dtype=np.float64)
-            for ndx in A.todok().keys():
+            for ndx in A.keys():
                 i,j = ndx
                 if j < old.nxR:
                     if j<new.nxR:
@@ -381,14 +384,27 @@ class LinearLevelRepn(object):
             self.A[level] = A_
 
     #
+    # Iterate over the sublevels and parents in DFS order
+    #
+    def levels(self, parents=True):
+        for X in self._sublevels():
+            yield X
+        if parents:
+            X = self.UL()
+            while X is not None:
+                yield X
+                X = X.UL()
+
+    #
     # Iterate over sublevels in DFS order
     #
     def _sublevels(self):
         yield self
         for L in self.LL:
-            yield from L._sublevels()
+            for X in L._sublevels():
+                yield X
 
-    def clone(self):
+    def clone(self, parent=None):
         ans = LinearLevelRepn(0,0,0)
         ans.x = self.x.clone()
         ans.c = self.c.clone()
@@ -397,13 +413,16 @@ class LinearLevelRepn(object):
         ans.minimize = self.minimize
         ans.inequalities = self.inequalities
         ans.d = self.d
-        ans.LL = self.LL.clone()
-        ans.UL = lambda: None # "empty weakref"
+        ans.LL = self.LL.clone(parent=ans)
+        if parent is None:
+            ans.UL = lambda: None # "empty weakref"
+        else:
+            ans.UL = weakref.ref(parent)
         # TODO - Should we allow users to annotate these objects with other data?
         for attr in dir(self):
             if attr in ['x', 'c', 'A', 'b', 'minimize', 'inequalities', 'equalities', 'd', 'LL', 'UL']:
                 continue
-            if attr in ['clone', 'print', 'resize']:    # methods
+            if attr in ['clone', 'print', 'resize', 'add_lower', 'levels']:    # methods
                 continue
             if attr.startswith('_'):
                 continue
@@ -499,61 +518,30 @@ class LinearBilevelProblem(object):
         self.U.print(names)
 
     def check(self):                    # pragma: no cover
-        U = self.U
-        L = self.U.LL
         #
-        # Coefficients for upper-level objective
+        # Coefficients for objective
         #
-        assert ((U.c[U] is None) or (U.c[U].size == len(U.x)) or (U.c[U].size == 0)), "Incompatible specification of upper-level coefficients for U.x"
-        for i in range(len(L)):
-            assert ((U.c[L[i]] is None) or (U.c[L[i]].size == len(L[i].x)) or (U.c[L[i]].size == 0)), "Incompatible specification of upper-level coefficients for L[%d].x" % i
+        for L in self.levels():
+            for X in L.levels():
+                assert ((L.c[X] is None) or (L.c[X].size == len(X.x)) or (L.c[X].size == 0)), "Incompatible specification of coefficients for %s.c[%s]: %d != %d" % (L.name, X.name, L.c[X].size, len(X.x))
         #
-        # Coefficients for lower-level objective
+        # Ncols of constraints
         #
-        for i in range(len(L)):
-            assert ((L[i].c[U] is None) or (L[i].c[U].size == len(U.x)) or (L[i].c[U].size == 0)), "Incompatible specification of lower-level coefficients for U.x" 
-            assert ((L[i].c[L[i]] is None) or (L[i].c[L[i]].size == len(L[i].x)) or (L[i].c[L[i]].size == 0)), "Incompatible specification of lower-level coefficients for L[%d].x" % i
+        for L in self.levels():
+            for X in L.levels():
+                assert ((L.A[X] is None) or (L.A[X].shape[1] == len(X.x))), "Incompatible specification of %s.A[%s] and %s.x (%d != %d)" % (L.name, X.name, x.name, U.A[X].shape[1], len(X.x))
         #
-        # Ncols of upper-level constraints
+        # Nrows of constraints
         #
-        assert ((U.A[U] is None) or (U.A[U].shape[1] == len(U.x))), "Incompatible specification of U.A[U] and U.x (%d != %d)" % (U.A[U].shape[1], len(U.x))
-        for i in range(len(L)):
-            assert ((L[i].A[U] is None) or (L[i].A[U].shape[1] == len(U.x))), "Incompatible specification of L[%d].A[U] and U.x" % i
-        #
-        # Ncols of lower-level constraints
-        #
-        for i in range(len(L)):
-            assert ((U.A[L[i]] is None) or (U.A[L[i]].shape[1] == len(L[i].x))), "Incompatible specification of U.A[L[%d]] and L[%d].x" % (i,i)
-            assert ((L[i].A[L[i]] is None) or (L[i].A[L[i]].shape[1] == len(L[i].x))), "Incompatible specification of L[%d].A[L[%d]] and L[%d].x" % (i,i,i)
-        #
-        # Nrows of upper-level constraints
-        #
-        if U.b is None:
-            assert (U.A[U] is None), "Incompatible specification of U.b and U.A[U]"
-            for i in range(len(L)):
-                assert (U.A[L[i]] is None), "Incompatible specification of U.b and U.A[L[%d]]" % i
-        else:
-            nr = U.b.size
-            if U.A[U] is not None:
-                if nr != U.A[U].shape[0]:
-                    print("X", nr, U.A[U].shape[0])
-                assert (nr == U.A[U].shape[0]), "Incompatible specification of U.b and U.A[U]"
-            for i in range(len(L)):
-                if U.A[L[i]] is not None:
-                    assert (nr == U.A[L[i]].shape[0]), "Incompatible specification of U.b and U.A[L[%d]]" % i
-        #
-        # Nrows of lower-level constraints
-        #
-        for i in range(len(L)):
-            if L[i].b is None:
-                assert (L[i].A[U] is None), "Incompatible specification of L[%d].b and L[%d].A[U]" % (i,i)
-                assert (L[i].A[L[i]] is None), "Incompatible specification of L[%d].b and L[%d].A[L[%d]]" % (i,i,i)
+        for L in self.levels():
+            if L.b is None:
+                for X in L.levels():
+                    assert (L.A[X] is None), "Incompatible specification of %s.b and %s.A[%s]" % (L.name, L.name, X.name)
             else:
-                nr = L[i].b.size
-                if L[i].A[U] is not None:
-                    assert (nr == L[i].A[U].shape[0]), "Incompatible specification of L[%d].b and L[%d].A[U]" % (i,i)
-                if L[i].A[L[i]] is not None:
-                    assert (nr == L[i].A[L[i]].shape[0]), "Incompatible specification of L[%d].b and L[%d].A[L[%d]]" % (i,i,i)
+                nr = L.b.size
+                for X in L.levels():
+                    if L.A[X] is not None:
+                        assert (nr == L.A[X].shape[0]), "Incompatible specification of %s.b and %s.A[%s] (%d != %d)" % (L.name, L.name, X.name, nr, L.A[X].shape[0])
 
     def check_opposite_objectives(self, U, L):
         if id(U.c) == id(L.c) and L.minimize ^ U.minimize:
