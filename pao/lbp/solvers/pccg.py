@@ -41,7 +41,9 @@ class LinearBilevelSolver_PCCG(LinearBilevelSolverBase):
         assert (type(lbp) is LinearBilevelProblem), "Solver '%s' can only solve a LinearBilevelProblem" % self.name
         lbp.check()
         #
-        assert (len(lbp.L) == 1), "Can only solve linear bilevel problems with one lower-level"
+        assert (len(lbp.U.LL) == 1), "Can only solve linear bilevel problems with one lower-level"
+        #
+        assert (len(lbp.U.LL.LL) == 0), "Can only solve bilevel problems"
 
     def solve(self, lbp, options=None, **config_options):
         #

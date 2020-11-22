@@ -38,6 +38,11 @@ class LinearBilevelSolver_REG(LinearBilevelSolverBase):
         #
         assert (len(lbp.U.LL) == 1 and len(lbp.U.LL[0].LL) == 0), "Only one lower-level is handled right now"
         #
+        # Confirm that this is a bilevel problem
+        #
+        for i in range(len(lbp.U.LL)):
+            assert (len(lbp.U.LL[i].LL) == 0), "Can only solve bilevel problems"
+        #
         # No binary or integer upper-level variables
         #
         assert (lbp.U.x.nxZ == 0), "Cannot use solver %s with model with integer upper-level variables" % self.name
