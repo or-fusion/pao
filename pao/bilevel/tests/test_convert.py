@@ -217,19 +217,19 @@ class TestMultilevelTree(unittest.TestCase):
 
         lbp,_ = convert_pyomo2LinearBilevelProblem(M, inequalities=True)
         
-        self.assertEqual(len(lbp.U.xR), len(M.x))
-        self.assertEqual(len(lbp.L.xZ), len(M.z)-1)
-        self.assertEqual(len(lbp.L.xB), len(M.y)+1)
+        U = lbp.U
+        L = lbp.U.LL
 
-        self.assertEqual(lbp.U.d, 1)
-        self.assertEqual(list(lbp.U.c.U.xR), [2])
-        self.assertEqual(list(lbp.U.c.L.xZ), [4,4])
-        self.assertEqual(list(lbp.U.c.L.xB), [3,3,4])
+        self.assertEqual(len(U.x), len(M.x))
+        self.assertEqual(len(L.x), len(M.z)+len(M.y))
 
-        self.assertEqual(lbp.L.d, 5)
-        self.assertEqual(list(lbp.L.c.U.xR), [6])
-        self.assertEqual(list(lbp.L.c.L.xZ), [8,8])
-        self.assertEqual(list(lbp.L.c.L.xB), [7,7,8])
+        self.assertEqual(U.d, 1)
+        self.assertEqual(list(U.c[U]), [2])
+        self.assertEqual(list(U.c[L]), [4,4,3,3,4])
+
+        self.assertEqual(L.d, 5)
+        self.assertEqual(list(L.c[U]), [6])
+        self.assertEqual(list(L.c[L]), [8,8,7,7,8])
 
     def test_initialize_2(self):
         # All variables used in an expression
@@ -254,15 +254,13 @@ class TestMultilevelTree(unittest.TestCase):
 
         lbp,_ = convert_pyomo2LinearBilevelProblem(M, inequalities=True)
         
-        self.assertEqual(len(lbp.U.xR), len(M.x))
-        self.assertEqual(len(lbp.U.xZ), len(M.z))
-        self.assertEqual(len(lbp.U.xB), len(M.y))
+        U = lbp.U
+        L = lbp.U.LL
 
-        self.assertEqual(lbp.U.d, 0)
+        self.assertEqual(len(U.x), len(M.x)+len(M.z)+len(M.y))
+        self.assertEqual(U.d, 0)
 
-        self.assertEqual(list(lbp.U.c.U.xR), [1])
-        self.assertEqual(list(lbp.U.c.U.xZ), [3,3,3])
-        self.assertEqual(list(lbp.U.c.U.xB), [2,2])
+        self.assertEqual(list(U.c[U]), [1,3,3,3,2,2])
 
     def test_initialize_2L(self):
         # All variables used in an expression
@@ -296,22 +294,19 @@ class TestMultilevelTree(unittest.TestCase):
 
         lbp,_ = convert_pyomo2LinearBilevelProblem(M, inequalities=True)
         
-        self.assertEqual(len(lbp.U.xR), len(M.x))
-        self.assertEqual(len(lbp.L.xR), len(M.X))
-        self.assertEqual(len(lbp.L.xZ), len(M.Z))
-        self.assertEqual(len(lbp.L.xB), len(M.Y))
+        U = lbp.U
+        L = lbp.U.LL
 
-        self.assertEqual(lbp.U.d, 0)
+        self.assertEqual(len(U.x), len(M.x)+len(M.z)+len(M.y))
+        self.assertEqual(len(L.x), len(M.X)+len(M.Z)+len(M.Y))
 
-        self.assertEqual(list(lbp.U.c.U.xR), [1])
-        self.assertEqual(lbp.U.c.L.xR, None)
-        self.assertEqual(list(lbp.U.c.U.xZ), [3,3,3])
-        self.assertEqual(list(lbp.U.c.U.xB), [2,2])
+        self.assertEqual(U.d, 0)
 
-        self.assertEqual(lbp.L.c.U.xR, None)
-        self.assertEqual(list(lbp.L.c.L.xR), [1])
-        self.assertEqual(list(lbp.L.c.L.xZ), [3,3,3])
-        self.assertEqual(list(lbp.L.c.L.xB), [2,2])
+        self.assertEqual(list(U.c[U]), [1,3,3,3,2,2])
+        self.assertEqual(U.c[L], None)
+
+        self.assertEqual(L.c[U], None)
+        self.assertEqual(list(L.c[L]), [1,3,3,3,2,2])
 
     def test_initialize_3(self):
         # All variables used in an expression
@@ -332,19 +327,16 @@ class TestMultilevelTree(unittest.TestCase):
 
         lbp,_ = convert_pyomo2LinearBilevelProblem(M, inequalities=True)
         
-        self.assertEqual(len(lbp.U.xR), len(M.x))
-        self.assertEqual(len(lbp.U.xZ), len(M.z))
-        self.assertEqual(len(lbp.U.xB), len(M.y))
+        U = lbp.U
+        L = lbp.U.LL
 
-        self.assertEqual(lbp.U.c.U.xR, None)
-        self.assertEqual(lbp.U.c.U.xZ, None)
-        self.assertEqual(lbp.U.c.U.xB, None)
+        self.assertEqual(len(U.x), len(M.x)+len(M.z)+len(M.y))
+
+        self.assertEqual(U.c[U], None)
 
         # 2 rows because the lbp is an inequality, so the equality is split in two
-        self.assertEqual(lbp.U.A.U.xR.shape, (2,1))
-        self.assertEqual([list(lbp.U.A.U.xR.toarray()[i]) for i in range(2)], [[1], [-1]])
-        self.assertEqual([list(lbp.U.A.U.xZ.toarray()[i]) for i in range(2)], [[3,3,3], [-3,-3,-3]])
-        self.assertEqual([list(lbp.U.A.U.xB.toarray()[i]) for i in range(2)], [[2,2], [-2,-2]])
+        self.assertEqual(U.A[U].shape, (2,6))
+        self.assertEqual([list(U.A[U].toarray()[i]) for i in range(2)], [[1,3,3,3,2,2], [-1,-3,-3,-3,-2,-2]])
 
     def test_initialize_3a(self):
         # All variables used in an expression
@@ -365,19 +357,16 @@ class TestMultilevelTree(unittest.TestCase):
 
         lbp,_ = convert_pyomo2LinearBilevelProblem(M, inequalities=False)
         
-        self.assertEqual(len(lbp.U.xR), len(M.x))
-        self.assertEqual(len(lbp.U.xZ), len(M.z))
-        self.assertEqual(len(lbp.U.xB), len(M.y))
+        U = lbp.U
+        L = lbp.U.LL
 
-        self.assertEqual(lbp.U.c.U.xR, None)
-        self.assertEqual(lbp.U.c.U.xZ, None)
-        self.assertEqual(lbp.U.c.U.xB, None)
+        self.assertEqual(len(lbp.U.x), len(M.x)+len(M.z)+len(M.y))
+
+        self.assertEqual(U.c[U], None)
 
         # 2 rows because the lbp is an inequality, so the equality is split in two
-        self.assertEqual(lbp.U.A.U.xR.shape, (1,1))
-        self.assertEqual([list(lbp.U.A.U.xR.toarray()[i]) for i in range(1)], [[1]])
-        self.assertEqual([list(lbp.U.A.U.xZ.toarray()[i]) for i in range(1)], [[3,3,3]])
-        self.assertEqual([list(lbp.U.A.U.xB.toarray()[i]) for i in range(1)], [[2,2]])
+        self.assertEqual(U.A[U].shape, (1,6))
+        self.assertEqual([list(U.A[U].toarray()[i]) for i in range(1)], [[1,3,3,3,2,2]])
 
     def test_initialize_4a(self):
         # All variables used in an expression
@@ -404,43 +393,22 @@ class TestMultilevelTree(unittest.TestCase):
 
         lbp,_ = convert_pyomo2LinearBilevelProblem(M, inequalities=True)
         
-        self.assertEqual(len(lbp.U.xR), len(M.x))
-        self.assertEqual(len(lbp.U.xZ), len(M.z))
-        self.assertEqual(len(lbp.U.xB), len(M.y))
-        self.assertEqual(len(lbp.L.xR), len(M.X))
-        self.assertEqual(len(lbp.L.xZ), len(M.Z))
-        self.assertEqual(len(lbp.L.xB), len(M.Y))
+        U = lbp.U
+        L = U.LL
 
-        self.assertEqual(lbp.U.c.U.xR, None)
-        self.assertEqual(lbp.U.c.U.xZ, None)
-        self.assertEqual(lbp.U.c.U.xB, None)
+        self.assertEqual(len(U.x), len(M.x)+len(M.z)+len(M.y))
+        self.assertEqual(len(L.x), len(M.X)+len(M.Z)+len(M.Y))
+
+        self.assertEqual(U.c[U], None)
 
         # 2 rows because the lbp is an inequality, so the equality is split in two
-        self.assertEqual(lbp.U.A.U.xR.shape, (6,1))
-        self.assertEqual([list(lbp.U.A.U.xR.toarray()[i]) for i in range(6)],
-[[1.0], [-1.0], [-1.0], [1.0], [-1.0], [1.0]])
-
-        self.assertEqual([list(lbp.U.A.U.xZ.toarray()[i]) for i in range(6)], 
-[[3.0, 3.0, 3.0],
- [-3.0, -3.0, -3.0],
- [0.0, 0.0, 0.0],
- [0.0, 0.0, 0.0],
- [0.0, 0.0, 0.0],
- [0.0, 0.0, 0.0]])
-
-        self.assertEqual([list(lbp.U.A.U.xB.toarray()[i]) for i in range(6)], 
-[[2.0, 2.0],
- [-2.0, -2.0],
- [0.0, 0.0],
- [0.0, 0.0],
- [0.0, 0.0],
- [0.0, 0.0]])
+        self.assertEqual(U.A[U].shape, (6,6))
+        self.assertEqual([list(U.A[U].toarray()[i]) for i in range(6)],
+[[1.0,3,3,3,2,2], [-1.0,-3,-3,-3,-2,-2], [-1.0,0,0,0,0,0], [1.0,0,0,0,0,0], [-1.0,0,0,0,0,0], [1.0,0,0,0,0,0]])
 
         # 2 rows because the lbp is an inequality, so the equality is split in two
-        self.assertEqual(lbp.L.A.L.xR.shape, (2,1))
-        self.assertEqual([list(lbp.L.A.L.xR.toarray()[i]) for i in range(2)], [[1],[-1]])
-        self.assertEqual([list(lbp.L.A.L.xZ.toarray()[i]) for i in range(2)], [[1,1,1],[-1,-1,-1]])
-        self.assertEqual([list(lbp.L.A.L.xB.toarray()[i]) for i in range(2)], [[1,1],[-1,-1]])
+        self.assertEqual(L.A[L].shape, (2,6))
+        self.assertEqual([list(L.A[L].toarray()[i]) for i in range(2)], [[1,1,1,1,1,1],[-1,-1,-1,-1,-1,-1]])
 
     def test_initialize_4b(self):
         # All variables used in an expression
@@ -467,44 +435,26 @@ class TestMultilevelTree(unittest.TestCase):
 
         lbp,_ = convert_pyomo2LinearBilevelProblem(M, inequalities=False)
         
-        self.assertEqual(len(lbp.U.xR), len(M.x)+4)
-        self.assertEqual(len(lbp.U.xZ), len(M.z))
-        self.assertEqual(len(lbp.U.xB), len(M.y))
-        self.assertEqual(len(lbp.L.xR), len(M.X))
-        self.assertEqual(len(lbp.L.xZ), len(M.Z))
-        self.assertEqual(len(lbp.L.xB), len(M.Y))
+        U = lbp.U
+        L = U.LL
 
-        self.assertEqual(lbp.U.c.U.xR, None)
-        self.assertEqual(lbp.U.c.U.xZ, None)
-        self.assertEqual(lbp.U.c.U.xB, None)
+        self.assertEqual(len(U.x), len(M.x)+4+len(M.z)+len(M.y))
+        self.assertEqual(len(L.x), len(M.X)+len(M.Z)+len(M.Y))
+
+        self.assertEqual(U.c[U], None)
 
         # 2 rows because the lbp is an inequality, so the equality is split in two
-        self.assertEqual(lbp.U.A.U.xR.shape, (5,5))
-        self.assertEqual([list(lbp.U.A.U.xR.toarray()[i]) for i in range(5)],
-[[1.0, 0.0, 0.0, 0.0, 0.0],
- [-1.0, 1.0, 0.0, 0.0, 0.0],
- [1.0, 0.0, 1.0, 0.0, 0.0],
- [-1.0, 0.0, 0.0, 1.0, 0.0],
- [1.0, 0.0, 0.0, 0.0, 1.0]])
-
-        self.assertEqual([list(lbp.U.A.U.xZ.toarray()[i]) for i in range(5)], 
-[[3.0, 3.0, 3.0],
- [0.0, 0.0, 0.0],
- [0.0, 0.0, 0.0],
- [0.0, 0.0, 0.0],
- [0.0, 0.0, 0.0]])
-        self.assertEqual([list(lbp.U.A.U.xB.toarray()[i]) for i in range(5)], 
-[[2.0, 2.0],
- [0.0, 0.0],
- [0.0, 0.0],
- [0.0, 0.0],
- [0.0, 0.0]])
+        self.assertEqual(U.A[U].shape, (5,10))
+        self.assertEqual([list(U.A[U].toarray()[i]) for i in range(5)],
+[[ 1.0, 0.0, 0.0, 0.0, 0.0, 3, 3, 3, 2, 2],
+ [-1.0, 1.0, 0.0, 0.0, 0.0, 0, 0, 0, 0, 0],
+ [ 1.0, 0.0, 1.0, 0.0, 0.0, 0, 0, 0, 0, 0],
+ [-1.0, 0.0, 0.0, 1.0, 0.0, 0, 0, 0, 0, 0],
+ [ 1.0, 0.0, 0.0, 0.0, 1.0, 0, 0, 0, 0, 0]])
 
         # 2 rows because the lbp is an inequality, so the equality is split in two
-        self.assertEqual(lbp.L.A.L.xR.shape, (1,1))
-        self.assertEqual([list(lbp.L.A.L.xR.toarray()[i]) for i in range(1)], [[1]])
-        self.assertEqual([list(lbp.L.A.L.xZ.toarray()[i]) for i in range(1)], [[1,1,1]])
-        self.assertEqual([list(lbp.L.A.L.xB.toarray()[i]) for i in range(1)], [[1,1]])
+        self.assertEqual(L.A[L].shape, (1,6))
+        self.assertEqual([list(L.A[L].toarray()[i]) for i in range(1)], [[1,1,1,1,1,1]])
 
 if __name__ == "__main__":
     unittest.main()

@@ -64,13 +64,19 @@ class Node(object):
                 self.xB[len(self.xB)] = vid
             else:
                 vidmap[vid] = (1, self.nid, len(self.xZ))
-                #print(len(self.xZ), self.nid, vid)
                 self.xZ[len(self.xZ)] = vid
 
         else:
             assert (v.is_continuous()), "Variable '%s' has a domain type that is not continuous, integer or binary" % str(v)
             vidmap[vid] = (0, self.nid, len(self.xR))
             self.xR[len(self.xR)] = vid
+
+    def add_levels(self, L, levelmap, treemap):
+        treemap[self.nid] = self
+        levelmap[L.id] = L
+        for child in self.children:
+            L_ = L.add_lower(id=child.nid)
+            child.add_levels(L_, levelmap, treemap)
 
     def initialize_level_vars(self, level, inequalities, var):
         """
@@ -125,18 +131,19 @@ class Node(object):
             for i,val  in enumerate(repn.linear_coefs):
                 vid = id(repn.linear_vars[i])
                 t, nid, j = vidmap[vid]
-                node = levelmap[j]
-                #print(t,nid,j)
+                L = levelmap[nid]
                 if t == 0:
                     c[nid][j] = pe.value(val)
                 elif t == 1:
-                    c[nid][j+node.nxR] = pe.value(val)
+                    c[nid][j+L.x.nxR] = pe.value(val)
                 elif t == 2:
-                    c[nid][j+node.nxR+node.nxZ] = pe.value(val)
+                    c[nid][j+L.x.nxR+L.x.nxZ] = pe.value(val)
 
             for j in levelmap:
-                node = levelmap[j]
-                level.c[node.id] = c[node.id]
+                for v in c[j]:
+                    if v != 0:
+                        level.c[j] = c[j]
+                        break
         #
         # A
         #
@@ -152,24 +159,26 @@ class Node(object):
                 for i,c  in enumerate(repn.linear_coefs):
                     vid = id(repn.linear_vars[i])
                     t, nid, j = vidmap[vid]
-                    node = levelmap[j]
-                    if t == 0:
-                        A[nid][k,j] = pe.value(c)
-                    elif t == 1:
-                        A[nid][k,j+node.x.nxR] = pe.value(c)
-                    elif t == 2:
-                        A[nid][k,j+node.x.nxR+node.x.nxZ] = pe.value(c)
+                    L = levelmap[nid]
+                    c_ = pe.value(c)
+                    if c_ != 0:
+                        if t == 0:
+                            A[nid][k,j] = c_
+                        elif t == 1:
+                            A[nid][k,j+L.x.nxR] = c_
+                        elif t == 2:
+                            A[nid][k,j+L.x.nxR+L.x.nxZ] = c_
                 b.append(self.crepn[k][1] - repn.constant)
 
             level.b = b
 
             for j in levelmap:
-                node = levelmap[j]
+                L = levelmap[j]
                 if len(A[j]) > 0:
-                    mat = dok_matrix((nrows, node.x.num))
+                    mat = dok_matrix((nrows, L.x.num))
                     for key, val in A[j].items():
                         mat[key] = val
-                    level.A[node.id] = mat
+                    level.A[L.id] = mat
             
 
 def negate_repn(repn):
@@ -296,10 +305,6 @@ def collect_multilevel_tree(block, var, vidmap={}, sortOrder=SortComponents.unso
                     var[i] = v
                     newvars.append(i)
                     knownvars.add(i)
-    #print("NID", curr.nid)
-    #print("Fixed", len(curr.fixedvars))
-    #print("Unfixed", len(curr.unfixedvars))
-    #print("Child Unfixed", len(childvars))
     #
     # Categorize the new variables that were found
     #
@@ -374,27 +379,23 @@ def convert_pyomo2LinearBilevelProblem1(model, *, determinism=1, inequalities=Tr
     #
     assert (len(tree.children) > 0), "Pyomo problem does not contain SubModel components"
     #
-    # LinearBilevelProblem cannot represent problems with nested submodels (e.g. tri-level)
-    #
-    for i,child in enumerate(tree.children):
-        assert (len(child.children) == 0), "Pyomo problem contains nested SubModel components"
-    #
     # Collect SubModel representations
     #
+    treemap = {}
     levelmap = {}
     M = LinearBilevelProblem()
-    U = M.add_upper(id=0)
-    L = {}
-    levelmap[0] = U 
-    tree.initialize_level_vars(U, inequalities, var)
-    for i,c in enumerate(tree.children):
-        L[i] = U.add_lower(id=i+1)
-        levelmap[i+1] = L[i]
-        c.initialize_level_vars(L[i], inequalities, var)
+    U = M.add_upper(id=tree.nid)
+    treemap[tree.nid] = tree
+
+    tree.add_levels(U, levelmap, treemap)
     
-    tree.initialize_level(U, inequalities, var, vidmap, levelmap)
-    for i,c in enumerate(tree.children):
-        c.initialize_level(L[i], inequalities, var, vidmap, levelmap)
+    for L in M.levels():
+        node = treemap[L.id]
+        node.initialize_level_vars(L, inequalities, var)
+    
+    for L in M.levels():
+        node = treemap[L.id]
+        node.initialize_level(L, inequalities, var, vidmap, levelmap)
     #
     # Cleanup global memory
     #
