@@ -346,23 +346,14 @@ class LinearLevelRepn(object):
         #
         # Update 'c'
         #
-        #print("new",new)
-        #print("old",old)
-        #print("nxR", min(new.nxR,old.nxR))
-        #print("nxZ", min(new.nxZ,old.nxZ))
-        #print(self.name, level.name)
         c = self.c[level]
         if c is not None:
             c_ = np.zeros(new.nxR+new.nxZ+new.nxB)          # RHS of the constraints
-            #print(len(c_), len(c))
             for i in range(min(new.nxR,old.nxR)):
-                #print(i,c[i])
                 c_[i] = c[i]
             for i in range(min(new.nxZ,old.nxZ)):
-                #print(i+old.nxR,c[i+old.nxR])
                 c_[i+new.nxR] = c[i+old.nxR]
             for i in range(min(new.nxB,old.nxB)):
-                #print(i, i+new.nxR+new.nxZ, i+old.nxR+old.nxZ)
                 c_[i+new.nxR+new.nxZ] = c[i+old.nxR+old.nxZ]
             self.c[level] = c_
         #

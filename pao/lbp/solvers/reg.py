@@ -146,8 +146,8 @@ class LinearBilevelSolver_REG(LinearBilevelSolverBase):
         e1 = pyomo_util.dot(U.c[U], U.x, num=1)
         e2 = pyomo_util.dot(U.c[L], L.x, num=1)
         e3 = U.d
-        print(type(e1), type(e2), type(e3))
-        print(e1, e2, e3)
+        #print(type(e1), type(e2), type(e3))
+        #print(e1, e2, e3)
         e = pyomo_util.dot(U.c[U], U.x, num=1) + pyomo_util.dot(U.c[L], L.x, num=1) + U.d
         M.o = pe.Objective(expr=e)
 
