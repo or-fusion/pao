@@ -48,9 +48,8 @@ def create_pyomo_model(lbp, M):
     coefficient vectors and matrices should be dictionaries (with tuples for matrices)
     variable size should be floats
     '''
-    #from ToyExample1 import mU, nL, nR, nZ, mR, mZ, AR, AZ, BR, BZ, cR, cZ, dR, dZ, PR, PZ, s, QR, QZ, wR, wZ, r
     U = lbp.U
-    L = lbp.U.LL
+    L = lbp.U.LL[0]
 
     mU = len(U.b)
     mR = U.x.nxR
@@ -540,7 +539,7 @@ def execute_PCCG_solver(lbp, config, results):
         results.solver.termination_condition = TerminationCondition.optimal
         results.best_feasible_objective = UB
 
-    results.problem.upper_bound = UB
-    results.problem.lower_bound = UB
+#    results.problem.upper_bound = UB
+#    results.problem.lower_bound = UB
 
     return Parent.Master.xu, Parent.Master.yu, Parent.Master.xl0, Parent.Master.yl0

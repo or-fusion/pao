@@ -67,7 +67,9 @@ class LinearBilevelSolver_PCCG(LinearBilevelSolverBase):
         results = LinearBilevelResults(solution_manager=soln_manager)
 
         UxR, UxZ, LxR, LxZ = execute_PCCG_solver(self.standard_form, self.config, results)
-        results.copy_from_to(UxR=UxR, UxZ=UxZ, LxR=LxR, LxZ=LxZ, lbp=lbp)
+        xR = {lbp.U.id:UxR, lbp.U.LL[0].id:LxR}
+        xZ = {lbp.U.id:UxZ, lbp.U.LL[0].id:LxZ}
+        results.copy_from_to(LxR=xR, LxZ=xZ, lbp=lbp)
 
         results.solver.wallclock_time = time.time() - start_time
         return results

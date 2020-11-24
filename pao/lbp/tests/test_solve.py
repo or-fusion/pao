@@ -283,8 +283,8 @@ class Test_bilevel_PCCG(unittest.TestCase):
         opt = SolverFactory('pao.lbp.PCCG')
         opt.solve(lbp)
 
-        self.assertEqual(lbp.U.xZ.values[0], 2)
-        self.assertEqual(lbp.U.LL.xZ.values[0], 2)
+        self.assertEqual(lbp.U.x.values[0], 2)
+        self.assertEqual(lbp.U.LL.x.values[0], 2)
 
     def test_toyexample2(self):
         lbp = examples.toyexample2.create()
@@ -293,8 +293,8 @@ class Test_bilevel_PCCG(unittest.TestCase):
         opt = SolverFactory('pao.lbp.PCCG')
         opt.solve(lbp)
 
-        self.assertEqual(lbp.U.xZ.values[0], 8)
-        self.assertEqual(lbp.U.LL.xZ.values[0], 6)
+        self.assertEqual(lbp.U.x.values[0], 8)
+        self.assertEqual(lbp.U.LL.x.values[0], 6)
 
     def test_toyexample3(self):
         lbp = examples.toyexample3.create()
@@ -305,8 +305,8 @@ class Test_bilevel_PCCG(unittest.TestCase):
 
         self.assertTrue(math.isclose(lbp.U.x.values[0], 3, abs_tol=1e-4))
         self.assertTrue(math.isclose(lbp.U.LL.x.values[0], 0.5, abs_tol=1e-4))
-        self.assertEqual(lbp.U.xZ.values[0], 8)
-        self.assertEqual(lbp.U.LL.xZ.values[0], 0)
+        self.assertEqual(lbp.U.x.values[1], 8)
+        self.assertEqual(lbp.U.LL.x.values[1], 0)
 
 
 #class Test_bilevel_ld(unittest.TestCase):
