@@ -12,6 +12,7 @@ from ..solver import SolverFactory, LinearBilevelSolverBase, LinearBilevelResult
 from ..repn import LinearBilevelProblem
 from ..convert_repn import convert_LinearBilevelProblem_to_standard_form
 from .. import pyomo_util
+from .reg import create_model_replacing_LL_with_kkt
 
 
 @SolverFactory.register(
@@ -119,49 +120,7 @@ class LinearBilevelSolver_FA(LinearBilevelSolverBase):
         return results
 
     def _create_pyomo_model(self, repn, bigM):
-        U = repn.U
-        L = U.LL[0]
-
-        #
-        # Create Pyomo model
-        #
-        M = pe.ConcreteModel()
-        M.U = pe.Block()
-        M.L = pe.Block()
-        M.kkt = pe.Block()
-
-        # upper- and lower-level variables
-        pyomo_util.add_variables(M.U, U)
-        pyomo_util.add_variables(M.L, L)
-        # dual variables
-        M.kkt.lam = pe.Var(range(len(L.b)))                                    # equality constraints
-        M.kkt.nu = pe.Var(range(len(L.x)), within=pe.NonNegativeReals)        # variable bounds
-
-        # objective
-        e = pyomo_util.dot(U.c[U], U.x, num=1) + pyomo_util.dot(U.c[L], L.x, num=1) + U.d
-        M.o = pe.Objective(expr=e)
-
-        # upper-level constraints
-        pyomo_util.add_linear_constraints(M.U, U.A, U, L, U.b, U.inequalities)
-        # lower-level constraints
-        pyomo_util.add_linear_constraints(M.L, L.A, U, L, L.b, L.inequalities)
-
-        # stationarity
-        M.kkt.stationarity = pe.ConstraintList() 
-        # L_A_L' * lam
-        L_A_L_T = L.A[L].transpose().todok()
-        X = pyomo_util.dot( L_A_L_T, M.kkt.lam )
-        for i in range(len(L.c[L])):
-            #e = 0
-            #for j in M.kkt.lam:
-            #    e += L_A_L_xR_T[i,j] * M.kkt.lam[j]
-            #M.kkt.stationarity.add( repn.L.c.L.xR[i] + e - M.kkt.nu[i] == 0 )
-            M.kkt.stationarity.add( L.c[L][i] + X[i] - M.kkt.nu[i] == 0 )
-
-        # complementarity slackness - variables
-        M.kkt.slackness = ComplementarityList()
-        for i in M.kkt.nu:
-            M.kkt.slackness.add( complements( M.L.xR[i] >= 0, M.kkt.nu[i] >= 0 ) )
+        M = create_model_replacing_LL_with_kkt(repn)
 
         #
         # Transform the problem to a MIP

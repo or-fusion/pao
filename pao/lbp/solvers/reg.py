@@ -16,6 +16,67 @@ from ..convert_repn import convert_LinearBilevelProblem_to_standard_form
 from .. import pyomo_util
 
 
+def create_model_replacing_LL_with_kkt(repn):
+    U = repn.U
+    LL = repn.U.LL
+    N = len(LL)
+
+    #
+    # Create Pyomo model
+    #
+    M = pe.ConcreteModel()
+    M.U = pe.Block()
+    M.L = pe.Block(range(N))
+    M.kkt = pe.Block(range(N))
+
+    # upper- and lower-level variables
+    pyomo_util.add_variables(M.U, U)
+    for i in range(N):
+        L = LL[i]
+        # lower-level variables
+        pyomo_util.add_variables(M.L[i], L)
+        # dual variables
+        M.kkt[i].lam = pe.Var(range(len(L.b)))                                    # equality constraints
+        M.kkt[i].nu = pe.Var(range(len(L.x)), within=pe.NonNegativeReals)         # variable bounds
+
+    # objective
+    #e1 = pyomo_util.dot(U.c[U], U.x, num=1)
+    #e2 = pyomo_util.dot(U.c[L], L.x, num=1)
+    #e3 = U.d
+    #print(type(e1), type(e2), type(e3))
+    #print(e1, e2, e3)
+    e = pyomo_util.dot(U.c[U], U.x, num=1) + U.d
+    for i in range(N):
+        L = LL[i]
+        e += pyomo_util.dot(U.c[L], L.x, num=1)
+    M.o = pe.Objective(expr=e)
+
+    # upper-level constraints
+    pyomo_util.add_linear_constraints(M.U, U.A, U, L, U.b, U.inequalities)
+    # lower-level constraints
+    for i in range(N):
+        L = LL[i]
+        pyomo_util.add_linear_constraints(M.L[i], L.A, U, L, L.b, L.inequalities)
+
+    for i in range(N):
+        L = LL[i]
+        # stationarity
+        M.kkt[i].stationarity = pe.ConstraintList() 
+        # L_A_L' * lam
+        L_A_L_T = L.A[L].transpose().todok()
+        X = pyomo_util.dot( L_A_L_T, M.kkt[i].lam )
+        for k in range(len(L.c[L])):
+            M.kkt[i].stationarity.add( L.c[L][k] + X[k] - M.kkt[i].nu[k] == 0 )
+
+        # complementarity slackness - variables
+        for i in range(N):
+            M.kkt[i].slackness = ComplementarityList()
+            for j in M.kkt[i].nu:
+                M.kkt[i].slackness.add( complements( M.L[i].xR[j] >= 0, M.kkt[i].nu[j] >= 0 ) )
+
+    return M
+
+
 @SolverFactory.register(
         name="pao.lbp.REG",
         doc="A solver for linear bilevel programs using regularization discussed by Scheel and Scholtes (2000) and Ralph and Wright (2004).")
@@ -32,11 +93,6 @@ class LinearBilevelSolver_REG(LinearBilevelSolverBase):
         #
         assert (type(lbp) is LinearBilevelProblem), "Solver '%s' can only solve a LinearBilevelProblem" % self.name
         lbp.check()
-        #
-        # TODO: For now, we just deal with the case where there is a single lower-level.  Later, we
-        # will generalize this.
-        #
-        assert (len(lbp.U.LL) == 1 and len(lbp.U.LL[0].LL) == 0), "Only one lower-level is handled right now"
         #
         # Confirm that this is a bilevel problem
         #
@@ -124,55 +180,7 @@ class LinearBilevelSolver_REG(LinearBilevelSolverBase):
         return results
 
     def _create_pyomo_model(self, repn, rho):
-        U = repn.U
-        L = repn.U.LL[0]
-
-        #
-        # Create Pyomo model
-        #
-        M = pe.ConcreteModel()
-        M.U = pe.Block()
-        M.L = pe.Block()
-        M.kkt = pe.Block()
-
-        # upper- and lower-level variables
-        pyomo_util.add_variables(M.U, U)
-        pyomo_util.add_variables(M.L, L)
-        # dual variables
-        M.kkt.lam = pe.Var(range(len(L.b)))                                    # equality constraints
-        M.kkt.nu = pe.Var(range(len(L.x)), within=pe.NonNegativeReals)         # variable bounds
-
-        # objective
-        e1 = pyomo_util.dot(U.c[U], U.x, num=1)
-        e2 = pyomo_util.dot(U.c[L], L.x, num=1)
-        e3 = U.d
-        #print(type(e1), type(e2), type(e3))
-        #print(e1, e2, e3)
-        e = pyomo_util.dot(U.c[U], U.x, num=1) + pyomo_util.dot(U.c[L], L.x, num=1) + U.d
-        M.o = pe.Objective(expr=e)
-
-        # upper-level constraints
-        pyomo_util.add_linear_constraints(M.U, U.A, U, L, U.b, U.inequalities)
-        # lower-level constraints
-        pyomo_util.add_linear_constraints(M.L, L.A, U, L, L.b, L.inequalities)
-
-        # stationarity
-        M.kkt.stationarity = pe.ConstraintList() 
-        # L_A_L' * lam
-        L_A_L_T = L.A[L].transpose().todok()
-        X = pyomo_util.dot( L_A_L_T, M.kkt.lam )
-        for i in range(len(L.c[L])):
-            #e = 0
-            #for j in M.kkt.lam:
-            #    e += L_A_L_T[i,j] * M.kkt.lam[j]
-            #M.kkt.stationarity.add( L.c[L][i] + e - M.kkt.nu[i] == 0 )
-            M.kkt.stationarity.add( L.c[L][i] + X[i] - M.kkt.nu[i] == 0 )
-
-        # complementarity slackness - variables
-        M.kkt.slackness = ComplementarityList()
-        for i in M.kkt.nu:
-            M.kkt.slackness.add( complements( M.L.xR[i] >= 0, M.kkt.nu[i] >= 0 ) )
-
+        M = create_model_replacing_LL_with_kkt(repn)
         #
         # Transform the problem to a MIP
         #

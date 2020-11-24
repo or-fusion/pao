@@ -11,28 +11,28 @@ def create():
     M = LinearBilevelProblem()
 
     U = M.add_upper(nxR=1, nxZ=1)
-    U.minimize = True
     U.x.lower_bounds = [0,0]
 
-    L = M.add_lower(nxR=1, nxZ=1)
+    L = U.add_lower(nxR=1, nxZ=1)
     L.x.lower_bounds = [0, 0]
-    L.minimize = False
 
-    U.c.U.x = [20, -38]
-    U.c.L.x = [1, 42]
+    U.minimize = True
+    U.c[U] = [20, -38]
+    U.c[L] = [1, 42]
 
-    U.A.U.x = [[7, 5],
-               [6, 9]]
-    U.A.L.x = [[0, 7],
-               [10, 2]]
+    U.A[U] = [[7, 5],
+              [6, 9]]
+    U.A[L] = [[0, 7],
+              [10, 2]]
     U.b = [62, 117]
 
-    L.c.L.x = [39, 27]
+    L.minimize = False
+    L.c[L] = [39, 27]
 
-    L.A.U.x = [[8, 0],
-               [9, 0]]
-    L.A.L.x = [[2, 8], 
-               [2, 1]]
+    L.A[U] = [[8, 0],
+              [9, 0]]
+    L.A[L] = [[2, 8], 
+              [2, 1]]
     L.b = [53, 28]
 
     return M

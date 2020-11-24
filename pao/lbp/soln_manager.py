@@ -12,14 +12,15 @@ class LBP_SolutionManager(object):
             # TODO - generalize this logic to multi-level models and models with multiple subproblems
             #
             LxR = {}
-            LxR[lbp.U.id] = pyomo.U.xR
-            LxR[lbp.U.LL[0].id] = pyomo.L.xR
             LxZ = {}
-            LxZ[lbp.U.id] = pyomo.U.xZ
-            LxZ[lbp.U.LL[0].id] = pyomo.L.xZ
             LxB = {}
+            LxR[lbp.U.id] = pyomo.U.xR
+            LxZ[lbp.U.id] = pyomo.U.xZ
             LxB[lbp.U.id] = pyomo.U.xB
-            LxB[lbp.U.LL[0].id] = pyomo.L.xB
+            for i in range(len(pyomo.L)):
+                LxR[lbp.U.LL[i].id] = pyomo.L[i].xR
+                LxZ[lbp.U.LL[i].id] = pyomo.L[i].xZ
+                LxB[lbp.U.LL[i].id] = pyomo.L[i].xB
             return self.copy_from_to(LxR=LxR, LxZ=LxZ, LxB=LxB, lbp=lbp)
 
         for L in lbp.levels():
