@@ -25,14 +25,14 @@ def mat2dict(m, start, stop):
     if m is None:
         return {}
     cx = m.tocoo()    
-    return {(i+offset,j+offset):float(v) for i,j,v in zip(cx.row, cx.col, cx.data) if j>=start and j<stop}
+    return {(i+offset,j+offset-start):float(v) for i,j,v in zip(cx.row, cx.col, cx.data) if j>=start and j<stop}
 
 def array2dict(m, start=0, stop=None):
     if m is None:
         return {}
     if stop is None:
         stop = len(m)
-    return {i+offset:float(m[i]) for i in range(len(m)) if i>=start and i<stop}
+    return {i+offset-start:float(m[i]) for i in range(len(m)) if i>=start and i<stop}
 
 
 def create_pyomo_model(lbp, M):
@@ -59,22 +59,22 @@ def create_pyomo_model(lbp, M):
     nZ = L.x.nxZ
 
     AR = mat2dict(U.A[U], 0,       U.x.nxR)
-    AZ = mat2dict(U.A[U], U.x.nxR, U.x.nxZ)
+    AZ = mat2dict(U.A[U], U.x.nxR, U.x.nxR+U.x.nxZ)
     BR = mat2dict(U.A[L], 0,       L.x.nxR)
-    BZ = mat2dict(U.A[L], L.x.nxR, L.x.nxZ)
+    BZ = mat2dict(U.A[L], L.x.nxR, L.x.nxR+U.x.nxZ)
     r  = array2dict(U.b)
     cR = array2dict(U.c[U], 0,       U.x.nxR)
-    cZ = array2dict(U.c[U], U.x.nxR, U.x.nxZ)
+    cZ = array2dict(U.c[U], U.x.nxR, U.x.nxR+U.x.nxZ)
     dR = array2dict(U.c[L], 0,       L.x.nxR)
-    dZ = array2dict(U.c[L], L.x.nxR, L.x.nxZ)
+    dZ = array2dict(U.c[L], L.x.nxR, L.x.nxR+U.x.nxZ)
 
     PR = mat2dict(L.A[L], 0,       L.x.nxR)
-    PZ = mat2dict(L.A[L], L.x.nxR, L.x.nxZ)
+    PZ = mat2dict(L.A[L], L.x.nxR, L.x.nxR+U.x.nxZ)
     QR = mat2dict(L.A[U], 0,       U.x.nxR)
-    QZ = mat2dict(L.A[U], U.x.nxR, U.x.nxZ)
+    QZ = mat2dict(L.A[U], U.x.nxR, U.x.nxR+U.x.nxZ)
     s  = array2dict(L.b)
     wR = array2dict(L.c[L], 0,       L.x.nxR)
-    wZ = array2dict(L.c[L], L.x.nxR, L.x.nxZ)
+    wZ = array2dict(L.c[L], L.x.nxR, L.x.nxR+U.x.nxZ)
     '''
     mU number of upper level constraints
     mR number of upper level continuous variables

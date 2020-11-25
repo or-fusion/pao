@@ -29,7 +29,7 @@ class LBP_SolutionManager(object):
                 L.x.values[j] = sum(pe.value(LxR[L.id][v]) * c for v,c in multipliers[j])
             for j in range(L.x.nxZ):
                 jj = j+L.x.nxR
-                L.x.values[jj] = round(sum(pe.value(LxZ[L.id][v]) * c for v,c in multipliers[jj]))
+                L.x.values[jj] = round(sum(pe.value(LxZ[L.id][v-L.x.nxR]) * c for v,c in multipliers[jj]))
             if LxB is not None:
                 if len(LxB) == 0:
                     # Binaries are at the end of the integers
