@@ -179,4 +179,19 @@ def create():
 
 if __name__ == "__main__":
     M = create()
-    M.pprint()
+
+    opt = SolverFactory('pao.submodel.FA')
+    opt.solve(M, solver='gurobi', tee=True)
+
+    print(M.x)
+    M.x.pprint()
+    print(M.h)
+    M.h.pprint()
+
+    for s,t in M.OmegaSet:
+        print(M.Sub[s,t])
+        M.Sub[s,t].sub.y.pprint()
+        M.Sub[s,t].sub.z.pprint()
+
+    #    self.assertTrue(math.isclose(M.xR.value, 2))
+    #    self.assertTrue(math.isclose(M.L.xR.value, 100))
