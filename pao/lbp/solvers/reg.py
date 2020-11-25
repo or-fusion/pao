@@ -60,8 +60,9 @@ def create_model_replacing_LL_with_kkt(repn):
         # L_A_L' * lam
         L_A_L_T = L.A[L].transpose().todok()
         X = pyomo_util.dot( L_A_L_T, M.kkt[i].lam )
-        for k in range(len(L.c[L])):
-            M.kkt[i].stationarity.add( L.c[L][k] + X[k] - M.kkt[i].nu[k] == 0 )
+        if L.c[L] is not None:
+            for k in range(len(L.c[L])):
+                M.kkt[i].stationarity.add( L.c[L][k] + X[k] - M.kkt[i].nu[k] == 0 )
 
     for i in range(N):
         # complementarity slackness - variables

@@ -128,25 +128,24 @@ def create():
     m.h=pe.Var(m.OmegaSet,within=pe.NonNegativeReals)
 
     def Obj(m):
-        value=sum(m.P[(i,j)]*m.h[(i,j)] for (i,j) in m.OmegaSet) #h[i,j] is the objective of subproblem (i,j)
+        value=sum(m.P[i,j]*m.h[i,j] for (i,j) in m.OmegaSet) #h[i,j] is the objective of subproblem (i,j)
         return value
     m.Obj = pe.Objective(rule=Obj, sense=pe.minimize)
 
     def C(m):
-        value=sum(m.c[(i,j)]*m.x[(i,j)] for (i,j) in m.Edgeset)
+        value=sum(m.c[i,j]*m.x[i,j] for (i,j) in m.Edgeset)
         return value <= b
     m.C=pe.Constraint(rule=C)
 
 
     m.Sub = pe.Block(m.OmegaSet)
     for (s,t) in m.OmegaSet:
-        m.Sub[(s,t)].sub = SubModel(fixed=m.x)
-        m.Sub[(s,t)].sub.stset = pe.Set(initialize=[s,t])
-        m.Sub[(s,t)].sub.y = pe.Var(m.Edgeset,within=pe.NonNegativeReals, bounds=(0,1))
-        m.Sub[(s,t)].sub.z = pe.Var(m.Edgeset,within=pe.NonNegativeReals, bounds=(0,1))
+        m.Sub[s,t].sub = SubModel(fixed=m.x)
+        m.Sub[s,t].sub.stset = pe.Set(initialize=[s,t])
+        m.Sub[s,t].sub.y = pe.Var(m.Edgeset,within=pe.NonNegativeReals, bounds=(0,1))
+        m.Sub[s,t].sub.z = pe.Var(m.Edgeset,within=pe.NonNegativeReals, bounds=(0,1))
         def obj(sub):
-            value = m.h[(s,t)]
-            return value
+            return m.h[s,t]
         m.Sub[(s,t)].sub.obj = pe.Objective(rule=obj, sense=pe.maximize)
 
         def cb(sub):
