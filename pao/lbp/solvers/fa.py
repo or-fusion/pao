@@ -32,15 +32,10 @@ class LinearBilevelSolver_FA(LinearBilevelSolverBase):
         assert (type(lbp) is LinearBilevelProblem), "Solver '%s' can only solve a LinearBilevelProblem" % self.name
         lbp.check()
         #
-        # TODO: For now, we just deal with the case where there is a single lower-level.  Later, we
-        # will generalize this.
-        #
-        assert (len(lbp.U.LL) == 1 and len(lbp.U.LL[0].LL) == 0), "Only one lower-level is handled right now"
-        #
         # Confirm that this is a bilevel problem
         #
-        for i in range(len(lbp.U.LL)):
-            assert (len(lbp.U.LL[i].LL) == 0), "Can only solve bilevel problems"
+        for L in lbp.U.LL:
+            assert (len(L.LL) == 0), "Can only solve bilevel problems"
         #
         # No binary or integer lower level variables
         #

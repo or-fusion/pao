@@ -40,11 +40,6 @@ def create_model_replacing_LL_with_kkt(repn):
         M.kkt[i].nu = pe.Var(range(len(L.x)), within=pe.NonNegativeReals)         # variable bounds
 
     # objective
-    #e1 = pyomo_util.dot(U.c[U], U.x, num=1)
-    #e2 = pyomo_util.dot(U.c[L], L.x, num=1)
-    #e3 = U.d
-    #print(type(e1), type(e2), type(e3))
-    #print(e1, e2, e3)
     e = pyomo_util.dot(U.c[U], U.x, num=1) + U.d
     for i in range(N):
         L = LL[i]
@@ -53,8 +48,8 @@ def create_model_replacing_LL_with_kkt(repn):
 
     # upper-level constraints
     pyomo_util.add_linear_constraints(M.U, U.A, U, L, U.b, U.inequalities)
-    # lower-level constraints
     for i in range(N):
+        # lower-level constraints
         L = LL[i]
         pyomo_util.add_linear_constraints(M.L[i], L.A, U, L, L.b, L.inequalities)
 
@@ -68,11 +63,11 @@ def create_model_replacing_LL_with_kkt(repn):
         for k in range(len(L.c[L])):
             M.kkt[i].stationarity.add( L.c[L][k] + X[k] - M.kkt[i].nu[k] == 0 )
 
+    for i in range(N):
         # complementarity slackness - variables
-        for i in range(N):
-            M.kkt[i].slackness = ComplementarityList()
-            for j in M.kkt[i].nu:
-                M.kkt[i].slackness.add( complements( M.L[i].xR[j] >= 0, M.kkt[i].nu[j] >= 0 ) )
+        M.kkt[i].slackness = ComplementarityList()
+        for j in M.kkt[i].nu:
+            M.kkt[i].slackness.add( complements( M.L[i].xR[j] >= 0, M.kkt[i].nu[j] >= 0 ) )
 
     return M
 

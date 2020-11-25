@@ -45,7 +45,7 @@ def add_variables(block, level):
     else:
         block.xZ = None
     if level.x.nxB > 0:
-        block.xB = pe.Var(range(0,level.x.nxB), within=pe.Binaries)
+        block.xB = pe.Var(range(0,level.x.nxB), within=pe.Binary)
         for i in range(level.x.nxB):
             pyvar.append(block.xB[i])
     else:
