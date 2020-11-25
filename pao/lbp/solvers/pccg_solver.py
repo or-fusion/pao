@@ -453,7 +453,9 @@ def execute_PCCG_solver(lbp, config, results):
             #Step 2: Solve the Master Problem
             TransformationFactory('mpec.simple_disjunction').apply_to(Parent.Master)
             bigm_xfrm.apply_to(Parent.Master) 
-            opt.solve(Parent.Master)
+            res = opt.solve(Parent.Master)
+            if res.solver.termination_condition !=TerminationCondition.optimal:
+                raise RuntimeError("ERROR! ERROR! Master: Could not find optimal solution")
 
             for i in Parent.xu_star:
                 Parent.xu_star[i]=Parent.Master.xu[i].value    

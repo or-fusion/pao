@@ -266,9 +266,9 @@ def combine_matrices(A, B):         #pragma: nocover
     return ans
 
 
-def convert_sense(L):
-    if not L.minimize:
-        L.minimize = True
+def convert_sense(L, minimize=True):
+    if (minimize and not L.minimize) or (not minimize and L.minimize):
+        L.minimize = minimize
         L.d *= -1
         for i in L.c:
             L.c[i] *= -1
@@ -276,7 +276,7 @@ def convert_sense(L):
 
 def convert_to_minimization(ans):
     for L in ans.levels():
-        convert_sense(L)
+        convert_sense(L, minimize=True)
 
 
 def add_ineq_constraints(mat):

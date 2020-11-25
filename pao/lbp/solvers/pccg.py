@@ -62,7 +62,7 @@ class LinearBilevelSolver_PCCG(LinearBilevelSolverBase):
         # PCCG requires a standard form with inequalities and 
         # a maximization lower-level
         self.standard_form, soln_manager = convert_LinearBilevelProblem_to_standard_form(lbp, inequalities=True)
-        convert_sense(self.standard_form.U.LL)
+        convert_sense(self.standard_form.U.LL, minimize=False)
         
         results = LinearBilevelResults(solution_manager=soln_manager)
 
