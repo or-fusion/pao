@@ -71,9 +71,6 @@ class PyomoSubmodelSolverBase_LBP(PyomoSubmodelSolverBase):
                                         time_limit=self.config.time_limit,
                                         load_solutions=True)
 
-            #print(lbp_results)
-            #print("ID",id(lbp))
-            #lbp.print()
             self._initialize_results(results, lbp_results, instance, lbp, options)
             results.solver.rc = getattr(opt, '_rc', None)
             results.copy_from_to(lbp=lbp, pyomo=instance)
