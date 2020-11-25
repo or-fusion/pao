@@ -101,13 +101,15 @@ class Solver(six.with_metaclass(abc.ABCMeta, object)):
     def __bool__(self):
         raise RuntimeError("Casting a solver to bool() is not allowed.  Use available() to check if the solver can be executed.")
 
-    def _update_config(self, config_options):
+    def _update_config(self, config_options, validate_options=True):
         keys = set(config_options.keys())
         for k,v in config_options.items():
             if k in self.config:
                 self.config[k] = v
                 keys.remove(k)    
-        assert (len(keys) == 0), "Unexpected options to solve() have been specified: %s" % " ".join(sorted(k for k in keys))
+        if validate_options:
+            assert (len(keys) == 0), "Unexpected options to solve() have been specified: %s" % " ".join(sorted(k for k in keys))
+        return {key:config_options[key] for key in keys}
 
     """
     Support "with" statements.
