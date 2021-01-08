@@ -54,7 +54,7 @@ jobs:
         pip install --quiet git+https://github.com/PyUtilib/pyutilib
         pip install --quiet git+https://github.com/Pyomo/pyomo
         python setup.py develop
-        pip install nose coverage codecov pyyaml
+        pip install wheel nose coverage codecov pyyaml numpy scipy
         conda install -c conda-forge glpk ipopt
 
     - name: Run tests
