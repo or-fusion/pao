@@ -62,7 +62,7 @@ jobs:
       shell: bash -l {0}
       run: |
         conda list
-        nosetests --with-xunit --with-coverage --cover-xml .
+        nosetests --with-xunit --with-coverage --cover-xml -v .
         coverage report -m
 
     - name: Send coverage data to codecov
