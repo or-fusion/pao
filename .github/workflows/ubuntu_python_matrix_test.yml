@@ -29,12 +29,12 @@ jobs:
       shell: bash -l {0}
       run: |
         conda info
-        conda init bash
-        conda env list
+        #conda init bash
+        #conda env list
 
-    - name: Conda list
-      shell: pwsh
-      run: conda list
+    #- name: Conda list
+    #  shell: pwsh
+    #  run: conda list
 
     - uses: actions/checkout@v1
 
@@ -47,8 +47,8 @@ jobs:
       shell: bash -l {0}
       run: |
         conda config --set auto_update_conda false
-        conda env list
-        conda activate test
+        #conda env list
+        #conda activate test
         conda config --set always_yes yes
         python -m pip install --upgrade pip
         pip install --quiet git+https://github.com/PyUtilib/pyutilib
