@@ -29,8 +29,8 @@ jobs:
       shell: bash -l {0}
       run: |
         conda info
-        #conda init bash
-        #conda env list
+        conda init bash
+        conda env list
 
     #- name: Conda list
     #  shell: pwsh
@@ -46,8 +46,8 @@ jobs:
     - name: Install dependencies
       shell: bash -l {0}
       run: |
-        #conda env list
-        #conda activate test
+        conda env list
+        conda activate test
         conda config --set always_yes yes
         python -m pip install --upgrade pip
         pip install --quiet git+https://github.com/PyUtilib/pyutilib
