@@ -12,7 +12,7 @@ jobs:
   pyomo-linux-tests:
     name: py${{ matrix.python-version }}
     runs-on: ubuntu-latest
-    timout-minutes: 90
+    timeout-minutes: 90
     strategy:
       max-parallel: 3
       matrix:
