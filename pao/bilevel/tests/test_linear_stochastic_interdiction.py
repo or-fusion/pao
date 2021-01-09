@@ -62,7 +62,7 @@ class TestStochasticBilevelSolve(unittest.TestCase):
     @classmethod
     def tearDown(self): pass
 
-    @parameterized.expand(cartesian_solutions)
+    @parameterized.expand(cartesian_solutions, skip_on_empty=True)
     def test_solution(self, numerical_solver, pao_solver, solution_zip):
         """ Tests bilevel solution and checks whether the derivation is equivalent
         to the known solution in the solution/*.txt file by checking for optimality and
