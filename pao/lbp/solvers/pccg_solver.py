@@ -21,16 +21,18 @@ infinity = float('inf')
 
 offset=0
 
-def mat2dict(m):
+def mat2dict(m, start, stop):
     if m is None:
         return {}
     cx = m.tocoo()    
-    return {(i+offset,j+offset):float(v) for i,j,v in zip(cx.row, cx.col, cx.data)}
+    return {(i+offset,j+offset-start):float(v) for i,j,v in zip(cx.row, cx.col, cx.data) if j>=start and j<stop}
 
-def array2dict(m):
+def array2dict(m, start=0, stop=None):
     if m is None:
         return {}
-    return {i+offset:float(m[i]) for i in range(len(m))}
+    if stop is None:
+        stop = len(m)
+    return {i+offset-start:float(m[i]) for i in range(len(m)) if i>=start and i<stop}
 
 
 def create_pyomo_model(lbp, M):
@@ -46,31 +48,33 @@ def create_pyomo_model(lbp, M):
     coefficient vectors and matrices should be dictionaries (with tuples for matrices)
     variable size should be floats
     '''
-    #from ToyExample1 import mU, nL, nR, nZ, mR, mZ, AR, AZ, BR, BZ, cR, cZ, dR, dZ, PR, PZ, s, QR, QZ, wR, wZ, r
-    mU = len(lbp.U.b)
-    mR = len(lbp.U.xR)
-    mZ = len(lbp.U.xZ)
-    nL = len(lbp.L.b)
-    nR = len(lbp.L.xR)
-    nZ = len(lbp.L.xZ)
+    U = lbp.U
+    L = lbp.U.LL[0]
 
-    AR = mat2dict(lbp.U.A.U.xR)
-    AZ = mat2dict(lbp.U.A.U.xZ)
-    BR = mat2dict(lbp.U.A.L.xR)
-    BZ = mat2dict(lbp.U.A.L.xZ)
-    r  = array2dict(lbp.U.b)
-    cR = array2dict(lbp.U.c.U.xR)
-    cZ = array2dict(lbp.U.c.U.xZ)
-    dR = array2dict(lbp.U.c.L.xR)
-    dZ = array2dict(lbp.U.c.L.xZ)
+    mU = len(U.b)
+    mR = U.x.nxR
+    mZ = U.x.nxZ
+    nL = len(L.b)
+    nR = L.x.nxR
+    nZ = L.x.nxZ
 
-    PR = mat2dict(lbp.L.A.L.xR)
-    PZ = mat2dict(lbp.L.A.L.xZ)
-    QR = mat2dict(lbp.L.A.U.xR)
-    QZ = mat2dict(lbp.L.A.U.xZ)
-    s  = array2dict(lbp.L.b)
-    wR = array2dict(lbp.L.c.L.xR)
-    wZ = array2dict(lbp.L.c.L.xZ)
+    AR = mat2dict(U.A[U], 0,       U.x.nxR)
+    AZ = mat2dict(U.A[U], U.x.nxR, U.x.nxR+U.x.nxZ)
+    BR = mat2dict(U.A[L], 0,       L.x.nxR)
+    BZ = mat2dict(U.A[L], L.x.nxR, L.x.nxR+U.x.nxZ)
+    r  = array2dict(U.b)
+    cR = array2dict(U.c[U], 0,       U.x.nxR)
+    cZ = array2dict(U.c[U], U.x.nxR, U.x.nxR+U.x.nxZ)
+    dR = array2dict(U.c[L], 0,       L.x.nxR)
+    dZ = array2dict(U.c[L], L.x.nxR, L.x.nxR+U.x.nxZ)
+
+    PR = mat2dict(L.A[L], 0,       L.x.nxR)
+    PZ = mat2dict(L.A[L], L.x.nxR, L.x.nxR+U.x.nxZ)
+    QR = mat2dict(L.A[U], 0,       U.x.nxR)
+    QZ = mat2dict(L.A[U], U.x.nxR, U.x.nxR+U.x.nxZ)
+    s  = array2dict(L.b)
+    wR = array2dict(L.c[L], 0,       L.x.nxR)
+    wZ = array2dict(L.c[L], L.x.nxR, L.x.nxR+U.x.nxZ)
     '''
     mU number of upper level constraints
     mR number of upper level continuous variables
@@ -449,7 +453,9 @@ def execute_PCCG_solver(lbp, config, results):
             #Step 2: Solve the Master Problem
             TransformationFactory('mpec.simple_disjunction').apply_to(Parent.Master)
             bigm_xfrm.apply_to(Parent.Master) 
-            opt.solve(Parent.Master)
+            res = opt.solve(Parent.Master)
+            if res.solver.termination_condition !=TerminationCondition.optimal:
+                raise RuntimeError("ERROR! ERROR! Master: Could not find optimal solution")
 
             for i in Parent.xu_star:
                 Parent.xu_star[i]=Parent.Master.xu[i].value    
@@ -535,7 +541,7 @@ def execute_PCCG_solver(lbp, config, results):
         results.solver.termination_condition = TerminationCondition.optimal
         results.best_feasible_objective = UB
 
-    results.problem.upper_bound = UB
-    results.problem.lower_bound = UB
+#    results.problem.upper_bound = UB
+#    results.problem.lower_bound = UB
 
     return Parent.Master.xu, Parent.Master.yu, Parent.Master.xl0, Parent.Master.yl0

@@ -41,7 +41,9 @@ class LinearBilevelSolver_PCCG(LinearBilevelSolverBase):
         assert (type(lbp) is LinearBilevelProblem), "Solver '%s' can only solve a LinearBilevelProblem" % self.name
         lbp.check()
         #
-        assert (len(lbp.L) == 1), "Can only solve linear bilevel problems with one lower-level"
+        assert (len(lbp.U.LL) == 1), "Can only solve linear bilevel problems with one lower-level"
+        #
+        assert (len(lbp.U.LL.LL) == 0), "Can only solve bilevel problems"
 
     def solve(self, lbp, options=None, **config_options):
         #
@@ -60,12 +62,14 @@ class LinearBilevelSolver_PCCG(LinearBilevelSolverBase):
         # PCCG requires a standard form with inequalities and 
         # a maximization lower-level
         self.standard_form, soln_manager = convert_LinearBilevelProblem_to_standard_form(lbp, inequalities=True)
-        convert_sense(self.standard_form.L)
+        convert_sense(self.standard_form.U.LL, minimize=False)
         
         results = LinearBilevelResults(solution_manager=soln_manager)
 
         UxR, UxZ, LxR, LxZ = execute_PCCG_solver(self.standard_form, self.config, results)
-        results.copy_from_to(UxR=UxR, UxZ=UxZ, LxR=LxR, LxZ=LxZ, lbp=lbp)
+        xR = {lbp.U.id:UxR, lbp.U.LL[0].id:LxR}
+        xZ = {lbp.U.id:UxZ, lbp.U.LL[0].id:LxZ}
+        results.copy_from_to(LxR=xR, LxZ=xZ, lbp=lbp)
 
         results.solver.wallclock_time = time.time() - start_time
         return results

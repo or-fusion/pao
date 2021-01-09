@@ -64,7 +64,6 @@ class Node(object):
                 self.xB[len(self.xB)] = vid
             else:
                 vidmap[vid] = (1, self.nid, len(self.xZ))
-                #print(len(self.xZ), self.nid, vid)
                 self.xZ[len(self.xZ)] = vid
 
         else:
@@ -72,48 +71,46 @@ class Node(object):
             vidmap[vid] = (0, self.nid, len(self.xR))
             self.xR[len(self.xR)] = vid
 
+    def add_levels(self, L, levelmap, treemap):
+        treemap[self.nid] = self
+        levelmap[L.id] = L
+        for child in self.children:
+            L_ = L.add_lower(id=child.nid)
+            child.add_levels(L_, levelmap, treemap)
+
     def initialize_level_vars(self, level, inequalities, var):
         """
         Initialize the level object...
         """
+        level.x._resize(nxR=len(self.xR), nxZ=len(self.xZ), nxB=len(self.xB))
         #
         # xR
         #
-        if len(self.xR) > 0:
-            level.xR.resize(len(self.xR))
-            lb = [np.NINF]*len(self.xR)
-            ub = [np.PINF]*len(self.xR)
-            for i in self.xR:
-                vid = self.xR[i]
-                val = var[vid].lb
-                if val is not None:
-                    lb[i] = val
-                val = var[vid].ub
-                if val is not None:
-                    ub[i] = val
-            level.xR.lower_bounds = lb
-            level.xR.upper_bounds = ub
+        for i in self.xR:
+            vid = self.xR[i]
+            val = var[vid].lb
+            if val is not None:
+                level.x.lower_bounds[i] = val
+            val = var[vid].ub
+            if val is not None:
+                level.x.upper_bounds[i] = val
         #
         # xZ
         #
-        if len(self.xZ) > 0:
-            level.xZ.resize(len(self.xZ))
-            lb = [np.NINF]*len(self.xZ)
-            ub = [np.PINF]*len(self.xZ)
-            for i in self.xZ:
-                vid = self.xZ[i]
-                val = var[vid].lb
-                if val is not None:
-                    lb[i] = val
-                val = var[vid].ub
-                if val is not None:
-                    ub[i] = val
-            level.xZ.lower_bounds = lb
-            level.xZ.upper_bounds = ub
+        for i in self.xZ:
+            vid = self.xZ[i]
+            val = var[vid].lb
+            if val is not None:
+                level.x.lower_bounds[i+level.x.nxR] = val
+            val = var[vid].ub
+            if val is not None:
+                level.x.upper_bounds[i+level.x.nxR] = val
         #
         # xB
         #
-        level.xB.resize(len(self.xB))
+        for i in self.xB:
+            level.x.lower_bounds[i+level.x.nxR+level.x.nxZ] = 0
+            level.x.upper_bounds[i+level.x.nxR+level.x.nxZ] = 1
 
     def initialize_level(self, level, inequalities, var, vidmap, levelmap):
         #
@@ -126,62 +123,34 @@ class Node(object):
                 level.minimize = False
             level.d = pe.value(repn.constant)
 
-            c_xR = {}
-            c_xZ = {}
-            c_xB = {}
-            for i in levelmap:
-                c_xR[i] = {}
-                c_xZ[i] = {}
-                c_xB[i] = {}
-
-            for i,c  in enumerate(repn.linear_coefs):
-                vid = id(repn.linear_vars[i])
-                t, nid, j = vidmap[vid]
-                #print(t,nid,j)
-                if t == 0:
-                    c_xR[nid][j] = pe.value(c)
-                elif t == 1:
-                    c_xZ[nid][j] = pe.value(c)
-                elif t == 2:
-                    c_xB[nid][j] = pe.value(c)
-
+            c = {}
             for j in levelmap:
                 node = levelmap[j]
-                if len(c_xR[j]) > 0:
-                    tmp = [0]*len(node.xR)
-                    for i,v in c_xR[j].items():
-                        tmp[i] = v
-                    if j == 0:
-                        level.c.U.xR = tmp
-                    else:
-                        level.c.L[j-1].xR = tmp
-                if len(c_xZ[j]) > 0:
-                    tmp = [0]*len(node.xZ)
-                    for i,v in c_xZ[j].items():
-                        tmp[i] = v
-                    if j == 0:
-                        level.c.U.xZ = tmp
-                    else:
-                        level.c.L[j-1].xZ = tmp
-                if len(c_xB[j]) > 0:
-                    tmp = [0]*len(node.xB)
-                    for i,v in c_xB[j].items():
-                        tmp[i] = v
-                    if j == 0:
-                        level.c.U.xB = tmp
-                    else:
-                        level.c.L[j-1].xB = tmp
+                c[j] = [0]*node.x.num
+
+            for i,val  in enumerate(repn.linear_coefs):
+                vid = id(repn.linear_vars[i])
+                t, nid, j = vidmap[vid]
+                L = levelmap[nid]
+                if t == 0:
+                    c[nid][j] = pe.value(val)
+                elif t == 1:
+                    c[nid][j+L.x.nxR] = pe.value(val)
+                elif t == 2:
+                    c[nid][j+L.x.nxR+L.x.nxZ] = pe.value(val)
+
+            for j in levelmap:
+                for v in c[j]:
+                    if v != 0:
+                        level.c[j] = c[j]
+                        break
         #
         # A
         #
         if len(self.crepn) > 0:
-            A_xR = {}
-            A_xZ = {}
-            A_xB = {}
+            A = {}
             for i in levelmap:
-                A_xR[i] = {}
-                A_xZ[i] = {}
-                A_xB[i] = {}
+                A[i] = {}
             b = []
             nrows = len(self.crepn)
 
@@ -190,43 +159,26 @@ class Node(object):
                 for i,c  in enumerate(repn.linear_coefs):
                     vid = id(repn.linear_vars[i])
                     t, nid, j = vidmap[vid]
-                    if t == 0:
-                        A_xR[nid][k,j] = pe.value(c)
-                    elif t == 1:
-                        A_xZ[nid][k,j] = pe.value(c)
-                    elif t == 2:
-                        A_xB[nid][k,j] = pe.value(c)
+                    L = levelmap[nid]
+                    c_ = pe.value(c)
+                    if c_ != 0:
+                        if t == 0:
+                            A[nid][k,j] = c_
+                        elif t == 1:
+                            A[nid][k,j+L.x.nxR] = c_
+                        elif t == 2:
+                            A[nid][k,j+L.x.nxR+L.x.nxZ] = c_
                 b.append(self.crepn[k][1] - repn.constant)
 
             level.b = b
 
             for j in levelmap:
-                node = levelmap[j]
-                if len(A_xR[j]) > 0:
-                    mat = dok_matrix((nrows, len(node.xR)))
-                    for key, val in A_xR[j].items():
+                L = levelmap[j]
+                if len(A[j]) > 0:
+                    mat = dok_matrix((nrows, L.x.num))
+                    for key, val in A[j].items():
                         mat[key] = val
-                    if j == 0:
-                        level.A.U.xR = mat
-                    else:
-                        level.A.L[j-1].xR = mat
-                if len(A_xZ[j]) > 0:
-                    mat = dok_matrix((nrows, len(node.xZ)))
-                    for key, val in A_xZ[j].items():
-                        mat[key] = val
-                    if j == 0:
-                        level.A.U.xZ = mat
-                    else:
-                        level.A.L[j-1].xZ = mat
-                if len(A_xB[j]) > 0:
-                    mat = dok_matrix((nrows, len(node.xB)))
-                    for key, val in A_xB[j].items():
-                        mat[key] = val
-                    if j == 0:
-                        level.A.U.xB = mat
-                    else:
-                        level.A.L[j-1].xB = mat
-                
+                    level.A[L.id] = mat
             
 
 def negate_repn(repn):
@@ -353,10 +305,6 @@ def collect_multilevel_tree(block, var, vidmap={}, sortOrder=SortComponents.unso
                     var[i] = v
                     newvars.append(i)
                     knownvars.add(i)
-    #print("NID", curr.nid)
-    #print("Fixed", len(curr.fixedvars))
-    #print("Unfixed", len(curr.unfixedvars))
-    #print("Child Unfixed", len(childvars))
     #
     # Categorize the new variables that were found
     #
@@ -383,19 +331,21 @@ class PyomoSubmodel_SolutionManager_LBP(object):
             v = self.var[vid]
             t, nid, j = self.vidmap[vid]
             if nid == 0:
+                U = lbp.U
                 if t == 0:
-                    v.value = lbp.U.xR.values[j]
+                    v.value = lbp.U.x.values[j]
                 elif t == 1:
-                    v.value = lbp.U.xZ.values[j]
+                    v.value = lbp.U.x.values[j+U.x.nxR]
                 elif t == 2:
-                    v.value = lbp.U.xB.values[j]
+                    v.value = lbp.U.x.values[j+U.x.nxR+U.x.nxZ]
             else:
+                L = lbp.U.LL[nid-1]
                 if t == 0:
-                    v.value = lbp.L[nid-1].xR.values[j]
+                    v.value = lbp.U.LL[nid-1].x.values[j]
                 elif t == 1:
-                    v.value = lbp.L[nid-1].xZ.values[j]
+                    v.value = lbp.U.LL[nid-1].x.values[j+L.x.nxR]
                 elif t == 2:
-                    v.value = lbp.L[nid-1].xB.values[j]
+                    v.value = lbp.U.LL[nid-1].x.values[j+L.x.nxR+L.x.nxZ]
 
 
 def convert_pyomo2LinearBilevelProblem1(model, *, determinism=1, inequalities=True):
@@ -429,26 +379,23 @@ def convert_pyomo2LinearBilevelProblem1(model, *, determinism=1, inequalities=Tr
     #
     assert (len(tree.children) > 0), "Pyomo problem does not contain SubModel components"
     #
-    # LinearBilevelProblem cannot represent problems with nested submodels (e.g. tri-level)
-    #
-    for i,child in enumerate(tree.children):
-        assert (len(child.children) == 0), "Pyomo problem contains nested SubModel components"
-    #
     # Collect SubModel representations
     #
+    treemap = {}
     levelmap = {}
     M = LinearBilevelProblem()
-    U = M.add_upper()
-    levelmap[0] = U 
-    tree.initialize_level_vars(U, inequalities, var)
-    for i,c in enumerate(tree.children):
-        L = M.add_lower()
-        levelmap[i+1] = L[i]
-        c.initialize_level_vars(L[i], inequalities, var)
+    U = M.add_upper(id=tree.nid)
+    treemap[tree.nid] = tree
+
+    tree.add_levels(U, levelmap, treemap)
     
-    tree.initialize_level(U, inequalities, var, vidmap, levelmap)
-    for i,c in enumerate(tree.children):
-        c.initialize_level(L[i], inequalities, var, vidmap, levelmap)
+    for L in M.levels():
+        node = treemap[L.id]
+        node.initialize_level_vars(L, inequalities, var)
+    
+    for L in M.levels():
+        node = treemap[L.id]
+        node.initialize_level(L, inequalities, var, vidmap, levelmap)
     #
     # Cleanup global memory
     #

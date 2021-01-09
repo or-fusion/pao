@@ -46,6 +46,7 @@ solutions = [join(current_dir, 'auxiliary','solution','{}.txt'.format(i)) for i 
 cartesian_solutions = [elem for elem in itertools.product(*[solvers,pao_solvers,zip(solution_model_names,solution_models,solutions)])]
 
 
+@unittest.skipIf(len(cartesian_solutions)==0, "No solvers available")
 class TestStochasticBilevelSolve(unittest.TestCase):
     """
     Testing for bilevel solutions that use the runtime parameters specified in cartesian_solutions list
@@ -62,7 +63,7 @@ class TestStochasticBilevelSolve(unittest.TestCase):
     @classmethod
     def tearDown(self): pass
 
-    @parameterized.expand(cartesian_solutions)
+    @parameterized.expand(cartesian_solutions, skip_on_empty=True)
     def test_solution(self, numerical_solver, pao_solver, solution_zip):
         """ Tests bilevel solution and checks whether the derivation is equivalent
         to the known solution in the solution/*.txt file by checking for optimality and

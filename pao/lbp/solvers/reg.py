@@ -16,6 +16,63 @@ from ..convert_repn import convert_LinearBilevelProblem_to_standard_form
 from .. import pyomo_util
 
 
+def create_model_replacing_LL_with_kkt(repn):
+    U = repn.U
+    LL = repn.U.LL
+    N = len(LL)
+
+    #
+    # Create Pyomo model
+    #
+    M = pe.ConcreteModel()
+    M.U = pe.Block()
+    M.L = pe.Block(range(N))
+    M.kkt = pe.Block(range(N))
+
+    # upper- and lower-level variables
+    pyomo_util.add_variables(M.U, U)
+    for i in range(N):
+        L = LL[i]
+        # lower-level variables
+        pyomo_util.add_variables(M.L[i], L)
+        # dual variables
+        M.kkt[i].lam = pe.Var(range(len(L.b)))                                    # equality constraints
+        M.kkt[i].nu = pe.Var(range(len(L.x)), within=pe.NonNegativeReals)         # variable bounds
+
+    # objective
+    e = pyomo_util.dot(U.c[U], U.x, num=1) + U.d
+    for i in range(N):
+        L = LL[i]
+        e += pyomo_util.dot(U.c[L], L.x, num=1)
+    M.o = pe.Objective(expr=e)
+
+    # upper-level constraints
+    pyomo_util.add_linear_constraints(M.U, U.A, U, L, U.b, U.inequalities)
+    for i in range(N):
+        # lower-level constraints
+        L = LL[i]
+        pyomo_util.add_linear_constraints(M.L[i], L.A, U, L, L.b, L.inequalities)
+
+    for i in range(N):
+        L = LL[i]
+        # stationarity
+        M.kkt[i].stationarity = pe.ConstraintList() 
+        # L_A_L' * lam
+        L_A_L_T = L.A[L].transpose().todok()
+        X = pyomo_util.dot( L_A_L_T, M.kkt[i].lam )
+        if L.c[L] is not None:
+            for k in range(len(L.c[L])):
+                M.kkt[i].stationarity.add( L.c[L][k] + X[k] - M.kkt[i].nu[k] == 0 )
+
+    for i in range(N):
+        # complementarity slackness - variables
+        M.kkt[i].slackness = ComplementarityList()
+        for j in M.kkt[i].nu:
+            M.kkt[i].slackness.add( complements( M.L[i].xR[j] >= 0, M.kkt[i].nu[j] >= 0 ) )
+
+    return M
+
+
 @SolverFactory.register(
         name="pao.lbp.REG",
         doc="A solver for linear bilevel programs using regularization discussed by Scheel and Scholtes (2000) and Ralph and Wright (2004).")
@@ -33,21 +90,21 @@ class LinearBilevelSolver_REG(LinearBilevelSolverBase):
         assert (type(lbp) is LinearBilevelProblem), "Solver '%s' can only solve a LinearBilevelProblem" % self.name
         lbp.check()
         #
-        # TODO: For now, we just deal with the case where there is a single lower-level.  Later, we
-        # will generalize this.
+        # Confirm that this is a bilevel problem
         #
-        assert (len(lbp.L) == 1), "Only one lower-level is handled right now"
+        for i in range(len(lbp.U.LL)):
+            assert (len(lbp.U.LL[i].LL) == 0), "Can only solve bilevel problems"
         #
         # No binary or integer upper-level variables
         #
-        assert (len(lbp.U.xZ) == 0), "Cannot use solver %s with model with integer upper-level variables" % self.name
-        assert (len(lbp.U.xB) == 0), "Cannot use solver %s with model with binary upper-level variables" % self.name
+        assert (lbp.U.x.nxZ == 0), "Cannot use solver %s with model with integer upper-level variables" % self.name
+        assert (lbp.U.x.nxB == 0), "Cannot use solver %s with model with binary upper-level variables" % self.name
         #
         # No binary or integer lower-level variables
         #
-        for i in range(len(lbp.L)):
-            assert (len(lbp.L[i].xZ) == 0), "Cannot use solver %s with model with integer lower-level variables" % self.name
-            assert (len(lbp.L[i].xB) == 0), "Cannot use solver %s with model with binary lower-level variables" % self.name
+        for L in lbp.U.LL:
+            assert (L.x.nxZ == 0), "Cannot use solver %s with model with integer lower-level variables" % self.name
+            assert (L.x.nxB == 0), "Cannot use solver %s with model with binary lower-level variables" % self.name
 
     def solve(self, lbp, options=None, **config_options):
         #
@@ -119,47 +176,7 @@ class LinearBilevelSolver_REG(LinearBilevelSolverBase):
         return results
 
     def _create_pyomo_model(self, repn, rho):
-        #
-        # Create Pyomo model
-        #
-        M = pe.ConcreteModel()
-        M.U = pe.Block()
-        M.L = pe.Block()
-        M.kkt = pe.Block()
-
-        # upper- and lower-level variables
-        pyomo_util._create_variables(repn.U, M.U)
-        pyomo_util._create_variables(repn.L, M.L)
-        # dual variables
-        M.kkt.lam = pe.Var(range(len(repn.L.b)))                                    # equality constraints
-        M.kkt.nu = pe.Var(range(len(repn.L.xR)), within=pe.NonNegativeReals)        # variable bounds
-
-        # objective
-        e = pyomo_util.dot(repn.U.c.U, repn.U, num=1) + pyomo_util.dot(repn.U.c.L, repn.L, num=1) + repn.U.d
-        M.o = pe.Objective(expr=e)
-
-        # upper-level constraints
-        pyomo_util.add_linear_constraints(M.U, repn.U.A, repn.U, repn.L, repn.U.b, repn.U.inequalities)
-        # lower-level constraints
-        pyomo_util.add_linear_constraints(M.L, repn.L.A, repn.U, repn.L, repn.L.b, repn.L.inequalities)
-
-        # stationarity
-        M.kkt.stationarity = pe.ConstraintList() 
-        # L_A_L_xR' * lam
-        L_A_L_xR_T = repn.L.A.L.xR.transpose().todok()
-        X = pyomo_util.dot( L_A_L_xR_T, M.kkt.lam )
-        for i in range(len(repn.L.c.L.xR)):
-            #e = 0
-            #for j in M.kkt.lam:
-            #    e += L_A_L_xR_T[i,j] * M.kkt.lam[j]
-            #M.kkt.stationarity.add( repn.L.c.L.xR[i] + e - M.kkt.nu[i] == 0 )
-            M.kkt.stationarity.add( repn.L.c.L.xR[i] + X[i] - M.kkt.nu[i] == 0 )
-
-        # complementarity slackness - variables
-        M.kkt.slackness = ComplementarityList()
-        for i in M.kkt.nu:
-            M.kkt.slackness.add( complements( M.L.xR[i] >= 0, M.kkt.nu[i] >= 0 ) )
-
+        M = create_model_replacing_LL_with_kkt(repn)
         #
         # Transform the problem to a MIP
         #
@@ -168,7 +185,7 @@ class LinearBilevelSolver_REG(LinearBilevelSolverBase):
 
         return M
 
-    def _debug(self):
+    def _debug(self):           # pragma: no cover
         for j in M.U.xR:
             print("U",j,pe.value(M.U.xR[j]))
         for j in M.L.xR:

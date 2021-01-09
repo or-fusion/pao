@@ -22,14 +22,14 @@ class PyomoSolverBase(object):
         M.U = pe.Block()
         pyomo_util._create_variables(repn.U, M.U)
         fixed = []
-        if len(repn.U.xR) > 0:
+        if repn.U.x.nxR > 0:
             fixed.append(M.U.xR)
-        if len(repn.U.xZ) > 0:
+        if repn.U.x.nxZ > 0:
             fixed.append(M.U.xZ)
-        if len(repn.U.xB) > 0:
+        if repn.U.x.nxB > 0:
             fixed.append(M.U.xB)
         M.L = pao.bilevel.SubModel(fixed=fixed)
-        pyomo_util._create_variables(repn.L, M.L)
+        pyomo_util._create_variables(repn.U.LL, M.L)
         #
         # Objectives
         #
@@ -40,30 +40,34 @@ class PyomoSolverBase(object):
         self._create_constraints(repn, M)
 
     def _collect_values(self, level, block):
-        if len(level.xR) > 0:
+        if level.x.nxR > 0:
             for i,v in block.xR.items():
-                level.xR.values[i] = pe.value(v)
-        if len(level.xZ) > 0:
+                level.x.values[i] = pe.value(v)
+        if level.x.nxZ > 0:
             for i,v in block.xZ.items():
-                level.xZ.values[i] = pe.value(v)
-        if len(level.xB) > 0:
+                level.x.values[i+level.x.nxR] = pe.value(v)
+        if level.x.nxB > 0:
             for i,v in block.xB.items():
-                level.xB.values[i] = pe.value(v)
+                level.x.values[i+level.x.nxR+level.x.nxZ] = pe.value(v)
 
     def collect_values(self):
         self._collect_values(self.repn.U, self.model.U)
-        self._collect_values(self.repn.L, self.model.L)
+        self._collect_values(self.repn.U.LL, self.model.L)
 
 
 class PyomoSolverBase_LinearBilevelProblem(PyomoSolverBase):
 
     def _create_objectives(self, repn, M):
-        pyomo_util._linear_objective(repn.U.c, repn.U.d, repn.U, repn.L, M.U, repn.U.minimize)
-        pyomo_util._linear_objective(repn.L.c, repn.L.d, repn.U, repn.L, M.L, repn.L.minimize)
+        U = repn.U
+        L = repn.U.LL[0]
+        pyomo_util._linear_objective(U.c, U.d, U, L, M.U, U.minimize)
+        pyomo_util._linear_objective(L.c, L.d, U, L, M.L, L.minimize)
         
     def _create_constraints(self, repn, M):
-        pyomo_util._linear_constraints(repn.U.inequalities, repn.U.A, repn.U, repn.L, repn.U.b, M.U)
-        pyomo_util._linear_constraints(repn.L.inequalities, repn.L.A, repn.U, repn.L, repn.L.b, M.L)
+        U = repn.U
+        L = repn.U.LL[0]
+        pyomo_util._linear_constraints(U.inequalities, U.A, U, L, U.b, M.U)
+        pyomo_util._linear_constraints(L.inequalities, L.A, U, L, L.b, M.L)
         
     def create_pyomo_model(self, repn):
         PyomoSolverBase.create_pyomo_model(self,repn)
@@ -118,13 +122,14 @@ class BilevelSolver2_LinearBilevelProblem(PyomoSolverBase_LinearBilevelProblem):
         #
         # Confirm that we only have one lower-level problem (for now)
         #
-        assert (len(M.L) == 1), "Solver '%s' can only solve a LinearBilevelProblem with one lower-level problem" % self.solver_type
+        assert (len(M.U.LL) == 1), "Solver '%s' can only solve a LinearBilevelProblem with one lower-level problem" % self.solver_type
+        assert (len(M.U.LL[0].LL) == 0), "Solver '%s' can only solve a LinearBilevelProblem that is bilevel" % self.solver_type
         #
         # No binary or integer lower level variables
         #
-        for L in M.L:
-            assert (len(L.xZ) == 0), "Cannot use solver %s with model with integer lower-level variables" % self.solver_type
-            assert (len(L.xB) == 0), "Cannot use solver %s with model with binary lower-level variables" % self.solver_type
+        for L in M.U.LL:
+            assert (L.x.nxZ == 0), "Cannot use solver %s with model with integer lower-level variables" % self.solver_type
+            assert (L.x.nxB == 0), "Cannot use solver %s with model with binary lower-level variables" % self.solver_type
         #
         # Upper and lower objectives are the opposite of each other
         #

@@ -10,3 +10,4 @@ from . import sip_example1
 from . import toyexample1
 from . import toyexample2
 from . import toyexample3
+from . import anadalingam
