@@ -50,6 +50,8 @@ class PyomoSubmodelSolverBase_LBP(PyomoSubmodelSolverBase):
         #
         # Process keyword options
         #
+        #for key, value in config_options.items():
+        #    setattr(self.config, key, value)
         config_options = self._update_config(config_options, validate_options=False)
         #
         # Start the clock
@@ -67,10 +69,9 @@ class PyomoSubmodelSolverBase_LBP(PyomoSubmodelSolverBase):
         results = PyomoSubmodelResults(solution_manager=soln_manager)
         with SolverFactory(self.lbp_solver) as opt:
             lbp_results = opt.solve(lbp, options=options, 
-                                        tee=self.config.tee,
-                                        time_limit=self.config.time_limit,
                                         load_solutions=True,
-                                        **config_options)
+                                        **config_options
+                                        )
 
             self._initialize_results(results, lbp_results, instance, lbp, options)
             results.solver.rc = getattr(opt, '_rc', None)
@@ -84,7 +85,8 @@ class PyomoSubmodelSolverBase_LBP(PyomoSubmodelSolverBase):
         # SOLVER
         #
         solv = results.solver
-        solv.name = self.lbp_solver
+        solv.name = self.name
+        solv.lbp_solver = self.lbp_solver
         solv.config = self.config
         solv.solver_options = options
         solv.termination_condition = lbp_results.solver.termination_condition

@@ -31,8 +31,13 @@ class LinearBilevelSolver_PCCG(LinearBilevelSolverBase):
 
     def __init__(self, **kwds):
         super().__init__(name='pao.lbp.PCCG')
+        self.config.epsilon = 1e-4      #For use in disjunction approximation
+        self.config.xi = 0              #tolerance for UB-LB to claim convergence
+        self.config.maxit = None        #Maximum number of iterations
+        self.config.bigm = 1e6          # upper bound on variables
         self.config.solver = 'gurobi'
         self.config.quiet = True
+
 
     def check_model(self, lbp):
         #

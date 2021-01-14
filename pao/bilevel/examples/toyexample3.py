@@ -32,3 +32,10 @@ def create():
 if __name__ == "__main__":          #pragma: no cover
     M = create()
     M.pprint()
+
+    with SolverFactory('pao.submodel.PCCG') as opt:
+        results = opt.solve(M, tee=True, time_limit=10, quiet=False, maxit=100)
+
+    print(results)
+    M.display()
+

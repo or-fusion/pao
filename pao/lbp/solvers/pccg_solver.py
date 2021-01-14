@@ -425,16 +425,24 @@ def UBnew(Parent):
            Parent.Theta_0
 
 
+def get_value(config, name, default):
+    if name not in config:
+        return default
+    value = config[name]
+    if value is None:
+        return default
+    return value
+
 def execute_PCCG_solver(lbp, config, results):
     t = time.time()
 
     #These parameters can be changed for your specific problem
-    epsilon= config.get('epsilon', 1e-4) #For use in disjunction approximation
-    xi = config.get('xi', 0) #tolerance for UB-LB to claim convergence
-    maxit= config.get('maxit', 5) #Maximum number of iterations
-    M = config.get('bigm', 1e6) #upper bound on variables
-    solver = config.solver # MIP solver to use here
-    quiet = config.quiet # If True, then suppress output
+    epsilon = get_value(config, 'epsilon', 1e-4) #For use in disjunction approximation
+    xi      = get_value(config, 'xi', 0)        #tolerance for UB-LB to claim convergence
+    maxit   = get_value(config, 'maxit', 5)     #Maximum number of iterations
+    M       = get_value(config, 'bigm', 1e6)    #upper bound on variables
+    solver  = config.solver                     # MIP solver to use here
+    quiet   = config.quiet                      # If True, then suppress output
 
     LB=-infinity
     UB=infinity
