@@ -84,7 +84,8 @@ class PyomoSubmodelSolverBase_LBP(PyomoSubmodelSolverBase):
         # SOLVER
         #
         solv = results.solver
-        solv.name = self.lbp_solver
+        solv.name = self.name
+        solv.lbp_solver = self.lbp_solver
         solv.config = self.config
         solv.solver_options = options
         solv.termination_condition = lbp_results.solver.termination_condition
