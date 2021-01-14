@@ -120,3 +120,7 @@ class SubModel(SimpleBlock):
         #    self._var = [_var]
         #else:
         #    self._var = _var
+
+import pyomo.core.base.component_order
+pyomo.core.base.component_order.display_name[SubModel] = 'SubModel'
+pyomo.core.base.component_order.display_items.append(SubModel)
