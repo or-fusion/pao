@@ -57,14 +57,14 @@ class Test_submodel_FA(unittest.TestCase):
         self.assertTrue(math.isclose(M.xR.value, 2))
         self.assertTrue(math.isclose(M.L.xR.value, 100))
 
+    @unittest.skipIf('gurobi' not in solvers, "Gurobi solver is not available")
     def test_sip_example1(self):
         M = examples.sip_example1.create()
 
         opt = SolverFactory('pao.submodel.FA')
-        opt.solve(M)
+        opt.solve(M, solver='gurobi')
 
-        self.assertTrue(math.isclose(M.xR.value, 2))
-        self.assertTrue(math.isclose(M.L.xR.value, 100))
+        self.assertTrue(False)
 
 
 @unittest.skipIf('ipopt' not in solvers, "Ipopt solver is not available")

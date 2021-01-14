@@ -50,8 +50,9 @@ class PyomoSubmodelSolverBase_LBP(PyomoSubmodelSolverBase):
         #
         # Process keyword options
         #
-        for key, value in config_options.items():
-            setattr(self.config, key, value)
+        #for key, value in config_options.items():
+        #    setattr(self.config, key, value)
+        config_options = self._update_config(config_options, validate_options=False)
         #
         # Start the clock
         #

@@ -11,20 +11,21 @@ def create():
     M = LinearBilevelProblem()
 
     U = M.add_upper(nxZ=1)
-    U.c.U.xZ = [-1]
-    U.c.L.xZ = [-10]
+    L = U.add_lower(nxZ=1)
 
-    L = M.add_lower(nxZ=1)
-    L.c.L.xZ = [1]
+    U.c[U] = [-1]
+    U.c[L] = [-10]
 
-    L.A.U.xZ = [[-25],
-                [1],
-                [2],
-                [-2]]
-    L.A.L.xZ = [[20],
-                [2],
-                [-1],
-                [-10]]
+    L.c[L] = [1]
+
+    L.A[U] = [[-25],
+              [1],
+              [2],
+              [-2]]
+    L.A[L] = [[20],
+              [2],
+              [-1],
+              [-10]]
     L.b = [30,10,15,-15]
 
     return M
@@ -32,6 +33,6 @@ def create():
 
 if __name__ == "__main__":          #pragma: no cover
     M = create()
+    M.print()
     opt = SolverFactory('pao.lbp.FA')
     opt.solve(M)
-    M.print()

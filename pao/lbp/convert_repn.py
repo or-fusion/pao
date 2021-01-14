@@ -40,71 +40,78 @@ class VChangeUnbounded(VChange):
     def __init__(self, *, real, v, w):
         super().__init__(real=real, v=v, cid=4, w=w)
 
+class VChanges(object):
 
-def _find_nonpositive_variables(V, inequalities, real=True):
-    changes = []
-    nxV = len(V)
-    if V.upper_bounds is None:
-        if V.lower_bounds is None:
-            # variable unbounded
-            changes = [VChangeUnbounded(real=real, v=i, w=nxV+i) for i in range(nxV)]
-            nV = 2*nxV
+    def __init__(self):
+        self._data = []
+        self.nxR_old = 0
+        self.nxZ_old = 0
+        self.nxR = 0
+        self.nxZ = 0
+
+    def append(self, chg):
+        self._data.append(chg)
+
+    def __len__(self):
+        return len(self._data)
+
+    def __iter__(self):
+        for chg in self._data:
+            yield chg
+
+
+def _find_nonpositive_variables(V, inequalities):
+    changes = VChanges()
+    nxV = V.nxR+V.nxZ
+    nxR = V.nxR
+    nxZ = V.nxZ
+    changes.nxR_old = nxR
+    changes.nxZ_old = nxZ
+
+    for i in range(nxV):
+        lb = V.lower_bounds[i]
+        ub = V.upper_bounds[i]
+        #print(lb, ub)
+        if ub == np.PINF:
+            if lb == 0:
+                #print("HERE0")
+                continue
+            elif lb == np.NINF:
+                # Unbounded variable
+                if i<V.nxR:
+                    changes.append( VChangeUnbounded(real=True, v=i, w=nxR) )
+                    #print("HERE1")
+                    nxR += 1
+                else:
+                    changes.append( VChangeUnbounded(real=False, v=i, w=nxZ) )
+                    #print("HERE2")
+                    nxZ += 1
+            else:
+                changes.append( VChangeLowerBound(real=i<V.nxR, v=i, lb=lb) )
+        elif lb == np.NINF:
+            changes.append( VChangeUpperBound(real=i<V.nxR, v=i, ub=ub) )
+        elif inequalities:
+            changes.append( VChangeRange(real=i<V.nxR, v=i, lb=lb, ub=ub) )
         else:
-            # variable bounded below
-            nV = nxV
-            for i in range(nxV):
-                lb = V.lower_bounds[i]
-                if lb == 0:
-                    # Ignore non-negative variables
-                    continue
-                elif lb == np.NINF:
-                    # bound is -infinity
-                    changes.append( VChangeUnbounded(real=real, v=i, w=nV) )
-                    nV += 1
-                else:
-                    # bound is constant
-                    changes.append( VChangeLowerBound(real=real, v=i, lb=lb) )
-    else:
-        if V.lower_bounds is None:
-            # Variables are unbounded below
-            nV = nxV
-            for i in range(nxV):
-                ub = V.upper_bounds[i]
-                if ub == np.PINF:
-                    # Unbounded variable
-                    changes.append( VChangeUnbounded(real=real, v=i, w=nV) )
-                    nV += 1
-                else:
-                    changes.append( VChangeUpperBound(real=real, v=i, ub=ub) )
-        else:
-            # Variables are bounded
-            nV = nxV
-            for i in range(nxV):
-                lb = V.lower_bounds[i]
-                ub = V.upper_bounds[i]
-                if ub == np.PINF:
-                    if lb == 0:
-                        continue
-                    elif lb == np.NINF:
-                        # Unbounded variable
-                        changes.append( VChangeUnbounded(real=real, v=i, w=nV) )
-                        nV += 1
-                    else:
-                        changes.append( VChangeLowerBound(real=real, v=i, lb=lb) )
-                elif lb == np.NINF:
-                    changes.append( VChangeUpperBound(real=real, v=i, ub=ub) )
-                elif inequalities:
-                    changes.append( VChangeRange(real=real, v=i, lb=lb, ub=ub) )
-                else:
-                    changes.append( VChangeRange(real=real, v=i, lb=lb, ub=ub, w=nV) )
-                    nV += 1
+            changes.append( VChangeRange(real=i<V.nxR, v=i, lb=lb, ub=ub, w=nxR) )
+            #print("HERE2")
+            nxR += 1
 
-    assert (nV == nxV + sum(1 if c.w is not None else 0 for c in changes))
-    return changes, nV
+    # Reset the variable id for integers, given the final value of nxR
+    for c in changes:
+        if c.real is False:
+            c.v += nxR-V.nxR
+        if type(c) is VChangeUnbounded and c.real is False:
+            c.w += nxR
+
+    assert (nxR+nxZ == nxV + sum(1 if c.w is not None else 0 for c in changes))
+    changes.nxR = nxR
+    changes.nxZ = nxZ
+    #print(nxR, nxZ, V.nxB)
+    return changes
 
 
-def _process_changes(changes, nxR, c, d, A, b, add_rows=False):
-    c = copy.copy(c)
+def _process_changes(changes, V, c, d, A, b, add_rows=False):
     d = copy.copy(d)
     b = copy.copy(b)
 
@@ -153,7 +160,7 @@ def _process_changes(changes, nxR, c, d, A, b, add_rows=False):
             if c is not None:
                 d += c[v]*lb
                 if w is not None:
-                    c = np.append(c, 0)
+                    c[w] = 0
             if A is not None:
                 # i is index of the vth column in the A matrix
                 i = Acsc.indptr[v]
@@ -175,17 +182,10 @@ def _process_changes(changes, nxR, c, d, A, b, add_rows=False):
         else:                                   # real variable unbounded
             w = chg.w
             if c is not None:
-                c = np.append(c, -c[v])
+                c[w] = -c[v]
             if A is not None:
                 # i is index of the vth column in the A matrix
                 i = Acsc.indptr[v]
-                #if Acsc.indptr.size == v+1:
-                #    #print(chg)
-                #    #print(v, chg.v, i, chg.w)
-                #    #print(Acsc.shape)
-                #    #print(Acsc.indptr)
-                #    #print(Acsc.indices)
-                #    #print(Acsc.data)
                 inext = Acsc.indptr[v+1]
                 while i<inext:
                     row = Acsc.indices[i]
@@ -194,85 +194,58 @@ def _process_changes(changes, nxR, c, d, A, b, add_rows=False):
 
     if nrows == 0:
         return c, d, None, b
-    Bdok = dok_matrix((nrows, nxR))
+
+    Bdok = dok_matrix((nrows, changes.nxR+changes.nxZ+V.nxB))
+    #print(Bdok.shape)
+    #print(Acsc.shape)
+    # Collect the items from B
     for k,v in B.items():
         Bdok[k] = v
-    A = combine_matrices(Acsc, Bdok)
-    return c, d, A.tocoo(), b
+    # Merge in the items from A, shifting columns
+    Adok = Acsc.todok()
+    for k,v in Adok.items():
+        Bdok[k] = v
+    return c, d, Bdok.tocoo(), b
 
 
-def convert_to_nonnegative_variables(ans, inequalities, real=True):
-    if real:
-        vstr='xR'
-    else:
-        vstr='xZ'
+def convert_to_nonnegative_variables(ans, inequalities):
     #
-    # Collect real variables that are changing
+    # Collect real and integer variables that are changing
     #
-    UxV = getattr(ans.U, vstr)
-    changes_U, nV = _find_nonpositive_variables(UxV, inequalities, real=real)
-    UxV.resize(nV)
-    UxV.lower_bounds = np.zeros(nV)
-    changes_L = {}
-    for i in range(len(ans.L)):
-        LxV = getattr(ans.L[i], vstr)
-        changes_L_, nV = _find_nonpositive_variables(LxV, inequalities, real=real)
-        LxV.resize(nV)
-        LxV.lower_bounds = np.zeros(nV)
-        changes_L[i] = changes_L_
+    changes = {}
+    #ans.print()
+    for L in ans.levels():
+        changes[L.id] = _find_nonpositive_variables(L.x, inequalities)
+        L.resize(nxR=changes[L.id].nxR, nxZ=changes[L.id].nxZ, nxB=L.x.nxB)
+        L.x.lower_bounds = np.zeros(len(L.x))
+
+        #print(L.name)
+        #for chg in changes[L.id]:
+        #    print(chg)
     #
-    # Process changes related to upper-level variables
+    # Process changes 
     #
-    if len(changes_U) > 0:
-        UxV = getattr(ans.U, vstr)
-        UcUxV = getattr(ans.U.c.U, vstr)
-        UAUxV = getattr(ans.U.A.U, vstr)
-        UcUxV, ans.U.d, UAUxV, ans.U.b = \
-                _process_changes(changes_U, len(UxV), UcUxV, ans.U.d, UAUxV, ans.U.b, add_rows=True)
-        setattr(ans.U.c.U, vstr, UcUxV)
-        setattr(ans.U.A.U, vstr, UAUxV)
-        for i,L in enumerate(ans.L):
-            LcUxV = getattr(ans.L[i].c.U, vstr)
-            LAUxV = getattr(ans.L[i].A.U, vstr)
-            LcUxV, ans.L[i].d, LAUxV, ans.L[i].b = \
-                _process_changes(changes_U, len(UxV), LcUxV, L.d, LAUxV, L.b)
-            setattr(ans.L[i].c.U, vstr, LcUxV)
-            setattr(ans.L[i].A.U, vstr, LAUxV)
-    #
-    # Process changes related to lower-level variables
-    #
-    for i,L in enumerate(ans.L):
-        LxV = getattr(ans.L[i], vstr)
-        if len(changes_L[i]) > 0:
-            UcLxV = getattr(ans.U.c.L[i], vstr)
-            UALxV = getattr(ans.U.A.L[i], vstr)
-            UcLxV, ans.U.d, UALxV, ans.U.b = \
-                    _process_changes(changes_L[i], len(LxV), UcLxV, ans.U.d, UALxV, ans.U.b)
-            setattr(ans.U.c.L[i], vstr, UcLxV)
-            setattr(ans.U.A.L[i], vstr, UALxV)
-            #
-            LcLxV = getattr(ans.L[i].c.L[i], vstr)
-            LALxV = getattr(ans.L[i].A.L[i], vstr)
-            LcLxV, ans.L[i].d, LALxV, ans.L[i].b = \
-                    _process_changes(changes_L[i], len(LxV), LcLxV, ans.L[i].d, LALxV, ans.L[i].b, add_rows=True)
-            setattr(ans.L[i].c.L[i], vstr, LcLxV)
-            setattr(ans.L[i].A.L[i], vstr, LALxV)
+    for L in ans.levels():
+        if len(changes[L.id]) > 0:
+            for X in L.levels():
+                X.c[L], X.d, X.A[L], X.b = \
+                    _process_changes(changes[L.id], L.x, X.c[L], X.d, X.A[L], X.b, add_rows=L.id == X.id)
     #
     # Resize constraint matrices
     #
     # After processing upper and lower variables, we may have added constraints.  The other
     # upper/lower constraint matrices need to be resized as well.
     #
-    for i in range(len(ans.L)):
-        if getattr(ans.U.A.L[i], vstr) is not None:
-            getattr(ans.U.A.L[i], vstr).resize( [len(ans.U.b), len(getattr(ans.L[i], vstr))] )
-        if getattr(ans.L[i].A.U, vstr) is not None:
-            getattr(ans.L[i].A.U, vstr).resize( [len(ans.L[i].b), len(getattr(ans.U, vstr))] )
+    #for i in range(len(L)):
+    #    if U.A[L[i]] is not None:
+    #        U.A[L[i]].resize( [len(U.b), len(L[i].x)] )
+    #    if L[i].A[U] is not None:
+    #        L[i].A[U].resize( [len(L[i].b), len(U.x)] )
     #
-    return changes_U, changes_L
+    return changes
 
 
-def combine_matrices(A, B):
+def combine_matrices(A, B):         #pragma: nocover
     """
     Combining matrices with different shapes
 
@@ -293,35 +266,20 @@ def combine_matrices(A, B):
     return ans
 
 
-def convert_sense(level):
-    level.minimize = True
-    level.d *= -1
-    if level.c.U.xR is not None:
-        level.c.U.xR *= -1
-    if level.c.U.xZ is not None:
-        level.c.U.xZ *= -1
-    if level.c.U.xB is not None:
-        level.c.U.xB *= -1
-    for i in range(len(level.c.L)):
-        if level.c.L[i].xR is not None:
-            level.c.L[i].xR *= -1
-        if level.c.L[i].xZ is not None:
-            level.c.L[i].xZ *= -1
-        if level.c.L[i].xB is not None:
-            level.c.L[i].xB *= -1
+def convert_sense(L, minimize=True):
+    if (minimize and not L.minimize) or (not minimize and L.minimize):
+        L.minimize = minimize
+        L.d *= -1
+        for i in L.c:
+            L.c[i] *= -1
 
 
 def convert_to_minimization(ans):
-    if not ans.U.minimize:
-        convert_sense(ans.U)
-    for i in range(len(ans.L)):
-        if not ans.L[i].minimize:
-            convert_sense(ans.L[i])
+    for L in ans.levels():
+        convert_sense(L, minimize=True)
 
 
 def add_ineq_constraints(mat):
-    if mat is None:
-        return None
     x=mat.tocoo()
     nrows = mat.shape[0]
     d = -1 * x.data
@@ -337,134 +295,86 @@ def convert_constraints(ans, inequalities):
         # Creating inequality constraints from equalities by 
         # duplicating constraints
         #
-        if not ans.U.inequalities:
-            bnew = np.copy(ans.U.b)
-            bnew *= -1
-            ans.U.b = np.concatenate((ans.U.b, bnew))
-            ans.U.A.U.xR = add_ineq_constraints(ans.U.A.U.xR)
-            ans.U.A.U.xZ = add_ineq_constraints(ans.U.A.U.xZ)
-            ans.U.A.U.xB = add_ineq_constraints(ans.U.A.U.xB)
-            for i in range(len(ans.L)):
-                ans.U.A.L[i].xR = add_ineq_constraints(ans.U.A.L[i].xR)
-                ans.U.A.L[i].xZ = add_ineq_constraints(ans.U.A.L[i].xZ)
-                ans.U.A.L[i].xB = add_ineq_constraints(ans.U.A.L[i].xB)
-        for i in range(len(ans.L)):
-            if not ans.L[i].inequalities:
-                bnew = np.copy(ans.L[i].b)
+        for L in ans.levels():
+            if not L.inequalities:
+                bnew = np.copy(L.b)
                 bnew *= -1
-                ans.L[i].b = np.concatenate((ans.L[i].b, bnew))
-                ans.L[i].A.U.xR = add_ineq_constraints(ans.L[i].A.U.xR)
-                ans.L[i].A.U.xZ = add_ineq_constraints(ans.L[i].A.U.xZ)
-                ans.L[i].A.U.xB = add_ineq_constraints(ans.L[i].A.U.xB)
-                ans.L[i].A.L[i].xR = add_ineq_constraints(ans.L[i].A.L[i].xR)
-                ans.L[i].A.L[i].xZ = add_ineq_constraints(ans.L[i].A.L[i].xZ)
-                ans.L[i].A.L[i].xB = add_ineq_constraints(ans.L[i].A.L[i].xB)
+                L.b = np.concatenate((L.b, bnew))
+                for i in L.A:
+                    L.A[i] = add_ineq_constraints(L.A[i])
     else:
         #
         # Add slack variables to create equality constraints from inequalities
         #
-        if ans.U.inequalities:
-            j = len(ans.U.xR)#-len(ans.U.b)
-            ans.U.xR.resize( len(ans.U.xR) + len(ans.U.b), lb=0 )
-            B = dok_matrix((len(ans.U.b), len(ans.U.xR)))
-            for i in range(len(ans.U.b)):
-                B[i,j] = 1
-                j += 1
-                if ans.U.c.U.xR is not None:
-                    ans.U.c.U.xR = np.append(ans.U.c.U.xR, 0)
-                for k,L in enumerate(ans.L):
-                    if ans.L[k].c.U.xR is not None:
-                        ans.L[k].c.U.xR = np.append(ans.L[k].c.U.xR, 0)
-            ans.U.A.U.xR = combine_matrices(ans.U.A.U.xR, B)
-
-        for i in range(len(ans.L)):
-            if ans.L[i].A.U.xR is not None:
-                ans.L[i].A.U.xR.resize( (ans.L[i].A.U.xR.shape[0], len(ans.U.xR)) )
-
-            if ans.L[i].inequalities:
-                j = len(ans.L[i].xR)#-len(ans.L[i].b)
-                ans.L[i].xR.resize( len(ans.L[i].xR) + len(ans.L[i].b), lb=0 )
-                B = dok_matrix((len(ans.L[i].b), len(ans.L[i].xR)))
-                for k in range(len(ans.L[i].b)):
-                    B[k,j] = 1
-                    j += 1
-                    if ans.U.c.L[i].xR is not None:
-                        ans.U.c.L[i].xR = np.append(ans.U.c.L[i].xR, 0)
-                    if ans.L[i].c.L[i].xR is not None:
-                        ans.L[i].c.L[i].xR = np.append(ans.L[i].c.L[i].xR, 0)
-                ans.L[i].A.L[i].xR = combine_matrices(ans.L[i].A.L[i].xR, B)
-
-                if ans.U.A.L[i].xR is not None:
-                    ans.U.A.L[i].xR.resize( (ans.U.A.L[i].xR.shape[0], len(ans.L[i].xR)) )
+        for L in ans.levels():
+            if L.inequalities and len(L.b) > 0:
+                nxR = L.x.nxR
+                L.resize( nxR=nxR + len(L.b), nxZ=L.x.nxZ, nxB=L.x.nxB, lb=0 )
+                B = L.A[L]
+                if B is None:
+                    continue
+                B = B.todok()
+                for i in range(len(L.b)):
+                    B[i,nxR+i] = 1
+                L.A[L] = B
     #
     # Update inequality values
     #
-    ans.U.inequalities = inequalities
-    for i in range(len(ans.L)):
-        ans.L[i].inequalities = inequalities
+    for L in ans.levels():
+        L.inequalities = inequalities
 
 
-def get_multipliers(lbp, changes_U, changes_L, real=True):
-    if real:
-        vstr = 'xR'
-    else:
-        vstr = 'xZ'
-    # 
-    # If there were no changes, then the multiplier is 1
-    #
-    multipliers_U =   [[(i,1)] for i in getattr(lbp.U, vstr)]
-    multipliers_L = [ [[(i,1)] for i in getattr(lbp.L[j], vstr)] for j in range(len(lbp.L)) ]
-    for chg in changes_U:
-        if type(chg) is VChangeUpperBound:
-            multipliers_U[ chg.v ] = [(chg.v,-1)]
-        elif type(chg) is VChangeUnbounded:
-            multipliers_U[ chg.v ] = [(chg.v,1), (chg.w,-1)]
-    for i in changes_L:
-        for chg in changes_L[i]:
+def get_multipliers(lbp, changes):
+    multipliers = {}
+    for L in lbp.levels():
+        # 
+        # If there were no changes, then the multiplier is 1
+        #
+        multipliers[L.id] =   [[(i,1)] for i in L.x]
+        for chg in changes[L.id]:
             if type(chg) is VChangeUpperBound:
-                multipliers_L[i][ chg.v ] = [(chg.v,-1)]
+                multipliers[L.id][ chg.v ] = [(chg.v,-1)]
             elif type(chg) is VChangeUnbounded:
-                multipliers_L[i][ chg.v ] = [(chg.v,1), (chg.w,-1)]
-    return multipliers_U, multipliers_L
+                multipliers[L.id][ chg.v ] = [(chg.v,1), (chg.w,-1)]
+    return multipliers
 
 
 def convert_binaries_to_integers(lbp):
-    if len(lbp.U.xB) > 0:
-        nxZ = len(lbp.U.xZ)
-        nxB = len(lbp.U.xB)
-        lbp.U.xZ.resize(nxZ+nxB, lb=0, ub=1)
-        lbp.U.xB.resize(0)
+    for L in lbp.levels():
+        if L.x.nxB > 0:
+            L.x._resize(nxR=L.x.nxR, nxZ=L.x.nxZ+L.x.nxB, nxB=0, lb=0, ub=1)
 
-        if nxZ == 0:
-            lbp.U.c.U.xZ = lbp.U.c.U.xB
-            lbp.U.A.U.xZ = lbp.U.A.U.xB
-        else:
-            lbp.U.c.U.xZ = np.concatenate((lbp.U.c.U.xZ, lbp.U.c.U.xB))
-            lbp.U.A.U.xZ = hstack([lbp.U.A.U.xZ, lbp.U.A.U.xB], format='csr')
-        lbp.U.c.U.xB = None
-        lbp.U.A.U.xB = None
-        for i in range(len(lbp.L)):
+"""
             if nxZ == 0:
-                lbp.L[i].c.U.xZ = lbp.L[i].c.U.xB
-                lbp.L[i].A.U.xZ = lbp.L[i].A.U.xB
+                lbp.U.c.U.xZ = lbp.U.c.U.xB
+                lbp.U.A.U.xZ = lbp.U.A.U.xB
             else:
-                lbp.L[i].c.U.xZ = np.concatenate((lbp.L[i].c.U.xZ, lbp.L[i].c.U.xB))
-                lbp.L[i].A.U.xZ = hstack([lbp.L[i].A.U.xZ, lbp.L[i].A.U.xB], format='csr')
-            lbp.L[i].c.U.xB = None
-            lbp.L[i].A.U.xB = None
+                lbp.U.c.U.xZ = np.concatenate((lbp.U.c.U.xZ, lbp.U.c.U.xB))
+                lbp.U.A.U.xZ = hstack([lbp.U.A.U.xZ, lbp.U.A.U.xB], format='csr')
+            lbp.U.c.U.xB = None
+            lbp.U.A.U.xB = None
+            for i in range(len(lbp.U.L)):
+                if nxZ == 0:
+                    lbp.U.L[i].c.U.xZ = lbp.U.L[i].c.U.xB
+                    lbp.U.L[i].A.U.xZ = lbp.U.L[i].A.U.xB
+                else:
+                    lbp.U.L[i].c.U.xZ = np.concatenate((lbp.U.L[i].c.U.xZ, lbp.U.L[i].c.U.xB))
+                    lbp.U.L[i].A.U.xZ = hstack([lbp.U.L[i].A.U.xZ, lbp.U.L[i].A.U.xB], format='csr')
+                lbp.U.L[i].c.U.xB = None
+                lbp.U.L[i].A.U.xB = None
 
-    for i in range(len(lbp.L)):
-        if len(lbp.L[i].xB) > 0:
-            nxZ = len(lbp.L[i].xZ)
-            nxB = len(lbp.L[i].xB)
-            lbp.L[i].xZ.resize(nxZ+nxB, lb=0, ub=1)
-            lbp.L[i].xB.resize(0)
+    for i in range(len(lbp.U.L)):
+        if len(lbp.U.L[i].xB) > 0:
+            nxZ = len(lbp.U.L[i].xZ)
+            nxB = len(lbp.U.L[i].xB)
+            lbp.U.L[i].xZ.resize(nxZ+nxB, lb=0, ub=1)
+            lbp.U.L[i].xB.resize(0)
 
             if nxZ == 0:
-                lbp.U.c.L[i].xZ = lbp.U.c.L[i].xB
-                lbp.U.A.L[i].xZ = lbp.U.A.L[i].xB
+                lbp.U.c.U.L[i].xZ = lbp.U.c.U.L[i].xB
+                lbp.U.A.U.L[i].xZ = lbp.U.A.U.L[i].xB
             else:
-                lbp.U.c.L[i].xZ = np.concatenate((lbp.U.c.L[i].xZ, lbp.U.c.L[i].xB))
+                lbp.U.c.U.L[i].xZ = np.concatenate((lbp.U.c.U.L[i].xZ, lbp.U.c.U.L[i].xB))
                 lbp.U.A.L[i].xZ = hstack([lbp.U.A.L[i].xZ, lbp.U.A.L[i].xB], format='csr')
             lbp.U.c.L[i].xB = None
             lbp.U.A.L[i].xB = None
@@ -477,7 +387,7 @@ def convert_binaries_to_integers(lbp):
                     lbp.L[i].A.L[i].xZ = hstack([lbp.L[i].A.L[i].xZ, lbp.L[i].A.L[i].xB], format='csr')
                 lbp.L[i].c.L[i].xB = None
                 lbp.L[i].A.L[i].xB = None
-
+"""
 
 def convert_LinearBilevelProblem_to_standard_form(lbp, inequalities=False):
     """
@@ -502,14 +412,19 @@ def convert_LinearBilevelProblem_to_standard_form(lbp, inequalities=False):
     #
     # Normalize variables
     #
-    changes_UxR, changes_LxR = convert_to_nonnegative_variables(ans, inequalities, real=True)
-    changes_UxZ, changes_LxZ = convert_to_nonnegative_variables(ans, inequalities, real=False)
+    changes = convert_to_nonnegative_variables(ans, inequalities)
+    #
+    # Resize matrices
+    #
+    for L in ans.levels():
+        for X in L.levels():
+            A = X.A[L]
+            if A is not None:
+                A.resize( [len(X.b), len(L.x)] )
     #
     # Setup multipliers that are used to convert variables back to the original model
     #
-    multipliers_UxR, multipliers_LxR = get_multipliers(lbp, changes_UxR, changes_LxR, real=True)
-    multipliers_UxZ, multipliers_LxZ = get_multipliers(lbp, changes_UxZ, changes_LxZ, real=False)
+    multipliers = get_multipliers(lbp, changes)
 
-    return ans, LBP_SolutionManager( real=(multipliers_UxR, multipliers_LxR), 
-                                     integer=(multipliers_UxZ, multipliers_LxZ) )
+    return ans, LBP_SolutionManager(multipliers)
 

@@ -1,6 +1,9 @@
 name: continuous-integration/github/pr/linux
 
 on:
+  push:
+    branches:
+      - master
   pull_request:
     branches:
       - master
@@ -9,50 +12,59 @@ jobs:
   pyomo-linux-tests:
     name: py${{ matrix.python-version }}
     runs-on: ubuntu-latest
+    timeout-minutes: 90
     strategy:
       max-parallel: 3
       matrix:
-        python-version: [3.6, 3.7, 3.8]
+        python-version: [3.7, 3.8, 3.9]
 
     steps:
     - name: Setup Conda
-      uses: goanpeca/setup-miniconda@v1
+      uses: conda-incubator/setup-miniconda@v2
       with:
         auto-update-conda: true
         python-version: ${{ matrix.python-version }}
+
     - name: Conda info
       shell: bash -l {0}
       run: |
         conda info
         conda init bash
         conda env list
-    - name: Conda list
-      shell: pwsh
-      run: conda list
+
+    #- name: Conda list
+    #  shell: pwsh
+    #  run: conda list
+
     - uses: actions/checkout@v1
+
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
+
     - name: Install dependencies
       shell: bash -l {0}
       run: |
         conda env list
         conda activate test
+        conda config --set always_yes yes
         python -m pip install --upgrade pip
         pip install --quiet git+https://github.com/PyUtilib/pyutilib
         pip install --quiet git+https://github.com/Pyomo/pyomo
         python setup.py develop
-        pip install nose
-        pip install coverage
-        pip install codecov
-        pip install pyyaml
+        pip install wheel
+        pip install nose coverage codecov pyyaml numpy scipy
         conda install -c conda-forge glpk ipopt
+        conda list
+
     - name: Run tests
       shell: bash -l {0}
       run: |
-        nosetests --with-xunit --with-coverage --cover-xml .
+        conda list
+        nosetests --with-xunit --with-coverage --cover-xml -v .
         coverage report -m
+
     - name: Send coverage data to codecov
       shell: bash -l {0}
       run: |
