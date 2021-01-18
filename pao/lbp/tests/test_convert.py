@@ -1,7 +1,7 @@
 import numpy as np
 import pyutilib.th as unittest
 from pao.lbp import *
-from pao.lbp.convert_repn import convert_LinearBilevelProblem_to_standard_form, convert_binaries_to_integers
+from pao.lbp.convert_repn import convert_LinearMultilevelProblem_to_standard_form, convert_binaries_to_integers
 
 
 class Test_Trivial(unittest.TestCase):
@@ -9,11 +9,11 @@ class Test_Trivial(unittest.TestCase):
     def test_trivial1(self):
         # No changes are expected with a trivial problem
         #   with upper-level variables
-        lbp = LinearBilevelProblem()
+        lbp = LinearMultilevelProblem()
         U = lbp.add_upper(nxR=1, nxZ=2, nxB=3)
         lbp.check()
 
-        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(lbp)
+        ans, soln_manager = convert_LinearMultilevelProblem_to_standard_form(lbp)
         ans.check()
 
         self.assertEqual(ans.U.d, 0)
@@ -26,13 +26,13 @@ class Test_Trivial(unittest.TestCase):
     def test_trivial1L(self):
         # No changes are expected with a trivial problem
         #   with upper-level variables
-        lbp = LinearBilevelProblem()
+        lbp = LinearMultilevelProblem()
         U = lbp.add_upper(nxR=1, nxZ=2, nxB=3)
         L = U.add_lower(nxR=1, nxZ=2, nxB=3)
         L.x.lower_bounds = [0]*6
         lbp.check()
 
-        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(lbp)
+        ans, soln_manager = convert_LinearMultilevelProblem_to_standard_form(lbp)
         ans.check()
 
         self.assertEqual(ans.U.d, 0)
@@ -46,14 +46,14 @@ class Test_Trivial(unittest.TestCase):
         # No changes are expected with a trivial problem
         #   with upper-level variables
         #   with upper-level objective
-        lbp = LinearBilevelProblem()
+        lbp = LinearMultilevelProblem()
         U = lbp.add_upper(nxR=1, nxZ=2, nxB=3)
         U.c[U] = [1, 1, 1, 1, 1, 1]
         lbp.check()
 
-        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(lbp)
+        ans, soln_manager = convert_LinearMultilevelProblem_to_standard_form(lbp)
         ans.check()
-        #print("LBP")
+        #print("LMP")
         #lbp.print()
         #print("ANS")
         #ans.print()
@@ -72,7 +72,7 @@ class Test_Trivial(unittest.TestCase):
         # No changes are expected with a trivial problem
         #   with upper-level variables
         #   with upper-level objective
-        lbp = LinearBilevelProblem()
+        lbp = LinearMultilevelProblem()
         U = lbp.add_upper(nxR=1, nxZ=2, nxB=3)
         L = U.add_lower(nxR=1, nxZ=2, nxB=3)
         U.minimize = False
@@ -83,7 +83,7 @@ class Test_Trivial(unittest.TestCase):
         L.c[L] = [4, 4, 4, 4, 4, 4]
         lbp.check()
 
-        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(lbp)
+        ans, soln_manager = convert_LinearMultilevelProblem_to_standard_form(lbp)
         #ans.print()
         ans.check()
 
@@ -105,13 +105,13 @@ class Test_Trivial(unittest.TestCase):
         #   with upper-level variables
         #   with upper-level objective
         #   with lower-level variables
-        lbp = LinearBilevelProblem()
+        lbp = LinearMultilevelProblem()
         U = lbp.add_upper(nxR=1, nxZ=2, nxB=3)
         U.c[U] = [1]*6
         L = U.add_lower(nxR=1, nxZ=2, nxB=3)
         lbp.check()
 
-        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(lbp)
+        ans, soln_manager = convert_LinearMultilevelProblem_to_standard_form(lbp)
         ans.check()
 
         self.assertEqual(ans.U.d, 0)
@@ -132,7 +132,7 @@ class Test_Trivial(unittest.TestCase):
         #   with upper-level objective
         #   with lower-level variables
         #   with lower-level objective
-        lbp = LinearBilevelProblem()
+        lbp = LinearMultilevelProblem()
         U = lbp.add_upper(nxR=1, nxZ=2, nxB=3)
         L = U.add_lower(nxR=2, nxZ=3, nxB=4)
         U.c[U] = [1]*6
@@ -141,7 +141,7 @@ class Test_Trivial(unittest.TestCase):
         L.c[L] = [1]*9
         lbp.check()
 
-        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(lbp)
+        ans, soln_manager = convert_LinearMultilevelProblem_to_standard_form(lbp)
         ans.check()
 
         self.assertEqual(ans.U.d, 0)
@@ -162,14 +162,14 @@ class Test_Upper(unittest.TestCase):
     def test_test3(self):
         # Expect Changes - Nontrivial problem
         #   upper-level inequality constraints, so slack variables should be added
-        lbp = LinearBilevelProblem()
+        lbp = LinearMultilevelProblem()
         U = lbp.add_upper(nxR=1, nxZ=2, nxB=3)
         U.x.lower_bounds[0] = 0
         U.A[U] = [[1,0,0,0,0,0]]
         U.b = [2]
         lbp.check()
 
-        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(lbp)
+        ans, soln_manager = convert_LinearMultilevelProblem_to_standard_form(lbp)
         ans.check()
 
         self.assertEqual(ans.U.d, 0)
@@ -183,7 +183,7 @@ class Test_Upper(unittest.TestCase):
     def test_test3_inequality(self):
         # Expect Changes - Nontrivial problem
         #   upper-level equality constraints, so unconstrained variables are duplicated
-        lbp = LinearBilevelProblem()
+        lbp = LinearMultilevelProblem()
         U = lbp.add_upper(nxR=1, nxZ=2, nxB=3)
         U.equalities = True
         U.x.lower_bounds[0] = 0
@@ -191,7 +191,7 @@ class Test_Upper(unittest.TestCase):
         U.b = [2]
         lbp.check()
 
-        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(lbp, inequalities=True)
+        ans, soln_manager = convert_LinearMultilevelProblem_to_standard_form(lbp, inequalities=True)
         ans.check()
 
         self.assertEqual(ans.U.d, 0)
@@ -205,7 +205,7 @@ class Test_Upper(unittest.TestCase):
     def test_test3L(self):
         # Expect Changes - Nontrivial problem
         #   upper-level inequality constraints, so slack variables should be added
-        lbp = LinearBilevelProblem()
+        lbp = LinearMultilevelProblem()
         U = lbp.add_upper(nxR=1, nxZ=2, nxB=3)
         U.x.lower_bounds[0] = 0
         U.A[U] = [[1,0,0,0,0,0]]
@@ -213,7 +213,7 @@ class Test_Upper(unittest.TestCase):
         L = U.add_lower(nxZ=2, nxB=3)
         lbp.check()
 
-        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(lbp)
+        ans, soln_manager = convert_LinearMultilevelProblem_to_standard_form(lbp)
         ans.check()
 
         self.assertEqual(ans.U.d, 0)
@@ -227,7 +227,7 @@ class Test_Upper(unittest.TestCase):
     def test_test4(self):
         # Expect Changes - Nontrivial problem
         #   upper-level lower bounds, so the const objective and RHS are changed
-        lbp = LinearBilevelProblem()
+        lbp = LinearMultilevelProblem()
         U = lbp.add_upper(nxR=1, nxZ=2, nxB=3)
         U.equalities = True
         U.x.lower_bounds[0] = 3
@@ -238,7 +238,7 @@ class Test_Upper(unittest.TestCase):
         U.b = [7]
         lbp.check()
 
-        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(lbp)
+        ans, soln_manager = convert_LinearMultilevelProblem_to_standard_form(lbp)
         ans.check()
 
         self.assertEqual(ans.U.d, 6)
@@ -254,7 +254,7 @@ class Test_Upper(unittest.TestCase):
     def test_test4L(self):
         # Expect Changes - Nontrivial problem
         #   upper-level lower bounds, so the const objective and RHS are changed
-        lbp = LinearBilevelProblem()
+        lbp = LinearMultilevelProblem()
         U = lbp.add_upper(nxR=1, nxZ=2, nxB=3)
         U.equalities = True
         U.x.lower_bounds[0] = 3
@@ -267,7 +267,7 @@ class Test_Upper(unittest.TestCase):
         L.c[U] = [9,0,0,0,0,0]
         lbp.check()
 
-        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(lbp)
+        ans, soln_manager = convert_LinearMultilevelProblem_to_standard_form(lbp)
         ans.check()
 
         self.assertEqual(ans.U.d, 6)
@@ -286,7 +286,7 @@ class Test_Upper(unittest.TestCase):
     def test_test4_inequality(self):
         # Expect Changes - Nontrivial problem
         #   upper-level lower bounds, so the const objective and RHS are changed
-        lbp = LinearBilevelProblem()
+        lbp = LinearMultilevelProblem()
         U = lbp.add_upper(nxR=1, nxZ=2, nxB=3)
         U.inequalities = True
         U.x.lower_bounds[0] = 3
@@ -297,7 +297,7 @@ class Test_Upper(unittest.TestCase):
         U.b = [7]
         lbp.check()
 
-        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(lbp, inequalities=True)
+        ans, soln_manager = convert_LinearMultilevelProblem_to_standard_form(lbp, inequalities=True)
         ans.check()
 
         self.assertEqual(ans.U.d, 6)
@@ -312,7 +312,7 @@ class Test_Upper(unittest.TestCase):
     def test_test5(self):
         # Expect Changes - Nontrivial problem
         #   upper-level upper bounds, so the const objective and RHS are changed
-        lbp = LinearBilevelProblem()
+        lbp = LinearMultilevelProblem()
         U = lbp.add_upper(nxR=1, nxZ=2, nxB=3)
         U.equalities = True
         U.x.upper_bounds = [3, np.PINF, np.PINF, 1, 1, 1]
@@ -321,7 +321,7 @@ class Test_Upper(unittest.TestCase):
         U.b = [7]
         lbp.check()
 
-        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(lbp)
+        ans, soln_manager = convert_LinearMultilevelProblem_to_standard_form(lbp)
         ans.check()
 
         self.assertEqual(ans.U.d, 6)
@@ -337,7 +337,7 @@ class Test_Upper(unittest.TestCase):
     def test_test5L(self):
         # Expect Changes - Nontrivial problem
         #   upper-level upper bounds, so the const objective and RHS are changed
-        lbp = LinearBilevelProblem()
+        lbp = LinearMultilevelProblem()
         U = lbp.add_upper(nxR=1, nxZ=2, nxB=3)
         U.equalities = True
         U.x.upper_bounds[0] = 3
@@ -348,7 +348,7 @@ class Test_Upper(unittest.TestCase):
         L.c[U] = [9,0,0,0,0,0]
         lbp.check()
 
-        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(lbp)
+        ans, soln_manager = convert_LinearMultilevelProblem_to_standard_form(lbp)
         ans.check()
 
         self.assertEqual(ans.U.d, 6)
@@ -368,7 +368,7 @@ class Test_Upper(unittest.TestCase):
     def test_test5_inequality(self):
         # Expect Changes - Nontrivial problem
         #   upper-level upper bounds, so the const objective and RHS are changed
-        lbp = LinearBilevelProblem()
+        lbp = LinearMultilevelProblem()
         U = lbp.add_upper(nxR=1, nxZ=2, nxB=3)
         U.inequalities = True
         U.x.upper_bounds[0] = 3
@@ -377,7 +377,7 @@ class Test_Upper(unittest.TestCase):
         U.b = [7]
         lbp.check()
 
-        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(lbp, inequalities=True)
+        ans, soln_manager = convert_LinearMultilevelProblem_to_standard_form(lbp, inequalities=True)
         ans.check()
 
         self.assertEqual(ans.U.d, 6)
@@ -393,7 +393,7 @@ class Test_Upper(unittest.TestCase):
     def test_test6(self):
         # Expect Changes - Nontrivial problem
         #   upper-level range bounds, so the const objective and RHS are changed
-        lbp = LinearBilevelProblem()
+        lbp = LinearMultilevelProblem()
         U = lbp.add_upper(nxR=1, nxZ=2, nxB=3)
         U.equalities = True
         U.x.lower_bounds = [3,0,0,0,0,0]
@@ -404,7 +404,7 @@ class Test_Upper(unittest.TestCase):
         lbp.check()
         #lbp.print()
 
-        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(lbp)
+        ans, soln_manager = convert_LinearMultilevelProblem_to_standard_form(lbp)
         #ans.print()
         ans.check()
 
@@ -423,7 +423,7 @@ class Test_Upper(unittest.TestCase):
     def test_test6L(self):
         # Expect Changes - Nontrivial problem
         #   upper-level range bounds, so the const objective and RHS are changed
-        lbp = LinearBilevelProblem()
+        lbp = LinearMultilevelProblem()
         U = lbp.add_upper(nxR=1, nxZ=2, nxB=3)
         U.equalities = True
         U.x.lower_bounds = [3,0,0,0,0,0]
@@ -436,7 +436,7 @@ class Test_Upper(unittest.TestCase):
         lbp.check()
         #lbp.print()
 
-        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(lbp)
+        ans, soln_manager = convert_LinearMultilevelProblem_to_standard_form(lbp)
         #ans.print()
         ans.check()
 
@@ -461,7 +461,7 @@ class Test_Upper(unittest.TestCase):
     def test_test7(self):
         # Expect Changes - Nontrivial problem
         #   upper-level unbounded variables, so variables are added
-        lbp = LinearBilevelProblem()
+        lbp = LinearMultilevelProblem()
         U = lbp.add_upper(nxR=1, nxZ=2, nxB=3)
         U.equalities = True
         U.c[U] = [2,0,0,0,0,0]
@@ -470,7 +470,7 @@ class Test_Upper(unittest.TestCase):
         lbp.check()
         #lbp.print()
 
-        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(lbp)
+        ans, soln_manager = convert_LinearMultilevelProblem_to_standard_form(lbp)
         #ans.print()
         ans.check()
 
@@ -489,7 +489,7 @@ class Test_Upper(unittest.TestCase):
     def test_test7L(self):
         # Expect Changes - Nontrivial problem
         #   upper-level unbounded variables, so variables are added
-        lbp = LinearBilevelProblem()
+        lbp = LinearMultilevelProblem()
         U = lbp.add_upper(nxR=1, nxZ=2, nxB=3)
         U.equalities = True
         U.c[U] = [2,0,0,0,0,0]
@@ -500,7 +500,7 @@ class Test_Upper(unittest.TestCase):
         lbp.check()
         #lbp.print()
 
-        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(lbp)
+        ans, soln_manager = convert_LinearMultilevelProblem_to_standard_form(lbp)
         #ans.print()
         ans.check()
 
@@ -527,7 +527,7 @@ class Test_Upper(unittest.TestCase):
         #   upper-level upper bounds, so the const objective and RHS are changed
         #   upper-level range bounds, so the const objective and RHS are changed
         #   upper-level unbounded variables, so variables are added
-        lbp = LinearBilevelProblem()
+        lbp = LinearMultilevelProblem()
         U = lbp.add_upper(nxR=5, nxZ=2, nxB=3)
         U.equalities = True
         U.x.lower_bounds = [3,       np.NINF, 11, np.NINF, 0      , np.NINF, np.NINF, 0, 0, 0]
@@ -537,7 +537,7 @@ class Test_Upper(unittest.TestCase):
         U.b = [7]
         lbp.check()
 
-        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(lbp)
+        ans, soln_manager = convert_LinearMultilevelProblem_to_standard_form(lbp)
         ans.check()
 
         self.assertEqual(ans.U.d, 77)
@@ -563,7 +563,7 @@ class Test_Upper(unittest.TestCase):
         #   upper-level upper bounds, so the const objective and RHS are changed
         #   upper-level range bounds, so the const objective and RHS are changed
         #   upper-level unbounded variables, so variables are added
-        lbp = LinearBilevelProblem()
+        lbp = LinearMultilevelProblem()
         U = lbp.add_upper(nxR=5, nxZ=2, nxB=3)
         U.equalities = True
         U.x.lower_bounds = [3,       np.NINF, 11, np.NINF, 0      , np.NINF, np.NINF, 0, 0, 0]
@@ -575,7 +575,7 @@ class Test_Upper(unittest.TestCase):
         L.c[U] = [9,10,11,12,13,0,0,0,0,0]
         lbp.check()
 
-        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(lbp)
+        ans, soln_manager = convert_LinearMultilevelProblem_to_standard_form(lbp)
         ans.check()
 
         self.assertEqual(ans.U.d, 77)
@@ -605,7 +605,7 @@ class Test_Upper(unittest.TestCase):
         #   upper-level upper bounds, so the const objective and RHS are changed
         #   upper-level range bounds, so the const objective and RHS are changed
         #   upper-level unbounded variables, so variables are added
-        lbp = LinearBilevelProblem()
+        lbp = LinearMultilevelProblem()
         U = lbp.add_upper(nxR=3, nxZ=2, nxB=3)
         U.inequalities = True
         U.x.lower_bounds = [0, 0, 0, 0, 0, 0, 0, 0]
@@ -616,7 +616,7 @@ class Test_Upper(unittest.TestCase):
         U.b = [7,8,9]
         lbp.check()
 
-        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(lbp)
+        ans, soln_manager = convert_LinearMultilevelProblem_to_standard_form(lbp)
         ans.check()
 
         self.assertEqual(ans.U.d, 0)
@@ -642,7 +642,7 @@ class Test_Upper(unittest.TestCase):
         #   upper-level upper bounds, so the const objective and RHS are changed
         #   upper-level range bounds, so the const objective and RHS are changed
         #   upper-level unbounded variables, so variables are added
-        lbp = LinearBilevelProblem()
+        lbp = LinearMultilevelProblem()
         U = lbp.add_upper(nxR=3, nxZ=2, nxB=3)
         U.inequalities = True
         U.x.lower_bounds = [0, 0, 0, 0, 0, 0, 0, 0]
@@ -655,7 +655,7 @@ class Test_Upper(unittest.TestCase):
         L.c[U] = [9, 10, 11, 0, 0, 0, 0, 0]
         lbp.check()
 
-        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(lbp)
+        ans, soln_manager = convert_LinearMultilevelProblem_to_standard_form(lbp)
         ans.check()
 
         self.assertEqual(ans.U.d, 0)
@@ -685,7 +685,7 @@ class Test_Upper(unittest.TestCase):
         #   upper-level upper bounds, so the const objective and RHS are changed
         #   upper-level range bounds, so the const objective and RHS are changed
         #   upper-level unbounded variables, so variables are added
-        lbp = LinearBilevelProblem()
+        lbp = LinearMultilevelProblem()
         U = lbp.add_upper(nxR=3, nxZ=2, nxB=3)
         U.equalities = True
         U.x.lower_bounds = [0, 0, 0, 0, 0, 0, 0, 0]
@@ -696,7 +696,7 @@ class Test_Upper(unittest.TestCase):
         U.b = [7,8,9]
         lbp.check()
 
-        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(lbp, inequalities=True)
+        ans, soln_manager = convert_LinearMultilevelProblem_to_standard_form(lbp, inequalities=True)
         ans.check()
 
         self.assertEqual(ans.U.d, 0)
@@ -723,7 +723,7 @@ class Test_Upper(unittest.TestCase):
         # Expect Changes - Nontrivial problem
         #   upper-level lower bounds, so the const objective and RHS are changed
         #   upper-level unbounded variables, so variables are added
-        lbp = LinearBilevelProblem()
+        lbp = LinearMultilevelProblem()
         U = lbp.add_upper(nxR=3, nxZ=2, nxB=3)
         U.equalities = True
         U.x.lower_bounds = [3, np.NINF, 0, 0, 0, 0, 0, 0]
@@ -732,7 +732,7 @@ class Test_Upper(unittest.TestCase):
         U.b = [7]
         lbp.check()
 
-        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(lbp)
+        ans, soln_manager = convert_LinearMultilevelProblem_to_standard_form(lbp)
         ans.check()
 
         self.assertEqual(ans.U.d, 6)
@@ -752,7 +752,7 @@ class Test_Upper(unittest.TestCase):
         # Expect Changes - Nontrivial problem
         #   upper-level lower bounds, so the const objective and RHS are changed
         #   upper-level unbounded variables, so variables are added
-        lbp = LinearBilevelProblem()
+        lbp = LinearMultilevelProblem()
         U = lbp.add_upper(nxR=3, nxZ=2, nxB=3)
         U.equalities = True
         U.x.lower_bounds = [3, np.NINF, 0, 0, 0, 0, 0, 0]
@@ -763,7 +763,7 @@ class Test_Upper(unittest.TestCase):
         L.c[U] = [9,10,11, 0, 0, 0, 0, 0]
         lbp.check()
 
-        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(lbp)
+        ans, soln_manager = convert_LinearMultilevelProblem_to_standard_form(lbp)
         ans.check()
 
         self.assertEqual(ans.U.d, 6)
@@ -787,7 +787,7 @@ class Test_Upper(unittest.TestCase):
         # Expect Changes - Nontrivial problem
         #   upper-level upper bounds, so the const objective and RHS are changed
         #   upper-level unbounded variables, so variables are added
-        lbp = LinearBilevelProblem()
+        lbp = LinearMultilevelProblem()
         U = lbp.add_upper(nxR=2, nxZ=2, nxB=3)
         U.equalities = True
         U.x.upper_bounds = [3, np.PINF, np.PINF, np.PINF, 1, 1, 1]
@@ -796,7 +796,7 @@ class Test_Upper(unittest.TestCase):
         U.b = [7]
         lbp.check()
 
-        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(lbp)
+        ans, soln_manager = convert_LinearMultilevelProblem_to_standard_form(lbp)
         ans.check()
 
         self.assertEqual(ans.U.d, 6)
@@ -815,7 +815,7 @@ class Test_Upper(unittest.TestCase):
         # Expect Changes - Nontrivial problem
         #   upper-level upper bounds, so the const objective and RHS are changed
         #   upper-level unbounded variables, so variables are added
-        lbp = LinearBilevelProblem()
+        lbp = LinearMultilevelProblem()
         U = lbp.add_upper(nxR=2, nxZ=2, nxB=3)
         U.equalities = True
         U.x.upper_bounds = [3, np.PINF, np.PINF, np.PINF, 1, 1, 1]
@@ -826,7 +826,7 @@ class Test_Upper(unittest.TestCase):
         L.c[U] = [9,10, 0, 0, 0, 0, 0]
         lbp.check()
 
-        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(lbp)
+        ans, soln_manager = convert_LinearMultilevelProblem_to_standard_form(lbp)
         ans.check()
 
         self.assertEqual(ans.U.d, 6)
@@ -851,7 +851,7 @@ class Test_Upper(unittest.TestCase):
         #   upper-level upper bounds, so the const objective and RHS are changed
         #   upper-level range bounds, so the const objective and RHS are changed
         #   upper-level unbounded variables, so variables are added
-        lbp = LinearBilevelProblem()
+        lbp = LinearMultilevelProblem()
         U = lbp.add_upper(nxR=5, nxZ=2, nxB=3)
         U.inequalities = True
         U.x.lower_bounds = [3,       np.NINF, 11, np.NINF, 0      , 0,       0,       0, 0, 0]
@@ -861,7 +861,7 @@ class Test_Upper(unittest.TestCase):
         U.b = [7]
         lbp.check()
 
-        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(lbp)
+        ans, soln_manager = convert_LinearMultilevelProblem_to_standard_form(lbp)
         ans.check()
 
         self.assertEqual(ans.U.d, 77)
@@ -889,7 +889,7 @@ class Test_Upper(unittest.TestCase):
         #   upper-level upper bounds, so the const objective and RHS are changed
         #   upper-level range bounds, so the const objective and RHS are changed
         #   upper-level unbounded variables, so variables are added
-        lbp = LinearBilevelProblem()
+        lbp = LinearMultilevelProblem()
         U = lbp.add_upper(nxR=5, nxZ=2, nxB=3)
         U.inequalities = True
         U.x.lower_bounds = [3,       np.NINF, 11, np.NINF, 0      , 0,       0,       0, 0, 0]
@@ -901,7 +901,7 @@ class Test_Upper(unittest.TestCase):
         L.c[U] = [9,10,11,12,13, 0, 0, 0, 0, 0]
         lbp.check()
 
-        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(lbp)
+        ans, soln_manager = convert_LinearMultilevelProblem_to_standard_form(lbp)
         ans.check()
 
         self.assertEqual(ans.U.d, 77)
@@ -933,7 +933,7 @@ class Test_Lower(unittest.TestCase):
     def test_test3(self):
         # Expect Changes - Nontrivial problem
         #   lower-level inequality constraints, so slack variables should be added
-        lbp = LinearBilevelProblem()
+        lbp = LinearMultilevelProblem()
         U = lbp.add_upper(nxZ=2, nxB=3)
         L = U.add_lower(nxR=1, nxZ=2, nxB=3)
         L.x.lower_bounds = [0, 0, 0, 0, 0, 0]
@@ -941,7 +941,7 @@ class Test_Lower(unittest.TestCase):
         L.b = [2]
         lbp.check()
 
-        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(lbp)
+        ans, soln_manager = convert_LinearMultilevelProblem_to_standard_form(lbp)
         ans.check()
 
         self.assertEqual(ans.U.d, 0)
@@ -958,7 +958,7 @@ class Test_Lower(unittest.TestCase):
     def test_test4(self):
         # Expect Changes - Nontrivial problem
         #   upper-level lower bounds, so the const objective and RHS are changed
-        lbp = LinearBilevelProblem()
+        lbp = LinearMultilevelProblem()
         U = lbp.add_upper(nxZ=2, nxB=3)
         L = U.add_lower(nxR=1, nxZ=2, nxB=3)
         L.equalities = True
@@ -968,7 +968,7 @@ class Test_Lower(unittest.TestCase):
         L.b = [7]
         lbp.check()
 
-        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(lbp)
+        ans, soln_manager = convert_LinearMultilevelProblem_to_standard_form(lbp)
         ans.check()
 
         self.assertEqual(ans.U.d, 0)
@@ -986,7 +986,7 @@ class Test_Lower(unittest.TestCase):
     def test_test5(self):
         # Expect Changes - Nontrivial problem
         #   upper-level upper bounds, so the const objective and RHS are changed
-        lbp = LinearBilevelProblem()
+        lbp = LinearMultilevelProblem()
         U = lbp.add_upper(nxZ=2, nxB=3)
         L = U.add_lower(nxR=1, nxZ=2, nxB=3)
         L.equalities = True
@@ -996,7 +996,7 @@ class Test_Lower(unittest.TestCase):
         L.b = [7]
         lbp.check()
 
-        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(lbp)
+        ans, soln_manager = convert_LinearMultilevelProblem_to_standard_form(lbp)
         ans.check()
 
         self.assertEqual(ans.U.d, 0)
@@ -1014,7 +1014,7 @@ class Test_Lower(unittest.TestCase):
     def test_test6(self):
         # Expect Changes - Nontrivial problem
         #   upper-level range bounds, so the const objective and RHS are changed
-        lbp = LinearBilevelProblem()
+        lbp = LinearMultilevelProblem()
         U = lbp.add_upper(nxZ=2, nxB=3)
         L = U.add_lower(nxR=1, nxZ=2, nxB=3)
         L.equalities = True
@@ -1026,7 +1026,7 @@ class Test_Lower(unittest.TestCase):
         lbp.check()
         #lbp.print()
 
-        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(lbp)
+        ans, soln_manager = convert_LinearMultilevelProblem_to_standard_form(lbp)
         #ans.print()
         ans.check()
 
@@ -1048,7 +1048,7 @@ class Test_Lower(unittest.TestCase):
     def test_test7(self):
         # Expect Changes - Nontrivial problem
         #   upper-level unbounded variables, so variables are added
-        lbp = LinearBilevelProblem()
+        lbp = LinearMultilevelProblem()
         U = lbp.add_upper(nxZ=2, nxB=3)
         L = U.add_lower(nxR=1, nxZ=2, nxB=3)
         L.equalities = True
@@ -1058,7 +1058,7 @@ class Test_Lower(unittest.TestCase):
         lbp.check()
         #lbp.print()
 
-        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(lbp)
+        ans, soln_manager = convert_LinearMultilevelProblem_to_standard_form(lbp)
         #ans.print()
         ans.check()
 
@@ -1083,7 +1083,7 @@ class Test_Lower(unittest.TestCase):
         #   upper-level upper bounds, so the const objective and RHS are changed
         #   upper-level range bounds, so the const objective and RHS are changed
         #   upper-level unbounded variables, so variables are added
-        lbp = LinearBilevelProblem()
+        lbp = LinearMultilevelProblem()
         U = lbp.add_upper(nxZ=2, nxB=3)
         L = U.add_lower(nxR=5, nxZ=2, nxB=3)
         L.equalities = True
@@ -1094,7 +1094,7 @@ class Test_Lower(unittest.TestCase):
         L.b = [7]
         lbp.check()
 
-        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(lbp)
+        ans, soln_manager = convert_LinearMultilevelProblem_to_standard_form(lbp)
         ans.check()
 
         self.assertEqual(ans.U.d, 0)
@@ -1123,7 +1123,7 @@ class Test_Lower(unittest.TestCase):
         #   upper-level upper bounds, so the const objective and RHS are changed
         #   upper-level range bounds, so the const objective and RHS are changed
         #   upper-level unbounded variables, so variables are added
-        lbp = LinearBilevelProblem()
+        lbp = LinearMultilevelProblem()
         U = lbp.add_upper(nxZ=2, nxB=3)
         L = U.add_lower(nxR=3, nxZ=2, nxB=3)
         L.inequalities = True
@@ -1136,7 +1136,7 @@ class Test_Lower(unittest.TestCase):
         #lbp.print()
         lbp.check()
 
-        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(lbp)
+        ans, soln_manager = convert_LinearMultilevelProblem_to_standard_form(lbp)
         ans.check()
 
         self.assertEqual(ans.U.d, 0)
@@ -1163,7 +1163,7 @@ class Test_Lower(unittest.TestCase):
         # Expect Changes - Nontrivial problem
         #   upper-level lower bounds, so the const objective and RHS are changed
         #   upper-level unbounded variables, so variables are added
-        lbp = LinearBilevelProblem()
+        lbp = LinearMultilevelProblem()
         U = lbp.add_upper(nxZ=2, nxB=3)
         L = U.add_lower(nxR=3, nxZ=2, nxB=3)
         L.equalities = True
@@ -1173,7 +1173,7 @@ class Test_Lower(unittest.TestCase):
         L.b = [7]
         lbp.check()
 
-        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(lbp)
+        ans, soln_manager = convert_LinearMultilevelProblem_to_standard_form(lbp)
         ans.check()
 
         self.assertEqual(ans.U.d, 0)
@@ -1196,7 +1196,7 @@ class Test_Lower(unittest.TestCase):
         # Expect Changes - Nontrivial problem
         #   upper-level upper bounds, so the const objective and RHS are changed
         #   upper-level unbounded variables, so variables are added
-        lbp = LinearBilevelProblem()
+        lbp = LinearMultilevelProblem()
         U = lbp.add_upper(nxZ=2, nxB=3)
         L = U.add_lower(nxR=2, nxZ=2, nxB=3)
         L.equalities = True
@@ -1206,7 +1206,7 @@ class Test_Lower(unittest.TestCase):
         L.b = [7]
         lbp.check()
 
-        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(lbp)
+        ans, soln_manager = convert_LinearMultilevelProblem_to_standard_form(lbp)
         ans.check()
 
         self.assertEqual(ans.U.d, 0)
@@ -1229,7 +1229,7 @@ class Test_Lower(unittest.TestCase):
         #   upper-level upper bounds, so the const objective and RHS are changed
         #   upper-level range bounds, so the const objective and RHS are changed
         #   upper-level unbounded variables, so variables are added
-        lbp = LinearBilevelProblem()
+        lbp = LinearMultilevelProblem()
         U = lbp.add_upper(nxZ=2, nxB=3)
         L = U.add_lower(nxR=5, nxZ=2, nxB=3)
         L.inequalities = True
@@ -1240,7 +1240,7 @@ class Test_Lower(unittest.TestCase):
         L.b = [7]
         lbp.check()
 
-        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(lbp)
+        ans, soln_manager = convert_LinearMultilevelProblem_to_standard_form(lbp)
         ans.check()
 
         self.assertEqual(ans.U.d, 0)
@@ -1269,7 +1269,7 @@ class Test_Lower(unittest.TestCase):
 class Test_NonTrivial(unittest.TestCase):
 
     def test_test1(self):
-        lbp = LinearBilevelProblem()
+        lbp = LinearMultilevelProblem()
 
         U = lbp.add_upper(nxR=4)
         L0 = U.add_lower(nxR=5)
@@ -1342,7 +1342,7 @@ class Test_NonTrivial(unittest.TestCase):
 
         #print("-"*80)
 
-        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(lbp)
+        ans, soln_manager = convert_LinearMultilevelProblem_to_standard_form(lbp)
         #ans.print()
         ans.check()
 
@@ -1368,7 +1368,7 @@ class Test_NonTrivial(unittest.TestCase):
         self.assertEqual(soln_manager.multipliers[L1.id], [[(0,1)], [(1,1)], [(2,-1)], [(3,1)], [(4,1),(7,-1)], [(5,1)]])
 
     def test_test1_inequality(self):
-        lbp = LinearBilevelProblem()
+        lbp = LinearMultilevelProblem()
 
         U = lbp.add_upper(nxR=4)
         L0 = U.add_lower(nxR=5)
@@ -1441,7 +1441,7 @@ class Test_NonTrivial(unittest.TestCase):
 
         #print("-"*80)
 
-        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(lbp, inequalities=True)
+        ans, soln_manager = convert_LinearMultilevelProblem_to_standard_form(lbp, inequalities=True)
         #ans.print()
         ans.check()
 
@@ -1467,7 +1467,7 @@ class Test_NonTrivial(unittest.TestCase):
         self.assertEqual(soln_manager.multipliers[L1.id], [[(0,1)], [(1,1)], [(2,-1)], [(3,1)], [(4,1),(6,-1)], [(5,1)]])
 
     def test_test2(self):
-        lbp = LinearBilevelProblem()
+        lbp = LinearMultilevelProblem()
 
         U = lbp.add_upper(nxR=4)
         U.minimize = False
@@ -1542,7 +1542,7 @@ class Test_NonTrivial(unittest.TestCase):
 
         #print("-"*80)
 
-        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(lbp)
+        ans, soln_manager = convert_LinearMultilevelProblem_to_standard_form(lbp)
         #ans.print()
         ans.check()
 
@@ -1571,7 +1571,7 @@ class Test_NonTrivial(unittest.TestCase):
 class Test_Integers(unittest.TestCase):
 
     def test_test1(self):
-        lbp = LinearBilevelProblem()
+        lbp = LinearMultilevelProblem()
 
         U = lbp.add_upper(nxR=1, nxZ=2, nxB=3)
         L = U.add_lower(nxR=2, nxZ=3, nxB=4)
@@ -1644,7 +1644,7 @@ class Test_Integers(unittest.TestCase):
         #self.assertEqual(L.A.L.xB, None)
 
     def test_test2(self):
-        lbp = LinearBilevelProblem()
+        lbp = LinearMultilevelProblem()
 
         U = lbp.add_upper(nxR=1, nxZ=0, nxB=3)
         L = U.add_lower(nxR=2, nxZ=0, nxB=4)
@@ -1712,7 +1712,7 @@ class Test_Examples(unittest.TestCase):
 
     # NOTE - this is one of the few tests with binaries that have nonzero A-matrix coefficients
     def test_simple1(self):
-        lbp = LinearBilevelProblem()
+        lbp = LinearMultilevelProblem()
         U = lbp.add_upper(nxR=4, nxZ=1, nxB=1)
         U.equalities = True
         U.x.lower_bounds = [np.NINF, -1,      np.NINF, -2, 0,       0]
@@ -1725,7 +1725,7 @@ class Test_Examples(unittest.TestCase):
         #lbp.print()
         lbp.check()
 
-        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(lbp)
+        ans, soln_manager = convert_LinearMultilevelProblem_to_standard_form(lbp)
         #ans.print()
         ans.check()
 
@@ -1746,7 +1746,7 @@ class Test_Examples(unittest.TestCase):
     # NOTE - An example where the upper-level doesn't have constraints with its own variables
     #        Q - Can this ever happen?
     def test_simple2(self):
-        lbp = LinearBilevelProblem()
+        lbp = LinearMultilevelProblem()
         U = lbp.add_upper(nxB=1)
         L = U.add_lower(nxR=4, nxZ=1, nxB=1)
 
@@ -1771,7 +1771,7 @@ class Test_Examples(unittest.TestCase):
         #lbp.print()
         lbp.check()
 
-        ans, soln_manager = convert_LinearBilevelProblem_to_standard_form(lbp)
+        ans, soln_manager = convert_LinearMultilevelProblem_to_standard_form(lbp)
         #ans.print()
         ans.check()
 

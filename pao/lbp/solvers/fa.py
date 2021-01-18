@@ -8,9 +8,9 @@ import pyutilib
 import pyomo.environ as pe
 import pyomo.opt
 from pyomo.mpec import ComplementarityList, complements
-from ..solver import SolverFactory, LinearBilevelSolverBase, LinearBilevelResults
-from ..repn import LinearBilevelProblem
-from ..convert_repn import convert_LinearBilevelProblem_to_standard_form
+from ..solver import SolverFactory, LinearMultilevelSolverBase, LinearMultilevelResults
+from ..repn import LinearMultilevelProblem
+from ..convert_repn import convert_LinearMultilevelProblem_to_standard_form
 from .. import pyomo_util
 from .reg import create_model_replacing_LL_with_kkt
 
@@ -18,7 +18,7 @@ from .reg import create_model_replacing_LL_with_kkt
 @SolverFactory.register(
         name='pao.lbp.FA',
         doc='A solver for linear bilevel programs using big-M relaxations discussed by Fortuny-Amat and McCarl, 1981.')
-class LinearBilevelSolver_FA(LinearBilevelSolverBase):
+class LinearMultilevelSolver_FA(LinearMultilevelSolverBase):
 
     def __init__(self, **kwds):
         super().__init__(name='pao.lbp.FA')
@@ -27,9 +27,9 @@ class LinearBilevelSolver_FA(LinearBilevelSolverBase):
 
     def check_model(self, lbp):
         #
-        # Confirm that the LinearBilevelProblem is well-formed
+        # Confirm that the LinearMultilevelProblem is well-formed
         #
-        assert (type(lbp) is LinearBilevelProblem), "Solver '%s' can only solve a LinearBilevelProblem" % self.name
+        assert (type(lbp) is LinearMultilevelProblem), "Solver '%s' can only solve a LinearMultilevelProblem" % self.name
         lbp.check()
         #
         # Confirm that this is a bilevel problem
@@ -57,13 +57,13 @@ class LinearBilevelSolver_FA(LinearBilevelSolverBase):
         #
         start_time = time.time()
 
-        self.standard_form, soln_manager = convert_LinearBilevelProblem_to_standard_form(lbp)
+        self.standard_form, soln_manager = convert_LinearMultilevelProblem_to_standard_form(lbp)
 
         M = self._create_pyomo_model(self.standard_form, self.config.bigm)
         #
         # Solve the Pyomo model the specified solver
         #
-        results = LinearBilevelResults(solution_manager=soln_manager)
+        results = LinearMultilevelResults(solution_manager=soln_manager)
         with pe.SolverFactory(self.config.solver) as opt:
             if self.config.mipgap is not None:
                 opt.options['mipgap'] = self.config.mipgap
@@ -78,7 +78,7 @@ class LinearBilevelSolver_FA(LinearBilevelSolverBase):
             results.solver.rc = getattr(opt, '_rc', None)
 
             if self.config.load_solutions:
-                # Load results from the Pyomo model to the LinearBilevelProblem
+                # Load results from the Pyomo model to the LinearMultilevelProblem
                 results.copy_from_to(pyomo=M, lbp=lbp)
             else:
                 # Load results from the Pyomo model to the Results

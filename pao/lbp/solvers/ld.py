@@ -8,9 +8,9 @@ import numpy as np
 import pyutilib
 import pyomo.environ as pe
 import pyomo.opt
-from ..solver import SolverFactory, LinearBilevelSolverBase, LinearBilevelResults
-from ..repn import LinearBilevelProblem
-from ..convert_repn import convert_LinearBilevelProblem_to_standard_form
+from ..solver import SolverFactory, LinearMultilevelSolverBase, LinearMultilevelResults
+from ..repn import LinearMultilevelProblem
+from ..convert_repn import convert_LinearMultilevelProblem_to_standard_form
 from .. import pyomo_util
 
 nan = float('nan')
@@ -19,7 +19,7 @@ nan = float('nan')
 @SolverFactory.register(
         name="pao.lbp.interdiction",
         doc="A solver for linear bilevel programs that represent interdiction problems where the upper- and lower-objectives are opposite.")
-class LinearBilevelSolver_interdiction(LinearBilevelSolverBase):
+class LinearMultilevelSolver_interdiction(LinearMultilevelSolverBase):
 
     def __init__(self, **kwds):
         super().__init__(name='pao.lbp.interdiction')
@@ -28,9 +28,9 @@ class LinearBilevelSolver_interdiction(LinearBilevelSolverBase):
 
     def check_model(self, lbp):
         #
-        # Confirm that the LinearBilevelProblem is well-formed
+        # Confirm that the LinearMultilevelProblem is well-formed
         #
-        assert (type(lbp) is LinearBilevelProblem), "Solver '%s' can only solve a LinearBilevelProblem" % self.solver_type
+        assert (type(lbp) is LinearMultilevelProblem), "Solver '%s' can only solve a LinearMultilevelProblem" % self.solver_type
         lbp.check()
         #
         # TODO: For now, we just deal with the case where there is a single lower-level.  Later, we
@@ -84,7 +84,7 @@ class LinearBilevelSolver_interdiction(LinearBilevelSolverBase):
         #
         start_time = time.time()
 
-        self.standard_form, soln_manager = convert_LinearBilevelProblem_to_standard_form(lbp)
+        self.standard_form, soln_manager = convert_LinearMultilevelProblem_to_standard_form(lbp)
 
         M = self._create_pyomo_model(self.standard_form)
         #
@@ -104,7 +104,7 @@ class LinearBilevelSolver_interdiction(LinearBilevelSolverBase):
             results.solver.rc = getattr(opt, '_rc', None)
 
             if self.config.load_solutions:
-                # Load results from the Pyomo model to the LinearBilevelProblem
+                # Load results from the Pyomo model to the LinearMultilevelProblem
                 results.copy_from_to(pyomo=M, lbp=lbp)
             else:
                 # Load results from the Pyomo model to the Results

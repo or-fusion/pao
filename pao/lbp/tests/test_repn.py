@@ -402,18 +402,18 @@ class Test_LinearLevelRepn(unittest.TestCase):
         self.assertEqual(ans.b, np.array(-1))
         
 
-class Test_LinearBilevelProblem(unittest.TestCase):
+class Test_LinearMultilevelProblem(unittest.TestCase):
 
     def test_init(self):
-        blp = LinearBilevelProblem()
+        blp = LinearMultilevelProblem()
         self.assertEqual(blp.name, None)
         
     def test_init_name(self):
-        blp = LinearBilevelProblem('foo')
+        blp = LinearMultilevelProblem('foo')
         self.assertEqual(blp.name, 'foo')
 
     def test_names(self):
-        blp = LinearBilevelProblem()
+        blp = LinearMultilevelProblem()
         A = blp.add_upper(nxR=1, nxZ=2, nxB=3, name='A')
         B = A.add_lower(nxR=1, nxZ=2, nxB=3, name='B')
         C = A.add_lower(nxR=1, nxZ=2, nxB=3, name='C')
@@ -422,7 +422,7 @@ class Test_LinearBilevelProblem(unittest.TestCase):
         self.assertEqual(C.name, 'C')
 
     def test_levels(self):
-        blp = LinearBilevelProblem()
+        blp = LinearMultilevelProblem()
         A = blp.add_upper(nxR=1, nxZ=2, nxB=3, name='A', id=100)
         B = A.add_lower(nxR=1, nxZ=2, nxB=3, name='B', id=-1)
         C = A.add_lower(nxR=1, nxZ=2, nxB=3, name='C', id=2)
@@ -439,13 +439,13 @@ class Test_LinearBilevelProblem(unittest.TestCase):
         self.assertEqual(E.UL().id, -1)
 
     def test_add_upper(self):
-        blp = LinearBilevelProblem()
+        blp = LinearMultilevelProblem()
         U = blp.add_upper(nxR=1, nxZ=2, nxB=3)
         self.assertEqual(len(U.x), 6)
         self.assertEqual(id(U), id(blp.U))
 
     def test_add_lower(self):
-        blp = LinearBilevelProblem()
+        blp = LinearMultilevelProblem()
         U = blp.add_upper(nxR=1)
         L = []
         L.append( U.add_lower(nxR=1, nxZ=2, nxB=3) )
@@ -458,7 +458,7 @@ class Test_LinearBilevelProblem(unittest.TestCase):
         self.assertEqual(id(L[1]), id(blp.U.LL[1]))
 
     def test_clone(self):
-        blp = LinearBilevelProblem()
+        blp = LinearMultilevelProblem()
         U = blp.add_upper(nxR=1, nxZ=2, nxB=3)
         U.add_lower(nxR=1, nxZ=2, nxB=4)
         U.add_lower(nxR=1, nxZ=2, nxB=5)
@@ -477,7 +477,7 @@ class Test_LinearBilevelProblem(unittest.TestCase):
 
     def test_resize(self):
         def tmp():
-            blp = LinearBilevelProblem()
+            blp = LinearMultilevelProblem()
             U = blp.add_upper(nxR=1, nxZ=2, nxB=3)
             L0 = U.add_lower(nxR=1, nxZ=2, nxB=4, name='L0')
             L1 = U.add_lower(nxR=1, nxZ=2, nxB=5, name='L1')
@@ -780,7 +780,7 @@ class Test_LinearBilevelProblem(unittest.TestCase):
         self.assertEqual([L4.A[L4].todok()[0,i] for i in range(L4.A[L4].shape[1])], [9]*8)
 
     def test_check_matrix_initialization(self):
-        blp = LinearBilevelProblem()
+        blp = LinearMultilevelProblem()
         U = blp.add_upper(nxR=2, nxZ=3, nxB=4)
         L = U.add_lower(nxR=1, nxZ=2, nxB=3)
 
@@ -805,7 +805,7 @@ class Test_LinearBilevelProblem(unittest.TestCase):
         self.assertEqual(U.A[U].shape, (3,9))
 
     def test_check_opposite_objectives(self):
-        blp = LinearBilevelProblem()
+        blp = LinearMultilevelProblem()
         U = blp.add_upper(nxR=1, nxZ=1, nxB=1)
         L = U.add_lower(nxR=1, nxZ=1, nxB=1)
         U.c[U] = [1, 2, 3]
@@ -831,7 +831,7 @@ class Test_LinearBilevelProblem(unittest.TestCase):
         U.c[L] = None
         self.assertEqual( blp.check_opposite_objectives(U,L), True )
 
-        blp = LinearBilevelProblem()
+        blp = LinearMultilevelProblem()
         U = blp.add_upper(nxR=1, nxZ=1, nxB=1)
         U.c[U] = [1, 2, 3]
         U.c[L] = [4, 5, 6]

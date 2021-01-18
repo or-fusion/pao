@@ -8,6 +8,17 @@ import weakref
 from pyutilib.misc import Bunch
 
 
+def _equal_nparray(Ux, U_coef, Lx, L_coef):
+    if Ux is None and Lx is None:
+        return True
+    if Ux is None or Lx is None:
+        return False
+    for i in range(Ux.size):
+        if math.fabs(Ux[i]*U_coef + Lx[i]*L_coef) > 1e-16:
+            return False
+    return True
+
+
 class SimplifiedList(collections.abc.MutableSequence):
     """
     This is a normal list class, except if the user asks to
@@ -461,9 +472,11 @@ class LinearLevelRepn(object):
             super().__setattr__(name, value)
 
 
-class LinearBilevelProblem(object):
+class LinearMultilevelProblem(object):
     """
-    Let
+    For bilevel problems, let
+
+        U   = LinearMultilevelProblem.U
         L   = U.L
         x   = [U.x, L.x]'       # dense column vector
         U.c = [U.c[U], U.c[L]]  # dense row vector
@@ -471,8 +484,10 @@ class LinearBilevelProblem(object):
         U.A = [U.A[U], U.A[L]]  # sparse matrix
         L.A = [L.A[U], L.A[L]]  # sparse matrix
 
-    min_{U.x}   U.c * x + U.d
-    s.t.        U.A * x <= U.b                      # Or ==
+    Then we have
+
+        min_{U.x}   U.c * x + U.d
+        s.t.        U.A * x <= U.b                      # Or ==
 
                 where L.x satisifies
 
@@ -485,7 +500,7 @@ class LinearBilevelProblem(object):
         self.U = None
 
     def add_upper(self, *, nxR=0, nxZ=0, nxB=0, name=None, id=None):
-        assert (self.U is None), "Cannot create a second upper-level in a LinearBilevelProblem"
+        assert (self.U is None), "Cannot create a second upper-level in a LinearMultilevelProblem"
         self.U = LinearLevelRepn(nxR, nxZ, nxB, id=id)
         if name is None:
             self.U.name = "U"
@@ -497,7 +512,7 @@ class LinearBilevelProblem(object):
         yield from self.U._sublevels()
 
     def clone(self):
-        ans = LinearBilevelProblem()
+        ans = LinearMultilevelProblem()
         ans.name = self.name
         ans.U = self.U.clone()
         return ans
@@ -505,9 +520,9 @@ class LinearBilevelProblem(object):
     def print(self):                            # pragma: no cover
         nL = len(self.U.LL)
         if self.name:
-            print("# LinearBilevelProblem: "+self.name)
+            print("# LinearMultilevelProblem: "+self.name)
         else:
-            print("# LinearBilevelProblem: unknown")
+            print("# LinearMultilevelProblem: unknown")
 
         names = [(L.id,L.name) for L in self.levels()]
         self.U.print(names)
@@ -543,25 +558,117 @@ class LinearBilevelProblem(object):
             return True
         U_coef = 1 if U.minimize else -1
         L_coef = 1 if L.minimize else -1
-        if not self._equal_nparray(U.c[U], U_coef, L.c[U], L_coef):
+        if not _equal_nparray(U.c[U], U_coef, L.c[U], L_coef):
             return False
-        if not self._equal_nparray(U.c[L], U_coef, L.c[L], L_coef):
+        if not _equal_nparray(U.c[L], U_coef, L.c[L], L_coef):
             return False
         return True
 
-    def _equal_nparray(self, Ux, U_coef, Lx, L_coef):
-        if Ux is None and Lx is None:
+
+class QuadraticMultilevelProblem(object):
+    """
+    For bilevel problems, let
+
+        U   = QuadraticMultilevelProblem.U
+        L   = U.L
+        x   = [U.x, L.x]'           # dense column vector
+        U.c = [U.c[U], U.c[L]]      # dense row vector
+        U.P = [U.P[U,U], U.P[U,L]]  # sparse matrix
+              [0,        U.P[L,L]]
+        U.A = [U.A[U], U.A[L]]      # sparse matrix
+        U.Q = [U.Q[U,U], U.Q[U,L]]  # sparse matrix
+              [0,        U.Q[L,L]]
+        L.c = [L.c[U], L.c[L]]      # dense row vector
+        L.P = [L.P[U,U], L.P[U,L]]  # sparse matrix
+              [0,        L.P[L,L]]
+        L.A = [L.A[U], L.A[L]]      # sparse matrix
+        L.Q = [L.Q[U,U], L.Q[U,L]]  # sparse matrix
+              [0,        L.Q[L,L]]
+
+    Then we have
+
+        min_{U.x}   U.c * x + x' * U.P * x + U.d
+        s.t.        U.A * x + x' * U.Q * x       <= U.b                 # Or ==
+
+                where L.x satisifies
+
+                    min_{L.x}   L.c * x + x' * L.P * x + L.d
+                    s.t.        L.A * x + x' * L.Q * x       <= L.b     # Or ==
+    """
+
+    def __init__(self, name=None, bilinear=False):
+        self.bilinear = bilinear
+        self.name = name
+        self.U = None
+
+    def add_upper(self, *, nxR=0, nxZ=0, nxB=0, name=None, id=None):
+        assert (self.U is None), "Cannot create a second upper-level in a QuadraticMultilevelProblem"
+        self.U = QuadraticLevelRepn(nxR, nxZ, nxB, id=id)
+        if name is None:
+            self.U.name = "U"
+        else:
+            self.U.name = name
+        return self.U
+
+    def levels(self):
+        yield from self.U._sublevels()
+
+    def clone(self):
+        ans = QuadraticMultilevelProblem()
+        ans.name = self.name
+        ans.U = self.U.clone()
+        return ans
+
+    def print(self):                            # pragma: no cover
+        nL = len(self.U.LL)
+        if self.name:
+            print("# QuadraticMultilevelProblem: "+self.name)
+        else:
+            print("# QuadraticMultilevelProblem: unknown")
+
+        names = [(L.id,L.name) for L in self.levels()]
+        self.U.print(names)
+
+    def check(self):                    # pragma: no cover
+        #
+        # Linear coefficients for objective
+        #
+        for L in self.levels():
+            for X in L.levels():
+                assert ((L.c[X] is None) or (L.c[X].size == len(X.x)) or (L.c[X].size == 0)), "Incompatible specification of coefficients for %s.c[%s]: %d != %d" % (L.name, X.name, L.c[X].size, len(X.x))
+        #
+        # Ncols of linear constraints
+        #
+        for L in self.levels():
+            for X in L.levels():
+                assert ((L.A[X] is None) or (L.A[X].shape[1] == len(X.x))), "Incompatible specification of %s.A[%s] and %s.x (%d != %d)" % (L.name, X.name, x.name, U.A[X].shape[1], len(X.x))
+        #
+        # Nrows of linear constraints
+        #
+        for L in self.levels():
+            if L.b is None:
+                for X in L.levels():
+                    assert (L.A[X] is None), "Incompatible specification of %s.b and %s.A[%s]" % (L.name, L.name, X.name)
+            else:
+                nr = L.b.size
+                for X in L.levels():
+                    if L.A[X] is not None:
+                        assert (nr == L.A[X].shape[0]), "Incompatible specification of %s.b and %s.A[%s] (%d != %d)" % (L.name, L.name, X.name, nr, L.A[X].shape[0])
+
+    def check_opposite_objectives(self, U, L):
+        if id(U.c) == id(L.c) and L.minimize ^ U.minimize:
             return True
-        if Ux is None or Lx is None:
+        U_coef = 1 if U.minimize else -1
+        L_coef = 1 if L.minimize else -1
+        if not _equal_nparray(U.c[U], U_coef, L.c[U], L_coef):
             return False
-        for i in range(Ux.size):
-            if math.fabs(Ux[i]*U_coef + Lx[i]*L_coef) > 1e-16:
-                return False
+        if not _equal_nparray(U.c[L], U_coef, L.c[L], L_coef):
+            return False
         return True
 
 
 if __name__ == "__main__":              # pragma: no cover
-    prob = LinearBilevelProblem()
+    prob = LinearMultilevelProblem()
     U = prob.add_upper(nxR=3,nxZ=2,nxB=1)
     U.x.upper_bounds = np.array([1.5, 2.4, 3.1, np.PINF, np.PINF, 1])
     L = U.add_lower(nxR=1,nxZ=2,nxB=3)

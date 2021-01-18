@@ -6,7 +6,7 @@ from pyomo.repn import generate_standard_repn
 from pyomo.core.base import SortComponents, is_fixed
 from scipy.sparse import dok_matrix
 
-from pao.lbp import LinearBilevelProblem
+from pao.lbp import LinearMultilevelProblem
 from .components import SubModel
 
 
@@ -56,7 +56,7 @@ class Node(object):
             # The _bounds_equals function only returns True if the 
             # bound is a fixed value and its value equals the 2nd argument.
             # If the bound value is specified with Pyomo Parameters and their
-            # value equals, then we are assuming the LinearBilevelProblem will
+            # value equals, then we are assuming the LinearMultilevelProblem will
             # be re-generated if those parameter values change.
             #
             if _bound_equals(v.lb, 0) and _bound_equals(v.ub, 1):
@@ -116,7 +116,7 @@ class Node(object):
         #
         # c
         #
-        assert (len(self.orepn) <= 1), "PAO model has %d objectives specified, but a LinearBilevelProblem can have no more than one" % len(self.orepn)
+        assert (len(self.orepn) <= 1), "PAO model has %d objectives specified, but a LinearMultilevelProblem can have no more than one" % len(self.orepn)
         if len(self.orepn) == 1:
             repn = self.orepn[0][0]
             if self.orepn[0][1] == pe.maximize:
@@ -348,9 +348,9 @@ class PyomoSubmodel_SolutionManager_LBP(object):
                     v.value = lbp.U.LL[nid-1].x.values[j+L.x.nxR+L.x.nxZ]
 
 
-def convert_pyomo2LinearBilevelProblem1(model, *, determinism=1, inequalities=True):
+def convert_pyomo2LinearMultilevelProblem1(model, *, determinism=1, inequalities=True):
     """
-    Traverse the model an generate a LinearBilevelProblem.  Generate errors
+    Traverse the model an generate a LinearMultilevelProblem.  Generate errors
     if this problem cannot be represented in this form.
 
     This conversion applies the following transformations:
@@ -383,7 +383,7 @@ def convert_pyomo2LinearBilevelProblem1(model, *, determinism=1, inequalities=Tr
     #
     treemap = {}
     levelmap = {}
-    M = LinearBilevelProblem()
+    M = LinearMultilevelProblem()
     U = M.add_upper(id=tree.nid)
     treemap[tree.nid] = tree
 
@@ -405,6 +405,6 @@ def convert_pyomo2LinearBilevelProblem1(model, *, determinism=1, inequalities=Tr
     
 
 # WEH - I suspect we'll try out multiple conversion functions, but this will be the default function
-convert_pyomo2LinearBilevelProblem = convert_pyomo2LinearBilevelProblem1
-convert_pyomo2lbp = convert_pyomo2LinearBilevelProblem1
+convert_pyomo2LinearMultilevelProblem = convert_pyomo2LinearMultilevelProblem1
+convert_pyomo2lbp = convert_pyomo2LinearMultilevelProblem1
 

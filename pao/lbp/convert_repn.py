@@ -1,8 +1,8 @@
 import copy
 from scipy.sparse import coo_matrix, dok_matrix, csc_matrix, vstack, hstack
 import numpy as np
-from .repn import LinearBilevelProblem
-from .soln_manager import LBP_SolutionManager
+from .repn import LinearMultilevelProblem
+from .soln_manager import LMP_SolutionManager
 
 #
 # Variable Change objects that cache information needed to
@@ -389,7 +389,7 @@ def convert_binaries_to_integers(lbp):
                 lbp.L[i].A.L[i].xB = None
 """
 
-def convert_LinearBilevelProblem_to_standard_form(lbp, inequalities=False):
+def convert_LinearMultilevelProblem_to_standard_form(lbp, inequalities=False):
     """
     After applying this transformation, the problem has the form:
         1. Each real variable x is nonnegative (x >= 0)
@@ -398,7 +398,7 @@ def convert_LinearBilevelProblem_to_standard_form(lbp, inequalities=False):
     following this transformation.
     """
     #
-    # Clone the LBP object
+    # Clone the LMP object
     #
     ans = lbp.clone()
     #
@@ -426,5 +426,5 @@ def convert_LinearBilevelProblem_to_standard_form(lbp, inequalities=False):
     #
     multipliers = get_multipliers(lbp, changes)
 
-    return ans, LBP_SolutionManager(multipliers)
+    return ans, LMP_SolutionManager(multipliers)
 

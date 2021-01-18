@@ -1,7 +1,7 @@
 import pyomo.environ as pe
 
 
-class LBP_SolutionManager(object):
+class LMP_SolutionManager(object):
 
     def __init__(self, multipliers):
         self.multipliers = multipliers
@@ -42,4 +42,4 @@ class LBP_SolutionManager(object):
     def load_from(self, data):      # pragma: no cover
         # TODO - should we copy the data from a Pyomo model?  or a Pyomo results object?
         #           
-        assert (False), "LBP_SolutionManager.load_from() is not implemented yet"
+        assert (False), "LMP_SolutionManager.load_from() is not implemented yet"

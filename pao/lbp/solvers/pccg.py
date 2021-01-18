@@ -17,9 +17,9 @@ import pyutilib
 import pyomo.environ as pe
 import pyomo.opt
 from pyomo.mpec import ComplementarityList, complements
-from ..solver import SolverFactory, LinearBilevelSolverBase, LinearBilevelResults
-from ..repn import LinearBilevelProblem
-from ..convert_repn import convert_LinearBilevelProblem_to_standard_form, convert_sense, convert_binaries_to_integers
+from ..solver import SolverFactory, LinearMultilevelSolverBase, LinearMultilevelResults
+from ..repn import LinearMultilevelProblem
+from ..convert_repn import convert_LinearMultilevelProblem_to_standard_form, convert_sense, convert_binaries_to_integers
 from .. import pyomo_util
 from .pccg_solver import execute_PCCG_solver
 
@@ -27,7 +27,7 @@ from .pccg_solver import execute_PCCG_solver
 @SolverFactory.register(
         name='pao.lbp.PCCG',
         doc='A solver for linear bilevel programs using using projected column constraint generation')
-class LinearBilevelSolver_PCCG(LinearBilevelSolverBase):
+class LinearMultilevelSolver_PCCG(LinearMultilevelSolverBase):
 
     def __init__(self, **kwds):
         super().__init__(name='pao.lbp.PCCG')
@@ -41,9 +41,9 @@ class LinearBilevelSolver_PCCG(LinearBilevelSolverBase):
 
     def check_model(self, lbp):
         #
-        # Confirm that the LinearBilevelProblem is well-formed
+        # Confirm that the LinearMultilevelProblem is well-formed
         #
-        assert (type(lbp) is LinearBilevelProblem), "Solver '%s' can only solve a LinearBilevelProblem" % self.name
+        assert (type(lbp) is LinearMultilevelProblem), "Solver '%s' can only solve a LinearMultilevelProblem" % self.name
         lbp.check()
         #
         assert (len(lbp.U.LL) == 1), "Can only solve linear bilevel problems with one lower-level"
@@ -66,10 +66,10 @@ class LinearBilevelSolver_PCCG(LinearBilevelSolverBase):
 
         # PCCG requires a standard form with inequalities and 
         # a maximization lower-level
-        self.standard_form, soln_manager = convert_LinearBilevelProblem_to_standard_form(lbp, inequalities=True)
+        self.standard_form, soln_manager = convert_LinearMultilevelProblem_to_standard_form(lbp, inequalities=True)
         convert_sense(self.standard_form.U.LL, minimize=False)
         
-        results = LinearBilevelResults(solution_manager=soln_manager)
+        results = LinearMultilevelResults(solution_manager=soln_manager)
 
         UxR, UxZ, LxR, LxZ = execute_PCCG_solver(self.standard_form, self.config, results)
         xR = {lbp.U.id:UxR, lbp.U.LL[0].id:LxR}

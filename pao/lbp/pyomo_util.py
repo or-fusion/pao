@@ -1,6 +1,6 @@
 #
 # Utilities for creating Pyomo models using data in
-# LinearBilevelProblem objects.
+# LinearMultilevelProblem objects.
 #
 import numpy as np
 import pyomo.environ as pe

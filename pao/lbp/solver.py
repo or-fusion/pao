@@ -4,9 +4,9 @@ import pao.common
 SolverFactory = pao.common.SolverFactory
 
 
-class LinearBilevelSolverBase(pao.common.Solver):
+class LinearMultilevelSolverBase(pao.common.Solver):
     """
-    Define the API for solvers that optimize a LinearBilevelProblem
+    Define the API for solvers that optimize a LinearMultilevelProblem
     """
 
     def __init__(self, name):
@@ -15,18 +15,18 @@ class LinearBilevelSolverBase(pao.common.Solver):
 
     def check_model(self, lbp):         # pragma: no cover
         #
-        # Confirm that the LinearBilevelProblem is well-formed
+        # Confirm that the LinearMultilevelProblem is well-formed
         #
         lbp.check()
 
     def solve(self, *args, **kwds):     # pragma: no cover
         #
-        # Solve the LinearBilevelProblem
+        # Solve the LinearMultilevelProblem
         #
         pass
 
 
-class LinearBilevelResults(pao.common.Results):
+class LinearMultilevelResults(pao.common.Results):
 
     def __init__(self, solution_manager=None):
         super(pao.common.Results, self).__init__()

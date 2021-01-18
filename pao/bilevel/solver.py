@@ -1,5 +1,5 @@
 import time
-from .convert import convert_pyomo2LinearBilevelProblem
+from .convert import convert_pyomo2LinearMultilevelProblem
 import pao.common
 import pao.lbp
 
@@ -41,7 +41,7 @@ class PyomoSubmodelSolverBase_LBP(PyomoSubmodelSolverBase):
 
     def inequalities(self):
         #
-        # Return True if the conversion to LinearBilevelProblem should
+        # Return True if the conversion to LinearMultilevelProblem should
         # use inequalities (True) or equalities (False)
         #
         return False
@@ -61,9 +61,9 @@ class PyomoSubmodelSolverBase_LBP(PyomoSubmodelSolverBase):
         # Convert the Pyomo model to a LBP
         #
         try:
-            lbp, soln_manager = convert_pyomo2LinearBilevelProblem(instance)
+            lbp, soln_manager = convert_pyomo2LinearMultilevelProblem(instance)
         except RuntimeError as err:
-            print("Cannot convert Pyomo model to a LinearBilevelProblem")
+            print("Cannot convert Pyomo model to a LinearMultilevelProblem")
             raise
         #
         results = PyomoSubmodelResults(solution_manager=soln_manager)

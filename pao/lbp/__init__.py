@@ -1,4 +1,4 @@
-from .repn import LinearBilevelProblem
+from .repn import LinearMultilevelProblem
 from . import convert_repn
 from .solver import SolverFactory
 #from . import pyomo_solvers

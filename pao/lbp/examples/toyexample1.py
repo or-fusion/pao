@@ -8,7 +8,7 @@ from pao.lbp import *
 
 
 def create():
-    M = LinearBilevelProblem()
+    M = LinearMultilevelProblem()
 
     U = M.add_upper(nxZ=1)
     U.x.lower_bounds = [0]
