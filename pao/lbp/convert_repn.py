@@ -1,7 +1,7 @@
 import copy
 from scipy.sparse import coo_matrix, dok_matrix, csc_matrix, vstack, hstack
 import numpy as np
-from .repn import LinearMultilevelProblem
+from .repn import LinearMultilevelProblem, QuadraticMultilevelProblem, QuadraticLevelRepn
 from .soln_manager import LMP_SolutionManager
 
 #
@@ -71,30 +71,29 @@ def _find_nonpositive_variables(V, inequalities):
     for i in range(nxV):
         lb = V.lower_bounds[i]
         ub = V.upper_bounds[i]
-        #print(lb, ub)
         if ub == np.PINF:
             if lb == 0:
-                #print("HERE0")
                 continue
             elif lb == np.NINF:
                 # Unbounded variable
                 if i<V.nxR:
                     changes.append( VChangeUnbounded(real=True, v=i, w=nxR) )
-                    #print("HERE1")
                     nxR += 1
                 else:
                     changes.append( VChangeUnbounded(real=False, v=i, w=nxZ) )
-                    #print("HERE2")
                     nxZ += 1
             else:
+                # Bounded below
                 changes.append( VChangeLowerBound(real=i<V.nxR, v=i, lb=lb) )
         elif lb == np.NINF:
+            # Bounded above
             changes.append( VChangeUpperBound(real=i<V.nxR, v=i, ub=ub) )
         elif inequalities:
+            # Bounded above and below (inequality formulation)
             changes.append( VChangeRange(real=i<V.nxR, v=i, lb=lb, ub=ub) )
         else:
+            # Bounded above and below (equality formulation)
             changes.append( VChangeRange(real=i<V.nxR, v=i, lb=lb, ub=ub, w=nxR) )
-            #print("HERE2")
             nxR += 1
 
     # Reset the variable id for integers, given the final value of nxR
@@ -107,7 +106,6 @@ def _find_nonpositive_variables(V, inequalities):
     assert (nxR+nxZ == nxV + sum(1 if c.w is not None else 0 for c in changes))
     changes.nxR = nxR
     changes.nxZ = nxZ
-    #print(nxR, nxZ, V.nxB)
     return changes
 
 
@@ -126,8 +124,11 @@ def _process_changes(changes, V, c, d, A, b, add_rows=False):
     for chg in changes:
         v = chg.v
         if type(chg) is VChangeLowerBound:      # real variable bounded below
+            # Replace v >= lb with v' >= 0
+            # v' = v - lb
             lb = chg.lb
             if c is not None:
+                # c[v]*v = c[v]*lb + c[v]*v'
                 d += c[v]*lb
             if A is not None:
                 # i is index of the vth column in the A matrix
@@ -196,8 +197,6 @@ def _process_changes(changes, V, c, d, A, b, add_rows=False):
         return c, d, None, b
 
     Bdok = dok_matrix((nrows, changes.nxR+changes.nxZ+V.nxB))
-    #print(Bdok.shape)
-    #print(Acsc.shape)
     # Collect the items from B
     for k,v in B.items():
         Bdok[k] = v
@@ -212,40 +211,31 @@ def convert_to_nonnegative_variables(ans, inequalities):
     #
     # Collect real and integer variables that are changing
     #
+    # Iterate over all levels in the model.  For each level,
+    # collect the changes needed to make the variables non-negative.
+    #
     changes = {}
-    #ans.print()
     for L in ans.levels():
         changes[L.id] = _find_nonpositive_variables(L.x, inequalities)
-        L.resize(nxR=changes[L.id].nxR, nxZ=changes[L.id].nxZ, nxB=L.x.nxB)
-        L.x.lower_bounds = np.zeros(len(L.x))
-
-        #print(L.name)
-        #for chg in changes[L.id]:
-        #    print(chg)
     #
     # Process changes 
     #
+    # Iterate over all levels of the model.  For each levvel,
+    # resize the variables and set the lower bounds.  Then iterate over the levels that
+    # could reference those variables, and update the data structures in those
+    # levels.
+    #
     for L in ans.levels():
+        L.resize(nxR=changes[L.id].nxR, nxZ=changes[L.id].nxZ, nxB=L.x.nxB)
+        L.x.lower_bounds = np.zeros(len(L.x))
         if len(changes[L.id]) > 0:
             for X in L.levels():
                 X.c[L], X.d, X.A[L], X.b = \
                     _process_changes(changes[L.id], L.x, X.c[L], X.d, X.A[L], X.b, add_rows=L.id == X.id)
-    #
-    # Resize constraint matrices
-    #
-    # After processing upper and lower variables, we may have added constraints.  The other
-    # upper/lower constraint matrices need to be resized as well.
-    #
-    #for i in range(len(L)):
-    #    if U.A[L[i]] is not None:
-    #        U.A[L[i]].resize( [len(U.b), len(L[i].x)] )
-    #    if L[i].A[U] is not None:
-    #        L[i].A[U].resize( [len(L[i].b), len(U.x)] )
-    #
     return changes
 
 
-def combine_matrices(A, B):         #pragma: nocover
+def Xcombine_matrices(A, B):         #pragma: nocover
     """
     Combining matrices with different shapes
 
@@ -272,6 +262,9 @@ def convert_sense(L, minimize=True):
         L.d *= -1
         for i in L.c:
             L.c[i] *= -1
+        if type(L) is QuadraticLevelRepn:
+            for i,j in L.P:
+                L.P[i,j] = L.P[i,j].multiply(-1)
 
 
 def convert_to_minimization(ans):
@@ -344,52 +337,8 @@ def convert_binaries_to_integers(lbp):
         if L.x.nxB > 0:
             L.x._resize(nxR=L.x.nxR, nxZ=L.x.nxZ+L.x.nxB, nxB=0, lb=0, ub=1)
 
-"""
-            if nxZ == 0:
-                lbp.U.c.U.xZ = lbp.U.c.U.xB
-                lbp.U.A.U.xZ = lbp.U.A.U.xB
-            else:
-                lbp.U.c.U.xZ = np.concatenate((lbp.U.c.U.xZ, lbp.U.c.U.xB))
-                lbp.U.A.U.xZ = hstack([lbp.U.A.U.xZ, lbp.U.A.U.xB], format='csr')
-            lbp.U.c.U.xB = None
-            lbp.U.A.U.xB = None
-            for i in range(len(lbp.U.L)):
-                if nxZ == 0:
-                    lbp.U.L[i].c.U.xZ = lbp.U.L[i].c.U.xB
-                    lbp.U.L[i].A.U.xZ = lbp.U.L[i].A.U.xB
-                else:
-                    lbp.U.L[i].c.U.xZ = np.concatenate((lbp.U.L[i].c.U.xZ, lbp.U.L[i].c.U.xB))
-                    lbp.U.L[i].A.U.xZ = hstack([lbp.U.L[i].A.U.xZ, lbp.U.L[i].A.U.xB], format='csr')
-                lbp.U.L[i].c.U.xB = None
-                lbp.U.L[i].A.U.xB = None
 
-    for i in range(len(lbp.U.L)):
-        if len(lbp.U.L[i].xB) > 0:
-            nxZ = len(lbp.U.L[i].xZ)
-            nxB = len(lbp.U.L[i].xB)
-            lbp.U.L[i].xZ.resize(nxZ+nxB, lb=0, ub=1)
-            lbp.U.L[i].xB.resize(0)
-
-            if nxZ == 0:
-                lbp.U.c.U.L[i].xZ = lbp.U.c.U.L[i].xB
-                lbp.U.A.U.L[i].xZ = lbp.U.A.U.L[i].xB
-            else:
-                lbp.U.c.U.L[i].xZ = np.concatenate((lbp.U.c.U.L[i].xZ, lbp.U.c.U.L[i].xB))
-                lbp.U.A.L[i].xZ = hstack([lbp.U.A.L[i].xZ, lbp.U.A.L[i].xB], format='csr')
-            lbp.U.c.L[i].xB = None
-            lbp.U.A.L[i].xB = None
-            for i in range(len(lbp.L)):
-                if nxZ == 0:
-                    lbp.L[i].c.L[i].xZ = lbp.L[i].c.L[i].xB
-                    lbp.L[i].A.L[i].xZ = lbp.L[i].A.L[i].xB
-                else:
-                    lbp.L[i].c.L[i].xZ = np.concatenate((lbp.L[i].c.L[i].xZ, lbp.L[i].c.L[i].xB))
-                    lbp.L[i].A.L[i].xZ = hstack([lbp.L[i].A.L[i].xZ, lbp.L[i].A.L[i].xB], format='csr')
-                lbp.L[i].c.L[i].xB = None
-                lbp.L[i].A.L[i].xB = None
-"""
-
-def convert_LinearMultilevelProblem_to_standard_form(lbp, inequalities=False):
+def convert_to_standard_form(M, inequalities=False):
     """
     After applying this transformation, the problem has the form:
         1. Each real variable x is nonnegative (x >= 0)
@@ -397,10 +346,11 @@ def convert_LinearMultilevelProblem_to_standard_form(lbp, inequalities=False):
     Thus, if a level only has real variables, it will be in standard form
     following this transformation.
     """
+    assert (type(M) in [LinearMultilevelProblem, QuadraticMultilevelProblem]), "Expected linear or quadratic multilevel problem"
     #
-    # Clone the LMP object
+    # Clone the object
     #
-    ans = lbp.clone()
+    ans = M.clone()
     #
     # Convert maximization to minimization
     #
@@ -424,7 +374,10 @@ def convert_LinearMultilevelProblem_to_standard_form(lbp, inequalities=False):
     #
     # Setup multipliers that are used to convert variables back to the original model
     #
-    multipliers = get_multipliers(lbp, changes)
+    multipliers = get_multipliers(M, changes)
 
     return ans, LMP_SolutionManager(multipliers)
 
+
+convert_LinearMultilevelProblem_to_standard_form = convert_to_standard_form
+convert_QuadraticMultilevelProblem_to_standard_form = convert_to_standard_form

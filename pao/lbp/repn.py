@@ -18,6 +18,30 @@ def _equal_nparray(Ux, U_coef, Lx, L_coef):
             return False
     return True
 
+def _update_matrix(A, old, new, update_columns=True):
+    A = A.todok()
+    if not update_columns:
+        A = A.transpose()
+
+    A_ = dok_matrix((A.shape[0], new.nxR+new.nxZ+new.nxB), dtype=np.float64)
+    for ndx in A.keys():
+        i,j = ndx
+        if j < old.nxR:
+            if j<new.nxR:
+                A_[i,j] = A[i,j]
+        elif j < old.nxR+old.nxZ:
+            j_ = j-old.nxR
+            if j_<new.nxZ:
+                A_[i,j_+new.nxR] = A[i,j]
+        else:
+            j_ = j-old.nxR-old.nxZ
+            if j_<new.nxB:
+                A_[i,j_+new.nxR+new.nxZ] = A[i,j]
+
+    if not update_columns:
+        A_ = A_.transpose()
+    return A_
+
 
 class SimplifiedList(collections.abc.MutableSequence):
     """
@@ -170,15 +194,18 @@ class LevelVariable(object):
 
 class LevelValues(object):
 
-    def __init__(self, matrix=False, x=None):
+    def __init__(self, matrix_list=False, matrix=False, x=None):
         self._matrix = matrix
+        self._matrix_list = matrix_list
         self.set_values(x)
 
     def clone(self):
-        ans = LevelValues(matrix=self._matrix)
+        ans = LevelValues(matrix_list=self._matrix_list, matrix=self._matrix)
         if self._matrix:
             if self.x is not None:
                 ans.x = self.x.copy()
+        elif self._matrix_list:
+            ans.x = [None if m is None else np.copy(m) for m in self.x]
         else:
             if self.x is not None:
                 ans.x = np.copy(self.x)
@@ -188,8 +215,33 @@ class LevelValues(object):
         if type(x) is list:
             if self._matrix:                
                 x = csr_matrix( x )
+            elif self._matrix_list:                
+                x = [csr_matrix(m) if type(m) is list else m for m in x]
             else:
                 x = np.array(x)
+        elif type(x) is tuple:
+            if self._matrix:
+                nrows,ncols = x[0]
+                xnew = dok_matrix((nrows,ncols))
+                for key,value in x[1].items():
+                    xnew[key] = value
+                x = xnew
+            elif self._matrix_list:
+                ncon,nrows,ncols = x[0]
+                con = {}
+                for key,value in x[1].items():
+                    i,j,k = key
+                    if i not in con:
+                        con[i] = dok_matrix((nrows,ncols))
+                    con[i][j,k] = value
+                xnew = []
+                for i in range(ncon):
+                    if i in con:
+                        xnew.append( csr_matrix(con[i]) )
+                    else:
+                        xnew.append( None )
+                x = xnew
+                
         super().__setattr__('x', x)
 
     def __setattr__(self, name, value):
@@ -206,6 +258,9 @@ class LevelValues(object):
         if self._matrix:
             if self.x is not None:
                 n = max(n, self.x.shape[0])
+        elif self._matrix_list:
+            if self.x is not None:
+                n += sum(0 if m is None else m.size for m in self.x)
         else:
             if self.x is not None:
                 n += self.x.size
@@ -220,11 +275,22 @@ class LevelValues(object):
                 print("        nonzeros:")
                 for row in str(value).split('\n'):
                     print("        "+row)
+            elif self._matrix_list:
+                print("    %s:" % name)
+                for i,m in enumerate(value):
+                    print("    %d:" % i)
+                    if m is None:
+                        print("        None")
+                        continue
+                    print("        shape: %d %d" % (m.shape[0], m.shape[1]))
+                    print("        nonzeros:")
+                    for row in str(m).split('\n'):
+                        print("        "+row)
             else:
                 print("    %s:" % name, value)
 
 
-class LevelValueWrapper(object):
+class LevelValueWrapper1(object):
 
     def __init__(self, prefix, matrix=False):
         setattr(self, '_matrix', matrix)
@@ -234,10 +300,6 @@ class LevelValueWrapper(object):
     def __len__(self):
         _values = getattr(self, '_values')
         return len(_values)
-        #n = 0
-        #for val in _values.values():
-        #    n += len(val)
-        #return n
 
     def __iter__(self):
         yield from self._values.keys()
@@ -258,7 +320,6 @@ class LevelValueWrapper(object):
         if retval is None:
             return None
         return retval.x
-    
 
     def __setitem__(self, lvl, value):
         if type(lvl) is int:
@@ -273,7 +334,81 @@ class LevelValueWrapper(object):
             _values[i] = LevelValues(matrix=self._matrix, x=value)
 
     def clone(self):
-        ans = LevelValueWrapper(self._prefix, matrix=self._matrix)
+        ans = LevelValueWrapper1(self._prefix, matrix=self._matrix)
+        for name in self._values:
+            ans._values[name] = self._values[name].clone()
+        return ans
+
+    def print(self, names):               # pragma: no cover
+        _values = self._values
+        first = True
+        for i,name in names:
+            v = _values.get(i,None)
+            if v is None:
+                continue
+            if len(v) > 0:
+                if first:
+                    print("  "+self._prefix+":")
+                    first = False
+                v.print(name)
+
+
+class LevelValueWrapper2(object):
+
+    def __init__(self, prefix, matrix=True):
+        setattr(self, '_matrix', matrix)
+        setattr(self, '_values', {})
+        setattr(self, '_prefix', prefix)
+
+    def __len__(self):
+        _values = getattr(self, '_values')
+        return len(_values)
+
+    def __iter__(self):
+        yield from self._values.keys()
+
+    def __getattr__(self, name):
+        if name.startswith('_'):                # pragma: no cover
+            return super().__getattr__(name)
+        else:
+            raise AttributeError("No attributes in this object")
+
+    def __getitem__(self, lvls):
+        lvl1, lvl2 = lvls
+        if type(lvl1) is int:
+            i = lvl1
+        else:
+            i = lvl1.id
+        if type(lvl2) is int:
+            j = lvl2
+        else:
+            j = lvl2.id
+        _values = self._values
+        retval = _values.get((i,j), None)
+        if retval is None:
+            return None
+        return retval.x
+
+    def __setitem__(self, lvls, value):
+        lvl1, lvl2 = lvls
+        if type(lvl1) is int:
+            i = lvl1
+        else:
+            i = lvl1.id
+        if type(lvl2) is int:
+            j = lvl2
+        else:
+            j = lvl2.id
+        assert (i<=j), "Require quadratic terms to be indexed with upper-level variables first"
+        _values = self._values
+        if value is None:
+            if (i,j) in _values:
+                del _values[i,j]
+        else:
+            _values[i,j] = LevelValues(matrix=self._matrix, matrix_list=not self._matrix, x=value)
+
+    def clone(self):
+        ans = LevelValueWrapper1(self._prefix, matrix=self._matrix)
         for name in self._values:
             ans._values[name] = self._values[name].clone()
         return ans
@@ -304,8 +439,8 @@ class LinearLevelRepn(object):
             self.id = id
 
         self.x = LevelVariable(nxR, nxZ, nxB)    # variables at this level
-        self.c = LevelValueWrapper("c") # objective coefficients at this level
-        self.A = LevelValueWrapper("A",
+        self.c = LevelValueWrapper1("c") # objective coefficients at this level
+        self.A = LevelValueWrapper1("A",
                         matrix=True)    # constraint matrices at this level
         self.b = np.ndarray(0)          # RHS of the constraints
         self.minimize = True            # sense of the objective at this level
@@ -317,8 +452,7 @@ class LinearLevelRepn(object):
 
         self.name = None                # a string descriptor for this level
 
-    def add_lower(self, *, nxR=0, nxZ=0, nxB=0, name=None, id=None):
-        tmp = LinearLevelRepn(nxR, nxZ, nxB, id=id)
+    def _add_lower(self, tmp, nxR=0, nxZ=0, nxB=0, name=None, id=None):
         if name is None:
             tmp.name = self.name + ".LL[%d]" % len(self.LL)
         else:
@@ -326,6 +460,9 @@ class LinearLevelRepn(object):
         tmp.UL = weakref.ref(self)
         self.LL.append(tmp)
         return tmp
+
+    def add_lower(self, *, nxR=0, nxZ=0, nxB=0, name=None, id=None):
+        return self._add_lower(LinearLevelRepn(nxR, nxZ, nxB, id=id), nxR=nxR, nxZ=nxZ, name=name, id=id)
 
     @property
     def inequalities(self):
@@ -372,22 +509,7 @@ class LinearLevelRepn(object):
         #
         A = self.A[level]
         if A is not None:
-            A = A.todok()
-            A_ = dok_matrix((A.shape[0], new.nxR+new.nxZ+new.nxB), dtype=np.float64)
-            for ndx in A.keys():
-                i,j = ndx
-                if j < old.nxR:
-                    if j<new.nxR:
-                        A_[i,j] = A[i,j]
-                elif j < old.nxR+old.nxZ:
-                    j_ = j-old.nxR
-                    if j_<new.nxZ:
-                        A_[i,j_+new.nxR] = A[i,j]
-                else:
-                    j_ = j-old.nxR-old.nxZ
-                    if j_<new.nxB:
-                        A_[i,j_+new.nxR+new.nxZ] = A[i,j]
-            self.A[level] = A_
+            self.A[level] = _update_matrix(A, old, new)
 
     #
     # Iterate over the sublevels and parents in DFS order
@@ -410,8 +532,7 @@ class LinearLevelRepn(object):
             for X in L._sublevels():
                 yield X
 
-    def clone(self, parent=None):
-        ans = LinearLevelRepn(0,0,0)
+    def _clone(self, ans, parent=None, data=[]):
         ans.x = self.x.clone()
         ans.c = self.c.clone()
         ans.A = self.A.clone()
@@ -426,7 +547,7 @@ class LinearLevelRepn(object):
             ans.UL = weakref.ref(parent)
         # TODO - Should we allow users to annotate these objects with other data?
         for attr in dir(self):
-            if attr in ['x', 'c', 'A', 'b', 'minimize', 'inequalities', 'equalities', 'd', 'LL', 'UL']:
+            if attr in data:
                 continue
             if attr in ['clone', 'print', 'resize', 'add_lower', 'levels']:    # methods
                 continue
@@ -434,6 +555,9 @@ class LinearLevelRepn(object):
                 continue
             setattr(ans, attr, copy.copy(getattr(self, attr)))
         return ans
+
+    def clone(self, parent=None):
+        return self._clone(LinearLevelRepn(0,0,0), parent=parent, data=['x', 'c', 'A', 'b', 'minimize', 'inequalities', 'equalities', 'd', 'LL', 'UL'])
 
     def print(self, names):       # pragma: no cover
         print("")
@@ -470,6 +594,74 @@ class LinearLevelRepn(object):
             super().__setattr__(name, value)
         else:
             super().__setattr__(name, value)
+
+
+class QuadraticLevelRepn(LinearLevelRepn):
+
+    def __init__(self, nxR, nxZ, nxB, id=None):
+        LinearLevelRepn.__init__(self, nxR, nxZ, nxB, id)
+        self.P = LevelValueWrapper2("P", matrix=True)        # objective quadratic terms
+        self.Q = LevelValueWrapper2("Q", matrix=False)       # constraint quadratic terms
+
+    def add_lower(self, *, nxR=0, nxZ=0, nxB=0, name=None, id=None):
+        return self._add_lower(QuadraticLevelRepn(nxR, nxZ, nxB, id=id), nxR=nxR, nxZ=nxZ, name=name, id=id)
+
+    def _update(self, *, level, new, old):
+        #
+        # Update 'c' and 'A'
+        #
+        LinearLevelRepn._update(self, level=level, new=new, old=old)
+        #
+        # Update 'P'
+        #
+        for L1,L2 in self.P:
+            if L1 == level.id or L2 == level.id:
+                P = self.P[L1,L2]
+                self.P[L1,L2] = _update_matrix(self.P[L1,L2], old, new, L2==level.id)
+        #
+        # Update 'Q'
+        #
+        for L1,L2 in self.Q:
+            if L1 == level.id or L2 == level.id:
+                Q = self.Q[L1,L2]
+                self.Q[L1,L2] = [None if m is None else _update_matrix(m, old, new, L2==level.id) for m in Q]
+
+    def clone(self, parent=None):
+        ans = self._clone(QuadraticLevelRepn(0,0,0), parent=parent, data=['x', 'c', 'A', 'b', 'minimize', 'inequalities', 'equalities', 'd', 'LL', 'UL', 'P', 'Q'])
+        ans.P = self.P.clone()
+        ans.Q = self.Q.clone()
+        return ans
+
+    def print(self, names):       # pragma: no cover
+        print("")
+        print("## Level: "+self.name)
+        print("")
+
+        print("Variables:")
+        self.x.print()
+
+        print("\nObjective:")
+        if self.minimize:
+            print("  Minimize:")
+        else:
+            print("  Maximize:")
+        self.c.print(names)
+        self.P.print(names)
+        print("  d:",self.d)
+
+        if self.b.size > 0:
+            print("\nConstraints: ")
+            self.A.print(names)
+            self.Q.print(names)
+            if self.inequalities:
+                print("  <=", self.b)
+            else:
+                print("  ==", self.b)
+        #
+        # Recurse
+        #
+        for L in self.LL:
+            L.print(names)
 
 
 class LinearMultilevelProblem(object):
