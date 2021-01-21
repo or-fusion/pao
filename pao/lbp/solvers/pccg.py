@@ -20,7 +20,7 @@ from pyomo.mpec import ComplementarityList, complements
 from ..solver import SolverFactory, LinearMultilevelSolverBase, LinearMultilevelResults
 from ..repn import LinearMultilevelProblem
 from ..convert_repn import convert_LinearMultilevelProblem_to_standard_form, convert_sense, convert_binaries_to_integers
-from .. import pyomo_util
+from . import pyomo_util
 from .pccg_solver import execute_PCCG_solver
 
 

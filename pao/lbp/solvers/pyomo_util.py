@@ -4,7 +4,7 @@
 #
 import numpy as np
 import pyomo.environ as pe
-from .repn import LinearLevelRepn, LevelValues, SimplifiedList, LevelVariable
+from ..repn import LinearLevelRepn, LevelValues, SimplifiedList, LevelVariable
 
 
 def dot(A, x, num=None):

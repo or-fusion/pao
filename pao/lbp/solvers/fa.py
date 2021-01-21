@@ -11,7 +11,7 @@ from pyomo.mpec import ComplementarityList, complements
 from ..solver import SolverFactory, LinearMultilevelSolverBase, LinearMultilevelResults
 from ..repn import LinearMultilevelProblem
 from ..convert_repn import convert_LinearMultilevelProblem_to_standard_form
-from .. import pyomo_util
+from . import pyomo_util
 from .reg import create_model_replacing_LL_with_kkt
 
 

@@ -13,11 +13,11 @@ class LinearMultilevelSolverBase(pao.common.Solver):
         super().__init__()
         self.name = name
 
-    def check_model(self, lbp):         # pragma: no cover
+    def check_model(self, lmp):         # pragma: no cover
         #
         # Confirm that the LinearMultilevelProblem is well-formed
         #
-        lbp.check()
+        lmp.check()
 
     def solve(self, *args, **kwds):     # pragma: no cover
         #

@@ -13,7 +13,7 @@ import pao.common
 from ..solver import SolverFactory, LinearMultilevelSolverBase, LinearMultilevelResults
 from ..repn import LinearMultilevelProblem
 from ..convert_repn import convert_LinearMultilevelProblem_to_standard_form
-from .. import pyomo_util
+from . import pyomo_util
 
 
 def create_model_replacing_LL_with_kkt(repn):
