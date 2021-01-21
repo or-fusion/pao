@@ -40,7 +40,7 @@ def _update_matrix(A, old, new, update_columns=True):
 
     if not update_columns:
         A_ = A_.transpose()
-    return A_
+    return A_.tocsr()
 
 
 class SimplifiedList(collections.abc.MutableSequence):
@@ -400,6 +400,8 @@ class LevelValueWrapper2(object):
         else:
             j = lvl2.id
         assert (i<=j), "Require quadratic terms to be indexed with upper-level variables first"
+        if not type(lvl1) is int and not type(lvl2) is int:
+            assert (lvl1.id in [L.id for L in lvl2.levels()]), "Require quadratic terms to be in the same subproblem tree"
         _values = self._values
         if value is None:
             if (i,j) in _values:
@@ -819,6 +821,10 @@ class QuadraticMultilevelProblem(object):
             print("# QuadraticMultilevelProblem: unknown")
 
         names = [(L.id,L.name) for L in self.levels()]
+        for L in self.levels():
+            for X in L.levels():
+                if L.id <= X.id:
+                    names.append( ((L.id,X.id), L.name+","+X.name) )
         self.U.print(names)
 
     def check(self):                    # pragma: no cover

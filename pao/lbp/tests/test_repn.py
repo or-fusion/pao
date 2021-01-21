@@ -380,8 +380,8 @@ class Test_LevelValueWrapper2(unittest.TestCase):
         l = LevelValueWrapper2('foo', matrix=True)
         self.assertEqual(len(l), 0)
         L0 = LinearLevelRepn(1,2,3)
-        L1 = LinearLevelRepn(1,2,3)
-        L2 = LinearLevelRepn(1,2,3)
+        L1 = L0.add_lower(nxR=1, nxZ=2, nxB=3, name="L1")
+        L2 = L1.add_lower(nxR=1, nxZ=2, nxB=3, name="L2")
         l[L0,L1] = [1,2,3]
         l[L1,L2] = [1,2,3]
         self.assertEqual(len(l), 2)
@@ -390,9 +390,9 @@ class Test_LevelValueWrapper2(unittest.TestCase):
         l = LevelValueWrapper2('foo', matrix=True)
         self.assertEqual(len(l), 0)
         L0 = LinearLevelRepn(1,2,3)
-        L1 = LinearLevelRepn(1,2,3)
-        L2 = LinearLevelRepn(1,2,3)
-        L3 = LinearLevelRepn(1,2,3)
+        L1 = L0.add_lower(nxR=1, nxZ=2, nxB=3, name="L1")
+        L2 = L1.add_lower(nxR=1, nxZ=2, nxB=3, name="L2")
+        L3 = L2.add_lower(nxR=1, nxZ=2, nxB=3, name="L3")
         l[L0,L1] = [1,2,3]
         l[L1,L2] = [1,2,3]
         l[L2,L3] = [1,2,3]
@@ -413,8 +413,8 @@ class Test_LevelValueWrapper2(unittest.TestCase):
     def test_setgetitem_matrix(self):
         l = LevelValueWrapper2('foo', matrix=True)
         L0 = LinearLevelRepn(1,2,3)
-        L1 = LinearLevelRepn(1,2,3)
-        L2 = LinearLevelRepn(1,2,3)
+        L1 = L0.add_lower(nxR=1, nxZ=2, nxB=3, name="L1")
+        L2 = L1.add_lower(nxR=1, nxZ=2, nxB=3, name="L2")
         l[L0,L1] = [1,2,3]
         l[L1.id,L2.id] = [4,5,6]
         self.assertEqual(len(l), 2)
@@ -434,8 +434,8 @@ class Test_LevelValueWrapper2(unittest.TestCase):
     def test_setgetitem_matrixlist(self):
         L = LevelValueWrapper2('foo', matrix=False)
         L0 = LinearLevelRepn(1,2,3)
-        L1 = LinearLevelRepn(1,2,3)
-        L2 = LinearLevelRepn(1,2,3)
+        L1 = L0.add_lower(nxR=1, nxZ=2, nxB=3, name="L1")
+        L2 = L1.add_lower(nxR=1, nxZ=2, nxB=3, name="L2")
         self.assertEqual(L[L0,L1], None)
         L[L0,L1] = (2,3,4), {(0,0,0):1, (1,1,1):2}
         L[L1.id,L2.id] = (2,3,4), {(0,1,2):1, (1,2,3):2}
@@ -1024,34 +1024,34 @@ class Test_QuadraticMultilevelProblem(Test_LinearMultilevelProblem):
         U.P[U,L3] =   (6,9), {(i,i):4 for i in range(6)}
         U.P[U,L4] =   (6,8), {(i,i):5 for i in range(6)}
         U.P[U,L5] =   (6,9), {(i,i):6 for i in range(6)}
-        U.P[L0,L1] =  (7,8), {(i,i):7 for i in range(7)}
-        U.P[L0,L2] =  (7,8), {(i,i):8 for i in range(7)}
-        U.P[L3,L4] =  (9,8), {(i,i):9 for i in range(8)}
-        U.P[L3,L5] =  (9,9), {(i,i):10 for i in range(9)}
+        U.P[L0,L2] =  (7,8), {(i,i):7 for i in range(7)}
+        U.P[L0,L3] =  (7,8), {(i,i):8 for i in range(7)}
+        U.P[L1,L4] =  (9,8), {(i,i):9 for i in range(8)}
+        U.P[L1,L5] =  (9,9), {(i,i):10 for i in range(9)}
 
         # L0
         L0.P[U,L0] =   (6,7), {(i,i):1 for i in range(6)}
-        L0.P[U,L1] =   (6,8), {(i,i):2 for i in range(6)}
         L0.P[U,L2] =   (6,8), {(i,i):3 for i in range(6)}
-        L0.P[L0,L1] =  (7,8), {(i,i):7 for i in range(7)}
-        L0.P[L0,L2] =  (7,8), {(i,i):8 for i in range(7)}
+        L0.P[U,L3] =   (6,9), {(i,i):4 for i in range(6)}
+        L0.P[L0,L2] =  (7,8), {(i,i):7 for i in range(7)}
+        L0.P[L0,L3] =  (7,8), {(i,i):8 for i in range(7)}
 
-        # L1
-        L1.P[U,L0] =   (6,7), {(i,i):1 for i in range(6)}
+        # L2
+        L2.P[U,L0] =   (6,7), {(i,i):1 for i in range(6)}
+        L2.P[U,L2] =   (6,8), {(i,i):3 for i in range(6)}
+        L2.P[L0,L2] =  (7,8), {(i,i):7 for i in range(7)}
+
+        # L1 
         L1.P[U,L1] =   (6,8), {(i,i):2 for i in range(6)}
-        L1.P[L0,L1] =  (7,8), {(i,i):7 for i in range(7)}
-
-        # L3 
-        L3.P[U,L3] =   (6,9), {(i,i):4 for i in range(6)}
-        L3.P[U,L4] =   (6,8), {(i,i):5 for i in range(6)}
-        L3.P[U,L5] =   (6,9), {(i,i):6 for i in range(6)}
-        L3.P[L3,L4] =  (9,8), {(i,i):9 for i in range(8)}
-        L3.P[L3,L5] =  (9,9), {(i,i):10 for i in range(9)}
+        L1.P[U,L4] =   (6,8), {(i,i):5 for i in range(6)}
+        L1.P[U,L5] =   (6,9), {(i,i):6 for i in range(6)}
+        L1.P[L1,L4] =  (9,8), {(i,i):9 for i in range(8)}
+        L1.P[L1,L5] =  (9,9), {(i,i):10 for i in range(9)}
 
         # L5 
-        L5.P[U,L3] =   (6,9), {(i,i):4 for i in range(6)}
+        L5.P[U,L1] =   (6,8), {(i,i):2 for i in range(6)}
         L5.P[U,L5] =   (6,9), {(i,i):6 for i in range(6)}
-        L5.P[L3,L5] =  (9,9), {(i,i):10 for i in range(9)}
+        L5.P[L1,L5] =  (9,9), {(i,i):10 for i in range(9)}
 
 
         # U
@@ -1061,36 +1061,248 @@ class Test_QuadraticMultilevelProblem(Test_LinearMultilevelProblem):
         U.Q[U,L3] =   (1,6,9), {(0,i,i):4 for i in range(6)}
         U.Q[U,L4] =   (1,6,8), {(0,i,i):5 for i in range(6)}
         U.Q[U,L5] =   (1,6,9), {(0,i,i):6 for i in range(6)}
-        U.Q[L0,L1] =  (1,7,8), {(0,i,i):7 for i in range(7)}
-        U.Q[L0,L2] =  (1,7,8), {(0,i,i):8 for i in range(7)}
-        U.Q[L3,L4] =  (1,9,8), {(0,i,i):9 for i in range(8)}
-        U.Q[L3,L5] =  (1,9,9), {(0,i,i):10 for i in range(9)}
+        U.Q[L0,L2] =  (1,7,8), {(0,i,i):7 for i in range(7)}
+        U.Q[L0,L3] =  (1,7,8), {(0,i,i):8 for i in range(7)}
+        U.Q[L1,L4] =  (1,9,8), {(0,i,i):9 for i in range(8)}
+        U.Q[L1,L5] =  (1,9,9), {(0,i,i):10 for i in range(9)}
 
         # L0
         L0.Q[U,L0] =   (1,6,7), {(0,i,i):1 for i in range(6)}
-        L0.Q[U,L1] =   (1,6,8), {(0,i,i):2 for i in range(6)}
         L0.Q[U,L2] =   (1,6,8), {(0,i,i):3 for i in range(6)}
-        L0.Q[L0,L1] =  (1,7,8), {(0,i,i):7 for i in range(7)}
-        L0.Q[L0,L2] =  (1,7,8), {(0,i,i):8 for i in range(7)}
+        L0.Q[U,L3] =   (1,6,9), {(0,i,i):4 for i in range(6)}
+        L0.Q[L0,L2] =  (1,7,8), {(0,i,i):7 for i in range(7)}
+        L0.Q[L0,L3] =  (1,7,8), {(0,i,i):8 for i in range(7)}
 
-        # L1
-        L1.Q[U,L0] =   (1,6,7), {(0,i,i):1 for i in range(6)}
+        # L2
+        L2.Q[U,L0] =   (1,6,7), {(0,i,i):1 for i in range(6)}
+        L2.Q[U,L2] =   (1,6,8), {(0,i,i):3 for i in range(6)}
+        L2.Q[L0,L2] =  (1,7,8), {(0,i,i):7 for i in range(7)}
+
+        # L1 
         L1.Q[U,L1] =   (1,6,8), {(0,i,i):2 for i in range(6)}
-        L1.Q[L0,L1] =  (1,7,8), {(0,i,i):7 for i in range(7)}
-
-        # L3 
-        L3.Q[U,L3] =   (1,6,9), {(0,i,i):4 for i in range(6)}
-        L3.Q[U,L4] =   (1,6,8), {(0,i,i):5 for i in range(6)}
-        L3.Q[U,L5] =   (1,6,9), {(0,i,i):6 for i in range(6)}
-        L3.Q[L3,L4] =  (1,9,8), {(0,i,i):9 for i in range(8)}
-        L3.Q[L3,L5] =  (1,9,9), {(0,i,i):10 for i in range(9)}
+        L1.Q[U,L4] =   (1,6,8), {(0,i,i):5 for i in range(6)}
+        L1.Q[U,L5] =   (1,6,9), {(0,i,i):6 for i in range(6)}
+        L1.Q[L1,L4] =  (1,9,8), {(0,i,i):9 for i in range(8)}
+        L1.Q[L1,L5] =  (1,9,9), {(0,i,i):10 for i in range(9)}
 
         # L5 
-        L5.Q[U,L3] =   (1,6,9), {(0,i,i):4 for i in range(6)}
+        L5.Q[U,L1] =   (1,6,8), {(0,i,i):2 for i in range(6)}
         L5.Q[U,L5] =   (1,6,9), {(0,i,i):6 for i in range(6)}
-        L5.Q[L3,L5] =  (1,9,9), {(0,i,i):10 for i in range(9)}
+        L5.Q[L1,L5] =  (1,9,9), {(0,i,i):10 for i in range(9)}
+
 
         return blp, U, L0, L1, L2, L3, L4, L5
+
+    def test_resize_U(self):
+        blp, U, L0, L1, L2, L3, L4, L5 = self._create_tmp()
+        U.resize(nxR=2, nxZ=3, nxB=4)
+
+        self.assertEqual(dict(U.P[U,L0].todok()),  {(0, 0):1, (2, 1):1, (3, 2):1, (5, 3):1, (6, 4):1, (7, 5):1})
+        self.assertEqual(dict(U.P[U,L1].todok()),  {(0, 0):2, (2, 1):2, (3, 2):2, (5, 3):2, (6, 4):2, (7, 5):2})
+        self.assertEqual(dict(U.P[U,L2].todok()),  {(0, 0):3, (2, 1):3, (3, 2):3, (5, 3):3, (6, 4):3, (7, 5):3})
+        self.assertEqual(dict(U.P[U,L3].todok()),  {(0, 0):4, (2, 1):4, (3, 2):4, (5, 3):4, (6, 4):4, (7, 5):4})
+        self.assertEqual(dict(U.P[U,L4].todok()),  {(0, 0):5, (2, 1):5, (3, 2):5, (5, 3):5, (6, 4):5, (7, 5):5})
+        self.assertEqual(dict(U.P[U,L5].todok()),  {(0, 0):6, (2, 1):6, (3, 2):6, (5, 3):6, (6, 4):6, (7, 5):6})
+        self.assertEqual(dict(U.P[L0,L2].todok()), {(0, 0):7, (1, 1):7, (2, 2):7, (3, 3):7, (4, 4):7, (5, 5):7, (6, 6):7})
+        self.assertEqual(dict(U.P[L0,L3].todok()), {(0, 0):8, (1, 1):8, (2, 2):8, (3, 3):8, (4, 4):8, (5, 5):8, (6, 6):8})
+        self.assertEqual(dict(U.P[L1,L4].todok()), {(0, 0):9, (1, 1):9, (2, 2):9, (3, 3):9, (4, 4):9, (5, 5):9, (6, 6):9, (7, 7):9})
+        self.assertEqual(dict(U.P[L1,L5].todok()), {(0, 0):10, (1, 1):10, (2, 2):10, (3, 3):10, (4, 4):10, (5, 5):10, (6, 6):10, (7, 7):10, (8, 8):10})
+
+        self.assertEqual(dict(U.Q[U,L0][0].todok()),  {(0, 0):1, (2, 1):1, (3, 2):1, (5, 3):1, (6, 4):1, (7, 5):1})
+        self.assertEqual(dict(U.Q[U,L1][0].todok()),  {(0, 0):2, (2, 1):2, (3, 2):2, (5, 3):2, (6, 4):2, (7, 5):2})
+        self.assertEqual(dict(U.Q[U,L2][0].todok()),  {(0, 0):3, (2, 1):3, (3, 2):3, (5, 3):3, (6, 4):3, (7, 5):3})
+        self.assertEqual(dict(U.Q[U,L3][0].todok()),  {(0, 0):4, (2, 1):4, (3, 2):4, (5, 3):4, (6, 4):4, (7, 5):4})
+        self.assertEqual(dict(U.Q[U,L4][0].todok()),  {(0, 0):5, (2, 1):5, (3, 2):5, (5, 3):5, (6, 4):5, (7, 5):5})
+        self.assertEqual(dict(U.Q[U,L5][0].todok()),  {(0, 0):6, (2, 1):6, (3, 2):6, (5, 3):6, (6, 4):6, (7, 5):6})
+        self.assertEqual(dict(U.Q[L0,L2][0].todok()), {(0, 0):7, (1, 1):7, (2, 2):7, (3, 3):7, (4, 4):7, (5, 5):7, (6, 6):7})
+        self.assertEqual(dict(U.Q[L0,L3][0].todok()), {(0, 0):8, (1, 1):8, (2, 2):8, (3, 3):8, (4, 4):8, (5, 5):8, (6, 6):8})
+        self.assertEqual(dict(U.Q[L1,L4][0].todok()), {(0, 0):9, (1, 1):9, (2, 2):9, (3, 3):9, (4, 4):9, (5, 5):9, (6, 6):9, (7, 7):9})
+        self.assertEqual(dict(U.Q[L1,L5][0].todok()), {(0, 0):10, (1, 1):10, (2, 2):10, (3, 3):10, (4, 4):10, (5, 5):10, (6, 6):10, (7, 7):10, (8, 8):10})
+
+
+        self.assertEqual(dict(L0.P[U,L0].todok()),  {(0, 0):1, (2, 1):1, (3, 2):1, (5, 3):1, (6, 4):1, (7, 5):1})
+        self.assertEqual(dict(L0.P[U,L2].todok()),  {(0, 0):3, (2, 1):3, (3, 2):3, (5, 3):3, (6, 4):3, (7, 5):3})
+        self.assertEqual(dict(L0.P[U,L3].todok()),  {(0, 0):4, (2, 1):4, (3, 2):4, (5, 3):4, (6, 4):4, (7, 5):4})
+        self.assertEqual(dict(L0.P[L0,L2].todok()), {(0, 0):7, (1, 1):7, (2, 2):7, (3, 3):7, (4, 4):7, (5, 5):7, (6, 6):7})
+        self.assertEqual(dict(L0.P[L0,L3].todok()), {(0, 0):8, (1, 1):8, (2, 2):8, (3, 3):8, (4, 4):8, (5, 5):8, (6, 6):8})
+
+        self.assertEqual(dict(L0.Q[U,L0][0].todok()),  {(0, 0):1, (2, 1):1, (3, 2):1, (5, 3):1, (6, 4):1, (7, 5):1})
+        self.assertEqual(dict(L0.Q[U,L2][0].todok()),  {(0, 0):3, (2, 1):3, (3, 2):3, (5, 3):3, (6, 4):3, (7, 5):3})
+        self.assertEqual(dict(L0.Q[U,L3][0].todok()),  {(0, 0):4, (2, 1):4, (3, 2):4, (5, 3):4, (6, 4):4, (7, 5):4})
+        self.assertEqual(dict(L0.Q[L0,L2][0].todok()), {(0, 0):7, (1, 1):7, (2, 2):7, (3, 3):7, (4, 4):7, (5, 5):7, (6, 6):7})
+        self.assertEqual(dict(L0.Q[L0,L3][0].todok()), {(0, 0):8, (1, 1):8, (2, 2):8, (3, 3):8, (4, 4):8, (5, 5):8, (6, 6):8})
+
+
+        self.assertEqual(dict(L2.P[U,L0].todok()),  {(0, 0):1, (2, 1):1, (3, 2):1, (5, 3):1, (6, 4):1, (7, 5):1})
+        self.assertEqual(dict(L2.P[U,L2].todok()),  {(0, 0):3, (2, 1):3, (3, 2):3, (5, 3):3, (6, 4):3, (7, 5):3})
+        self.assertEqual(dict(L2.P[L0,L2].todok()), {(0, 0):7, (1, 1):7, (2, 2):7, (3, 3):7, (4, 4):7, (5, 5):7, (6, 6):7})
+
+        self.assertEqual(dict(L2.Q[U,L0][0].todok()),  {(0, 0):1, (2, 1):1, (3, 2):1, (5, 3):1, (6, 4):1, (7, 5):1})
+        self.assertEqual(dict(L2.Q[U,L2][0].todok()),  {(0, 0):3, (2, 1):3, (3, 2):3, (5, 3):3, (6, 4):3, (7, 5):3})
+        self.assertEqual(dict(L2.Q[L0,L2][0].todok()), {(0, 0):7, (1, 1):7, (2, 2):7, (3, 3):7, (4, 4):7, (5, 5):7, (6, 6):7})
+
+
+        self.assertEqual(dict(L1.P[U,L1].todok()),  {(0, 0):2, (2, 1):2, (3, 2):2, (5, 3):2, (6, 4):2, (7, 5):2})
+        self.assertEqual(dict(L1.P[U,L4].todok()),  {(0, 0):5, (2, 1):5, (3, 2):5, (5, 3):5, (6, 4):5, (7, 5):5})
+        self.assertEqual(dict(L1.P[U,L5].todok()),  {(0, 0):6, (2, 1):6, (3, 2):6, (5, 3):6, (6, 4):6, (7, 5):6})
+        self.assertEqual(dict(L1.P[L1,L4].todok()), {(0, 0):9, (1, 1):9, (2, 2):9, (3, 3):9, (4, 4):9, (5, 5):9, (6, 6):9, (7, 7):9})
+        self.assertEqual(dict(L1.P[L1,L5].todok()), {(0, 0):10, (1, 1):10, (2, 2):10, (3, 3):10, (4, 4):10, (5, 5):10, (6, 6):10, (7, 7):10, (8, 8):10})
+
+        self.assertEqual(dict(L1.Q[U,L1][0].todok()),  {(0, 0):2, (2, 1):2, (3, 2):2, (5, 3):2, (6, 4):2, (7, 5):2})
+        self.assertEqual(dict(L1.Q[U,L4][0].todok()),  {(0, 0):5, (2, 1):5, (3, 2):5, (5, 3):5, (6, 4):5, (7, 5):5})
+        self.assertEqual(dict(L1.Q[U,L5][0].todok()),  {(0, 0):6, (2, 1):6, (3, 2):6, (5, 3):6, (6, 4):6, (7, 5):6})
+        self.assertEqual(dict(L1.Q[L1,L4][0].todok()), {(0, 0):9, (1, 1):9, (2, 2):9, (3, 3):9, (4, 4):9, (5, 5):9, (6, 6):9, (7, 7):9})
+        self.assertEqual(dict(L1.Q[L1,L5][0].todok()), {(0, 0):10, (1, 1):10, (2, 2):10, (3, 3):10, (4, 4):10, (5, 5):10, (6, 6):10, (7, 7):10, (8, 8):10})
+
+
+        self.assertEqual(dict(L5.P[U,L1].todok()),  {(0, 0):2, (2, 1):2, (3, 2):2, (5, 3):2, (6, 4):2, (7, 5):2})
+        self.assertEqual(dict(L5.P[U,L5].todok()),  {(0, 0):6, (2, 1):6, (3, 2):6, (5, 3):6, (6, 4):6, (7, 5):6})
+        self.assertEqual(dict(L5.P[L1,L5].todok()), {(0, 0):10, (1, 1):10, (2, 2):10, (3, 3):10, (4, 4):10, (5, 5):10, (6, 6):10, (7, 7):10, (8, 8):10})
+
+        self.assertEqual(dict(L5.Q[U,L1][0].todok()),  {(0, 0):2, (2, 1):2, (3, 2):2, (5, 3):2, (6, 4):2, (7, 5):2})
+        self.assertEqual(dict(L5.Q[U,L5][0].todok()),  {(0, 0):6, (2, 1):6, (3, 2):6, (5, 3):6, (6, 4):6, (7, 5):6})
+        self.assertEqual(dict(L5.Q[L1,L5][0].todok()), {(0, 0):10, (1, 1):10, (2, 2):10, (3, 3):10, (4, 4):10, (5, 5):10, (6, 6):10, (7, 7):10, (8, 8):10})
+
+    def test_resize_L0(self):
+        blp, U, L0, L1, L2, L3, L4, L5 = self._create_tmp()
+        L0.resize(nxR=2, nxZ=3, nxB=4)
+
+        self.assertEqual(dict(U.P[U,L0].todok()),  {(0, 0):1, (1, 2):1, (2, 3):1, (3, 5):1, (4, 6):1, (5, 7):1})
+        self.assertEqual(dict(U.P[U,L1].todok()),  {(0, 0):2, (1, 1):2, (2, 2):2, (3, 3):2, (4, 4):2, (5, 5):2})
+        self.assertEqual(dict(U.P[U,L2].todok()),  {(0, 0):3, (1, 1):3, (2, 2):3, (3, 3):3, (4, 4):3, (5, 5):3})
+        self.assertEqual(dict(U.P[U,L3].todok()),  {(0, 0):4, (1, 1):4, (2, 2):4, (3, 3):4, (4, 4):4, (5, 5):4})
+        self.assertEqual(dict(U.P[U,L4].todok()),  {(0, 0):5, (1, 1):5, (2, 2):5, (3, 3):5, (4, 4):5, (5, 5):5})
+        self.assertEqual(dict(U.P[U,L5].todok()),  {(0, 0):6, (1, 1):6, (2, 2):6, (3, 3):6, (4, 4):6, (5, 5):6})
+        self.assertEqual(dict(U.P[L0,L2].todok()), {(0, 0):7, (2, 1):7, (3, 2):7, (5, 3):7, (6, 4):7, (7, 5):7, (8, 6):7})
+        self.assertEqual(dict(U.P[L0,L3].todok()), {(0, 0):8, (2, 1):8, (3, 2):8, (5, 3):8, (6, 4):8, (7, 5):8, (8, 6):8})
+        self.assertEqual(dict(U.P[L1,L4].todok()), {(0, 0):9, (1, 1):9, (2, 2):9, (3, 3):9, (4, 4):9, (5, 5):9, (6, 6):9, (7, 7):9})
+        self.assertEqual(dict(U.P[L1,L5].todok()), {(0, 0):10, (1, 1):10, (2, 2):10, (3, 3):10, (4, 4):10, (5, 5):10, (6, 6):10, (7, 7):10, (8, 8):10})
+
+        self.assertEqual(dict(U.Q[U,L0][0].todok()),  {(0, 0):1, (1, 2):1, (2, 3):1, (3, 5):1, (4, 6):1, (5, 7):1})
+        self.assertEqual(dict(U.Q[U,L1][0].todok()),  {(0, 0):2, (1, 1):2, (2, 2):2, (3, 3):2, (4, 4):2, (5, 5):2})
+        self.assertEqual(dict(U.Q[U,L2][0].todok()),  {(0, 0):3, (1, 1):3, (2, 2):3, (3, 3):3, (4, 4):3, (5, 5):3})
+        self.assertEqual(dict(U.Q[U,L3][0].todok()),  {(0, 0):4, (1, 1):4, (2, 2):4, (3, 3):4, (4, 4):4, (5, 5):4})
+        self.assertEqual(dict(U.Q[U,L4][0].todok()),  {(0, 0):5, (1, 1):5, (2, 2):5, (3, 3):5, (4, 4):5, (5, 5):5})
+        self.assertEqual(dict(U.Q[U,L5][0].todok()),  {(0, 0):6, (1, 1):6, (2, 2):6, (3, 3):6, (4, 4):6, (5, 5):6})
+        self.assertEqual(dict(U.Q[L0,L2][0].todok()), {(0, 0):7, (2, 1):7, (3, 2):7, (5, 3):7, (6, 4):7, (7, 5):7, (8, 6):7})
+        self.assertEqual(dict(U.Q[L0,L3][0].todok()), {(0, 0):8, (2, 1):8, (3, 2):8, (5, 3):8, (6, 4):8, (7, 5):8, (8, 6):8})
+        self.assertEqual(dict(U.Q[L1,L4][0].todok()), {(0, 0):9, (1, 1):9, (2, 2):9, (3, 3):9, (4, 4):9, (5, 5):9, (6, 6):9, (7, 7):9})
+        self.assertEqual(dict(U.Q[L1,L5][0].todok()), {(0, 0):10, (1, 1):10, (2, 2):10, (3, 3):10, (4, 4):10, (5, 5):10, (6, 6):10, (7, 7):10, (8, 8):10})
+
+
+        self.assertEqual(dict(L0.P[U,L0].todok()),  {(0, 0):1, (1, 2):1, (2, 3):1, (3, 5):1, (4, 6):1, (5, 7):1})
+        self.assertEqual(dict(L0.P[U,L2].todok()),  {(0, 0):3, (1, 1):3, (2, 2):3, (3, 3):3, (4, 4):3, (5, 5):3})
+        self.assertEqual(dict(L0.P[U,L3].todok()),  {(0, 0):4, (1, 1):4, (2, 2):4, (3, 3):4, (4, 4):4, (5, 5):4})
+        self.assertEqual(dict(L0.P[L0,L2].todok()), {(0, 0):7, (2, 1):7, (3, 2):7, (5, 3):7, (6, 4):7, (7, 5):7, (8, 6):7})
+        self.assertEqual(dict(L0.P[L0,L3].todok()), {(0, 0):8, (2, 1):8, (3, 2):8, (5, 3):8, (6, 4):8, (7, 5):8, (8, 6):8})
+
+        self.assertEqual(dict(L0.Q[U,L0][0].todok()),  {(0, 0):1, (1, 2):1, (2, 3):1, (3, 5):1, (4, 6):1, (5, 7):1})
+        self.assertEqual(dict(L0.Q[U,L2][0].todok()),  {(0, 0):3, (1, 1):3, (2, 2):3, (3, 3):3, (4, 4):3, (5, 5):3})
+        self.assertEqual(dict(L0.Q[U,L3][0].todok()),  {(0, 0):4, (1, 1):4, (2, 2):4, (3, 3):4, (4, 4):4, (5, 5):4})
+        self.assertEqual(dict(L0.Q[L0,L2][0].todok()), {(0, 0):7, (2, 1):7, (3, 2):7, (5, 3):7, (6, 4):7, (7, 5):7, (8, 6):7})
+        self.assertEqual(dict(L0.Q[L0,L3][0].todok()), {(0, 0):8, (2, 1):8, (3, 2):8, (5, 3):8, (6, 4):8, (7, 5):8, (8, 6):8})
+
+
+        self.assertEqual(dict(L2.P[U,L0].todok()),  {(0, 0):1, (1, 2):1, (2, 3):1, (3, 5):1, (4, 6):1, (5, 7):1})
+        self.assertEqual(dict(L2.P[U,L2].todok()),  {(0, 0):3, (1, 1):3, (2, 2):3, (3, 3):3, (4, 4):3, (5, 5):3})
+        self.assertEqual(dict(L2.P[L0,L2].todok()), {(0, 0):7, (2, 1):7, (3, 2):7, (5, 3):7, (6, 4):7, (7, 5):7, (8, 6):7})
+
+        self.assertEqual(dict(L2.Q[U,L0][0].todok()),  {(0, 0):1, (1, 2):1, (2, 3):1, (3, 5):1, (4, 6):1, (5, 7):1})
+        self.assertEqual(dict(L2.Q[U,L2][0].todok()),  {(0, 0):3, (1, 1):3, (2, 2):3, (3, 3):3, (4, 4):3, (5, 5):3})
+        self.assertEqual(dict(L2.Q[L0,L2][0].todok()), {(0, 0):7, (2, 1):7, (3, 2):7, (5, 3):7, (6, 4):7, (7, 5):7, (8, 6):7})
+
+
+        self.assertEqual(dict(L1.P[U,L1].todok()),  {(0, 0):2, (1, 1):2, (2, 2):2, (3, 3):2, (4, 4):2, (5, 5):2})
+        self.assertEqual(dict(L1.P[U,L4].todok()),  {(0, 0):5, (1, 1):5, (2, 2):5, (3, 3):5, (4, 4):5, (5, 5):5})
+        self.assertEqual(dict(L1.P[U,L5].todok()),  {(0, 0):6, (1, 1):6, (2, 2):6, (3, 3):6, (4, 4):6, (5, 5):6})
+        self.assertEqual(dict(L1.P[L1,L4].todok()), {(0, 0):9, (1, 1):9, (2, 2):9, (3, 3):9, (4, 4):9, (5, 5):9, (6, 6):9, (7, 7):9})
+        self.assertEqual(dict(L1.P[L1,L5].todok()), {(0, 0):10, (1, 1):10, (2, 2):10, (3, 3):10, (4, 4):10, (5, 5):10, (6, 6):10, (7, 7):10, (8, 8):10})
+
+        self.assertEqual(dict(L1.Q[U,L1][0].todok()),  {(0, 0):2, (1, 1):2, (2, 2):2, (3, 3):2, (4, 4):2, (5, 5):2})
+        self.assertEqual(dict(L1.Q[U,L4][0].todok()),  {(0, 0):5, (1, 1):5, (2, 2):5, (3, 3):5, (4, 4):5, (5, 5):5})
+        self.assertEqual(dict(L1.Q[U,L5][0].todok()),  {(0, 0):6, (1, 1):6, (2, 2):6, (3, 3):6, (4, 4):6, (5, 5):6})
+        self.assertEqual(dict(L1.Q[L1,L4][0].todok()), {(0, 0):9, (1, 1):9, (2, 2):9, (3, 3):9, (4, 4):9, (5, 5):9, (6, 6):9, (7, 7):9})
+        self.assertEqual(dict(L1.Q[L1,L5][0].todok()), {(0, 0):10, (1, 1):10, (2, 2):10, (3, 3):10, (4, 4):10, (5, 5):10, (6, 6):10, (7, 7):10, (8, 8):10})
+
+
+        self.assertEqual(dict(L5.P[U,L1].todok()),  {(0, 0):2, (1, 1):2, (2, 2):2, (3, 3):2, (4, 4):2, (5, 5):2})
+        self.assertEqual(dict(L5.P[U,L5].todok()),  {(0, 0):6, (1, 1):6, (2, 2):6, (3, 3):6, (4, 4):6, (5, 5):6})
+        self.assertEqual(dict(L5.P[L1,L5].todok()), {(0, 0):10, (1, 1):10, (2, 2):10, (3, 3):10, (4, 4):10, (5, 5):10, (6, 6):10, (7, 7):10, (8, 8):10})
+
+        self.assertEqual(dict(L5.Q[U,L1][0].todok()),  {(0, 0):2, (1, 1):2, (2, 2):2, (3, 3):2, (4, 4):2, (5, 5):2})
+        self.assertEqual(dict(L5.Q[U,L5][0].todok()),  {(0, 0):6, (1, 1):6, (2, 2):6, (3, 3):6, (4, 4):6, (5, 5):6})
+        self.assertEqual(dict(L5.Q[L1,L5][0].todok()), {(0, 0):10, (1, 1):10, (2, 2):10, (3, 3):10, (4, 4):10, (5, 5):10, (6, 6):10, (7, 7):10, (8, 8):10})
+
+
+    def test_resize_L3(self):
+        blp, U, L0, L1, L2, L3, L4, L5 = self._create_tmp()
+        L3.resize(nxR=2, nxZ=3, nxB=4)
+
+        self.assertEqual(dict(U.P[U,L0].todok()),  {(0, 0):1, (1, 1):1, (2, 2):1, (3, 3):1, (4, 4):1, (5, 5):1})
+        self.assertEqual(dict(U.P[U,L1].todok()),  {(0, 0):2, (1, 1):2, (2, 2):2, (3, 3):2, (4, 4):2, (5, 5):2})
+        self.assertEqual(dict(U.P[U,L2].todok()),  {(0, 0):3, (1, 1):3, (2, 2):3, (3, 3):3, (4, 4):3, (5, 5):3})
+        self.assertEqual(dict(U.P[U,L3].todok()),  {(0, 0):4, (1, 2):4, (2, 3):4, (3, 4):4, (5, 5):4})          
+        self.assertEqual(dict(U.P[U,L4].todok()),  {(0, 0):5, (1, 1):5, (2, 2):5, (3, 3):5, (4, 4):5, (5, 5):5})
+        self.assertEqual(dict(U.P[U,L5].todok()),  {(0, 0):6, (1, 1):6, (2, 2):6, (3, 3):6, (4, 4):6, (5, 5):6})
+        self.assertEqual(dict(U.P[L0,L2].todok()), {(0, 0):7, (1, 1):7, (2, 2):7, (3, 3):7, (4, 4):7, (5, 5):7, (6, 6):7})
+        self.assertEqual(dict(U.P[L0,L3].todok()), {(0, 0):8, (1, 2):8, (2, 3):8, (3, 4):8, (5, 5):8, (6, 6):8})
+        self.assertEqual(dict(U.P[L1,L4].todok()), {(0, 0):9, (1, 1):9, (2, 2):9, (3, 3):9, (4, 4):9, (5, 5):9, (6, 6):9, (7, 7):9})
+        self.assertEqual(dict(U.P[L1,L5].todok()), {(0, 0):10, (1, 1):10, (2, 2):10, (3, 3):10, (4, 4):10, (5, 5):10, (6, 6):10, (7, 7):10, (8, 8):10})
+
+        self.assertEqual(dict(U.Q[U,L0][0].todok()),  {(0, 0):1, (1, 1):1, (2, 2):1, (3, 3):1, (4, 4):1, (5, 5):1})
+        self.assertEqual(dict(U.Q[U,L1][0].todok()),  {(0, 0):2, (1, 1):2, (2, 2):2, (3, 3):2, (4, 4):2, (5, 5):2})
+        self.assertEqual(dict(U.Q[U,L2][0].todok()),  {(0, 0):3, (1, 1):3, (2, 2):3, (3, 3):3, (4, 4):3, (5, 5):3})
+        self.assertEqual(dict(U.Q[U,L3][0].todok()),  {(0, 0):4, (1, 2):4, (2, 3):4, (3, 4):4, (5, 5):4})          
+        self.assertEqual(dict(U.Q[U,L4][0].todok()),  {(0, 0):5, (1, 1):5, (2, 2):5, (3, 3):5, (4, 4):5, (5, 5):5})
+        self.assertEqual(dict(U.Q[U,L5][0].todok()),  {(0, 0):6, (1, 1):6, (2, 2):6, (3, 3):6, (4, 4):6, (5, 5):6})
+        self.assertEqual(dict(U.Q[L0,L2][0].todok()), {(0, 0):7, (1, 1):7, (2, 2):7, (3, 3):7, (4, 4):7, (5, 5):7, (6, 6):7})
+        self.assertEqual(dict(U.Q[L0,L3][0].todok()), {(0, 0):8, (1, 2):8, (2, 3):8, (3, 4):8, (5, 5):8, (6, 6):8})
+        self.assertEqual(dict(U.Q[L1,L4][0].todok()), {(0, 0):9, (1, 1):9, (2, 2):9, (3, 3):9, (4, 4):9, (5, 5):9, (6, 6):9, (7, 7):9})
+        self.assertEqual(dict(U.Q[L1,L5][0].todok()), {(0, 0):10, (1, 1):10, (2, 2):10, (3, 3):10, (4, 4):10, (5, 5):10, (6, 6):10, (7, 7):10, (8, 8):10})
+
+
+        self.assertEqual(dict(L0.P[U,L0].todok()),  {(0, 0):1, (1, 1):1, (2, 2):1, (3, 3):1, (4, 4):1, (5, 5):1})
+        self.assertEqual(dict(L0.P[U,L2].todok()),  {(0, 0):3, (1, 1):3, (2, 2):3, (3, 3):3, (4, 4):3, (5, 5):3})
+        self.assertEqual(dict(L0.P[U,L3].todok()),  {(0, 0):4, (1, 2):4, (2, 3):4, (3, 4):4, (5, 5):4})           
+        self.assertEqual(dict(L0.P[L0,L2].todok()), {(0, 0):7, (1, 1):7, (2, 2):7, (3, 3):7, (4, 4):7, (5, 5):7, (6, 6):7})
+        self.assertEqual(dict(L0.P[L0,L3].todok()), {(0, 0):8, (1, 2):8, (2, 3):8, (3, 4):8, (5, 5):8, (6, 6):8})
+
+        self.assertEqual(dict(L0.Q[U,L0][0].todok()),  {(0, 0):1, (1, 1):1, (2, 2):1, (3, 3):1, (4, 4):1, (5, 5):1})
+        self.assertEqual(dict(L0.Q[U,L2][0].todok()),  {(0, 0):3, (1, 1):3, (2, 2):3, (3, 3):3, (4, 4):3, (5, 5):3})
+        self.assertEqual(dict(L0.Q[U,L3][0].todok()),  {(0, 0):4, (1, 2):4, (2, 3):4, (3, 4):4, (5, 5):4})         
+        self.assertEqual(dict(L0.Q[L0,L2][0].todok()), {(0, 0):7, (1, 1):7, (2, 2):7, (3, 3):7, (4, 4):7, (5, 5):7, (6, 6):7})
+        self.assertEqual(dict(L0.Q[L0,L3][0].todok()), {(0, 0):8, (1, 2):8, (2, 3):8, (3, 4):8, (5, 5):8, (6, 6):8}) 
+
+
+        self.assertEqual(dict(L2.P[U,L0].todok()),  {(0, 0):1, (1, 1):1, (2, 2):1, (3, 3):1, (4, 4):1, (5, 5):1})
+        self.assertEqual(dict(L2.P[U,L2].todok()),  {(0, 0):3, (1, 1):3, (2, 2):3, (3, 3):3, (4, 4):3, (5, 5):3})
+        self.assertEqual(dict(L2.P[L0,L2].todok()), {(0, 0):7, (1, 1):7, (2, 2):7, (3, 3):7, (4, 4):7, (5, 5):7, (6, 6):7})
+
+        self.assertEqual(dict(L2.Q[U,L0][0].todok()),  {(0, 0):1, (1, 1):1, (2, 2):1, (3, 3):1, (4, 4):1, (5, 5):1})
+        self.assertEqual(dict(L2.Q[U,L2][0].todok()),  {(0, 0):3, (1, 1):3, (2, 2):3, (3, 3):3, (4, 4):3, (5, 5):3})
+        self.assertEqual(dict(L2.Q[L0,L2][0].todok()), {(0, 0):7, (1, 1):7, (2, 2):7, (3, 3):7, (4, 4):7, (5, 5):7, (6, 6):7})
+
+
+        self.assertEqual(dict(L1.P[U,L1].todok()),  {(0, 0):2, (1, 1):2, (2, 2):2, (3, 3):2, (4, 4):2, (5, 5):2})
+        self.assertEqual(dict(L1.P[U,L4].todok()),  {(0, 0):5, (1, 1):5, (2, 2):5, (3, 3):5, (4, 4):5, (5, 5):5})
+        self.assertEqual(dict(L1.P[U,L5].todok()),  {(0, 0):6, (1, 1):6, (2, 2):6, (3, 3):6, (4, 4):6, (5, 5):6})
+        self.assertEqual(dict(L1.P[L1,L4].todok()), {(0, 0):9, (1, 1):9, (2, 2):9, (3, 3):9, (4, 4):9, (5, 5):9, (6, 6):9, (7, 7):9})
+        self.assertEqual(dict(L1.P[L1,L5].todok()), {(0, 0):10, (1, 1):10, (2, 2):10, (3, 3):10, (4, 4):10, (5, 5):10, (6, 6):10, (7, 7):10, (8, 8):10})
+
+        self.assertEqual(dict(L1.Q[U,L1][0].todok()),  {(0, 0):2, (1, 1):2, (2, 2):2, (3, 3):2, (4, 4):2, (5, 5):2})
+        self.assertEqual(dict(L1.Q[U,L4][0].todok()),  {(0, 0):5, (1, 1):5, (2, 2):5, (3, 3):5, (4, 4):5, (5, 5):5})
+        self.assertEqual(dict(L1.Q[U,L5][0].todok()),  {(0, 0):6, (1, 1):6, (2, 2):6, (3, 3):6, (4, 4):6, (5, 5):6})
+        self.assertEqual(dict(L1.Q[L1,L4][0].todok()), {(0, 0):9, (1, 1):9, (2, 2):9, (3, 3):9, (4, 4):9, (5, 5):9, (6, 6):9, (7, 7):9})
+        self.assertEqual(dict(L1.Q[L1,L5][0].todok()), {(0, 0):10, (1, 1):10, (2, 2):10, (3, 3):10, (4, 4):10, (5, 5):10, (6, 6):10, (7, 7):10, (8, 8):10})
+
+
+        self.assertEqual(dict(L5.P[U,L1].todok()),  {(0, 0):2, (1, 1):2, (2, 2):2, (3, 3):2, (4, 4):2, (5, 5):2})
+        self.assertEqual(dict(L5.P[U,L5].todok()),  {(0, 0):6, (1, 1):6, (2, 2):6, (3, 3):6, (4, 4):6, (5, 5):6})
+        self.assertEqual(dict(L5.P[L1,L5].todok()), {(0, 0):10, (1, 1):10, (2, 2):10, (3, 3):10, (4, 4):10, (5, 5):10, (6, 6):10, (7, 7):10, (8, 8):10})
+
+        self.assertEqual(dict(L5.Q[U,L1][0].todok()),  {(0, 0):2, (1, 1):2, (2, 2):2, (3, 3):2, (4, 4):2, (5, 5):2})
+        self.assertEqual(dict(L5.Q[U,L5][0].todok()),  {(0, 0):6, (1, 1):6, (2, 2):6, (3, 3):6, (4, 4):6, (5, 5):6})
+        self.assertEqual(dict(L5.Q[L1,L5][0].todok()), {(0, 0):10, (1, 1):10, (2, 2):10, (3, 3):10, (4, 4):10, (5, 5):10, (6, 6):10, (7, 7):10, (8, 8):10})
 
 
 if __name__ == "__main__":
