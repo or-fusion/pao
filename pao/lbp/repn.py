@@ -402,15 +402,14 @@ class LevelValueWrapper2(object):
         assert (i<=j), "Require quadratic terms to be indexed with upper-level variables first"
         if not type(lvl1) is int and not type(lvl2) is int:
             assert (lvl1.id in [L.id for L in lvl2.levels()]), "Require quadratic terms to be in the same subproblem tree"
-        _values = self._values
         if value is None:
-            if (i,j) in _values:
-                del _values[i,j]
+            if (i,j) in self._values:
+                del self._values[i,j]
         else:
-            _values[i,j] = LevelValues(matrix=self._matrix, matrix_list=not self._matrix, x=value)
+            self._values[i,j] = LevelValues(matrix=self._matrix, matrix_list=not self._matrix, x=value)
 
     def clone(self):
-        ans = LevelValueWrapper1(self._prefix, matrix=self._matrix)
+        ans = LevelValueWrapper2(self._prefix, matrix=self._matrix)
         for name in self._values:
             ans._values[name] = self._values[name].clone()
         return ans
@@ -597,6 +596,29 @@ class LinearLevelRepn(object):
         else:
             super().__setattr__(name, value)
 
+    def check(self):
+        #
+        # Size of 'c'
+        #
+        for X in self.levels():
+            assert ((self.c[X] is None) or (self.c[X].size == len(X.x)) or (self.c[X].size == 0)), "Incompatible specification of coefficients for %s.c[%s]: %d != %d" % (self.name, X.name, self.c[X].size, len(X.x))
+        #
+        # Ncols of 'A'
+        #
+        for X in self.levels():
+            assert ((self.A[X] is None) or (self.A[X].shape[1] == len(X.x))), "Incompatible specification of %s.A[%s] and %s.x (%d != %d)" % (self.name, X.name, x.name, self.A[X].shape[1], len(X.x))
+        #
+        # Nrows of 'A'
+        #
+        if self.b is None:
+            for X in self.levels():
+                assert (self.A[X] is None), "Incompatible specification of %s.b and %s.A[%s]" % (self.name, self.name, X.name)
+        else:
+            nr = self.b.size
+            for X in self.levels():
+                if self.A[X] is not None:
+                    assert (nr == self.A[X].shape[0]), "Incompatible specification of %s.b and %s.A[%s] (%d != %d)" % (self.name, self.name, X.name, nr, self.A[X].shape[0])
+
 
 class QuadraticLevelRepn(LinearLevelRepn):
 
@@ -618,7 +640,6 @@ class QuadraticLevelRepn(LinearLevelRepn):
         #
         for L1,L2 in self.P:
             if L1 == level.id or L2 == level.id:
-                P = self.P[L1,L2]
                 self.P[L1,L2] = _update_matrix(self.P[L1,L2], old, new, L2==level.id)
         #
         # Update 'Q'
@@ -664,6 +685,15 @@ class QuadraticLevelRepn(LinearLevelRepn):
         #
         for L in self.LL:
             L.print(names)
+
+    def check(self):
+        LinearLevelRepn.check(self)
+        #
+        # Ncols of 'P'
+        #
+        for X in self.levels():
+            if X.id <= self.id:
+                assert ((self.P[X,self] is None) or (self.P[X,self].shape[1] == len(self.x))), "Incompatible specification of columns for %s.P[%s,%s] and %s.x (%d != %d)" % (self.name, X.name, self.name, self.name, self.P[X,self].shape[1], len(self.x))
 
 
 class LinearMultilevelProblem(object):
@@ -722,30 +752,8 @@ class LinearMultilevelProblem(object):
         self.U.print(names)
 
     def check(self):                    # pragma: no cover
-        #
-        # Coefficients for objective
-        #
         for L in self.levels():
-            for X in L.levels():
-                assert ((L.c[X] is None) or (L.c[X].size == len(X.x)) or (L.c[X].size == 0)), "Incompatible specification of coefficients for %s.c[%s]: %d != %d" % (L.name, X.name, L.c[X].size, len(X.x))
-        #
-        # Ncols of constraints
-        #
-        for L in self.levels():
-            for X in L.levels():
-                assert ((L.A[X] is None) or (L.A[X].shape[1] == len(X.x))), "Incompatible specification of %s.A[%s] and %s.x (%d != %d)" % (L.name, X.name, x.name, U.A[X].shape[1], len(X.x))
-        #
-        # Nrows of constraints
-        #
-        for L in self.levels():
-            if L.b is None:
-                for X in L.levels():
-                    assert (L.A[X] is None), "Incompatible specification of %s.b and %s.A[%s]" % (L.name, L.name, X.name)
-            else:
-                nr = L.b.size
-                for X in L.levels():
-                    if L.A[X] is not None:
-                        assert (nr == L.A[X].shape[0]), "Incompatible specification of %s.b and %s.A[%s] (%d != %d)" % (L.name, L.name, X.name, nr, L.A[X].shape[0])
+            L.check()
 
     def check_opposite_objectives(self, U, L):
         if id(U.c) == id(L.c) and L.minimize ^ U.minimize:
@@ -828,30 +836,8 @@ class QuadraticMultilevelProblem(object):
         self.U.print(names)
 
     def check(self):                    # pragma: no cover
-        #
-        # Linear coefficients for objective
-        #
         for L in self.levels():
-            for X in L.levels():
-                assert ((L.c[X] is None) or (L.c[X].size == len(X.x)) or (L.c[X].size == 0)), "Incompatible specification of coefficients for %s.c[%s]: %d != %d" % (L.name, X.name, L.c[X].size, len(X.x))
-        #
-        # Ncols of linear constraints
-        #
-        for L in self.levels():
-            for X in L.levels():
-                assert ((L.A[X] is None) or (L.A[X].shape[1] == len(X.x))), "Incompatible specification of %s.A[%s] and %s.x (%d != %d)" % (L.name, X.name, x.name, U.A[X].shape[1], len(X.x))
-        #
-        # Nrows of linear constraints
-        #
-        for L in self.levels():
-            if L.b is None:
-                for X in L.levels():
-                    assert (L.A[X] is None), "Incompatible specification of %s.b and %s.A[%s]" % (L.name, L.name, X.name)
-            else:
-                nr = L.b.size
-                for X in L.levels():
-                    if L.A[X] is not None:
-                        assert (nr == L.A[X].shape[0]), "Incompatible specification of %s.b and %s.A[%s] (%d != %d)" % (L.name, L.name, X.name, nr, L.A[X].shape[0])
+            L.check()
 
     def check_opposite_objectives(self, U, L):
         if id(U.c) == id(L.c) and L.minimize ^ U.minimize:

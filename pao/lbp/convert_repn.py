@@ -257,6 +257,7 @@ def Xcombine_matrices(A, B):         #pragma: nocover
 
 
 def convert_sense(L, minimize=True):
+    #print("CONVERT SENSE", L.id)
     if (minimize and not L.minimize) or (not minimize and L.minimize):
         L.minimize = minimize
         L.d *= -1
@@ -264,7 +265,11 @@ def convert_sense(L, minimize=True):
             L.c[i] *= -1
         if type(L) is QuadraticLevelRepn:
             for i,j in L.P:
+                #print("HERE", i,j)
+                tmp = L.P[i,j].multiply(-1)
+                #print(str(tmp))
                 L.P[i,j] = L.P[i,j].multiply(-1)
+    #print("DONE")
 
 
 def convert_to_minimization(ans):
