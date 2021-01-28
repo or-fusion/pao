@@ -392,8 +392,10 @@ def convert_binaries_to_integers(lbp):
 def convert_LinearBilevelProblem_to_standard_form(lbp, inequalities=False):
     """
     After applying this transformation, the problem has the form:
-        1. Each real variable x is nonnegative (x >= 0)
-        2. Constraints are equalities
+
+    1. Each real variable x is nonnegative (x >= 0)
+    2. Constraints are equalities
+
     Thus, if a level only has real variables, it will be in standard form
     following this transformation.
     """
