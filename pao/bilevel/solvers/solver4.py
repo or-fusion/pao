@@ -86,7 +86,7 @@ class BilevelSolver4(pyomo.opt.OptSolver):
                                           tee=self._tee,
                                           timelimit=self._timelimit,
                                           symbolic_solver_labels=False,
-                                          keepfiles=False))
+                                          keep_files=False))
         #
         stop_time = time.time()
         self.wall_time = stop_time - start_time

@@ -19,12 +19,6 @@ class LinearBilevelSolverBase(pao.common.Solver):
         #
         lbp.check()
 
-    def solve(self, *args, **kwds):     # pragma: no cover
-        #
-        # Solve the LinearBilevelProblem
-        #
-        pass
-
 
 class LinearBilevelResults(pao.common.Results):
 

@@ -32,7 +32,7 @@ from pyomo.mpec import complements, ComplementarityList, Complementarity
 from pyomo.gdp import Disjunct, Disjunction
 from pao.bilevel.solvers.solver_helpers import _check_termination_condition
 from pao.bilevel.plugins.collect import BilevelMatrixRepn
-from pao.bilevel.components import SubModel, varref, dataref
+from pao.bilevel import SubModel, varref, dataref
 from pyomo.core import TransformationFactory, minimize, maximize, Block, Constraint, Objective, Var, Reals, Binary, Integers, Any
 from pyomo.core.expr.numvalue import value
 from numpy import array, dot

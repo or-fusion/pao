@@ -9,23 +9,15 @@ SolverFactory = pao.common.SolverFactory
 
 class PyomoSubmodelSolverBase(pao.common.Solver):
     """
-    Define the API for solvers that optimize a Pyomo model using SubModel components
+    API for solvers that optimize a Pyomo model using SubModel components.
     """
 
     def __init__(self, name):
         super().__init__()
         self.name = name
 
-    def check_model(self, lbp):         # pragma: no cover
-        #
-        # Confirm that the problem is well-formed
-        #
-        pass
-
-    def solve(self, *args, **kwds):     # pragma: no cover
-        #
-        # Solve the Pyomo model
-        #
+    def Xcheck_model(self, problem):         # pragma: no cover
+        # Confirm that the compact problem representation is well-formed.
         pass
 
 
@@ -39,20 +31,18 @@ class PyomoSubmodelSolverBase_LBP(PyomoSubmodelSolverBase):
         self.lbp_solver = lbp_solver
         self.inequalities = inequalities
 
-    def inequalities(self):
+    def Xinequalities(self):
         #
         # Return True if the conversion to LinearBilevelProblem should
         # use inequalities (True) or equalities (False)
         #
         return False
 
-    def solve(self, instance, options=None, **config_options):
+    def solve(self, model, **options):
         #
         # Process keyword options
         #
-        #for key, value in config_options.items():
-        #    setattr(self.config, key, value)
-        config_options = self._update_config(config_options, validate_options=False)
+        options = self._update_config(options, validate_options=False)
         #
         # Start the clock
         #
@@ -61,21 +51,18 @@ class PyomoSubmodelSolverBase_LBP(PyomoSubmodelSolverBase):
         # Convert the Pyomo model to a LBP
         #
         try:
-            lbp, soln_manager = convert_pyomo2LinearBilevelProblem(instance)
+            lbp, soln_manager = convert_pyomo2LinearBilevelProblem(model)
         except RuntimeError as err:
             print("Cannot convert Pyomo model to a LinearBilevelProblem")
             raise
         #
         results = PyomoSubmodelResults(solution_manager=soln_manager)
         with SolverFactory(self.lbp_solver) as opt:
-            lbp_results = opt.solve(lbp, options=options, 
-                                        load_solutions=True,
-                                        **config_options
-                                        )
+            lbp_results = opt.solve(lbp, load_solutions=True, **options)
 
-            self._initialize_results(results, lbp_results, instance, lbp, options)
+            self._initialize_results(results, lbp_results, model, lbp, options)
             results.solver.rc = getattr(opt, '_rc', None)
-            results.copy_from_to(lbp=lbp, pyomo=instance)
+            results.copy_from_to(lbp=lbp, pyomo=model)
             
         results.solver.wallclock_time = time.time() - start_time
         return results
@@ -88,7 +75,6 @@ class PyomoSubmodelSolverBase_LBP(PyomoSubmodelSolverBase):
         solv.name = self.name
         solv.lbp_solver = self.lbp_solver
         solv.config = self.config
-        solv.solver_options = options
         solv.termination_condition = lbp_results.solver.termination_condition
         solv.solver_time = lbp_results.solver.time
         solv.best_feasible_objective = lbp_results.solver.best_feasible_objective

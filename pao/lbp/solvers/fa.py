@@ -7,7 +7,9 @@ import numpy as np
 import pyutilib
 import pyomo.environ as pe
 import pyomo.opt
+from pyomo.common.config import ConfigBlock, ConfigValue
 from pyomo.mpec import ComplementarityList, complements
+
 from ..solver import SolverFactory, LinearBilevelSolverBase, LinearBilevelResults
 from ..repn import LinearBilevelProblem
 from ..convert_repn import convert_LinearBilevelProblem_to_standard_form
@@ -20,10 +22,22 @@ from .reg import create_model_replacing_LL_with_kkt
         doc='A solver for linear bilevel programs using big-M relaxations discussed by Fortuny-Amat and McCarl, 1981.')
 class LinearBilevelSolver_FA(LinearBilevelSolverBase):
 
+    config = LinearBilevelSolverBase.config()
+    config.declare('solver', ConfigValue(
+        default='glpk',
+        description="The name of the MIP solver used by FA.  (default is glpk)"
+        ))
+    config.declare('solver_options', ConfigValue(
+        default=None,
+        description="A dictionary that defines the solver options for the MIP solver.  (default is None)"))
+    config.declare('bigm', ConfigValue(
+        default=100000,
+        domain=float,
+        description="The big-M value used to enforce complementarity conditions.  (default is 1e5)"
+        ))
+
     def __init__(self, **kwds):
         super().__init__(name='pao.lbp.FA')
-        self.config.solver = 'glpk'
-        self.config.bigm = 100000
 
     def check_model(self, lbp):
         #
@@ -43,21 +57,21 @@ class LinearBilevelSolver_FA(LinearBilevelSolverBase):
             assert (L.x.nxZ == 0), "Cannot use solver %s with model with integer lower-level variables" % self.name
             assert (L.x.nxB == 0), "Cannot use solver %s with model with binary lower-level variables" % self.name
 
-    def solve(self, lbp, options=None, **config_options):
+    def solve(self, model, **options):
         #
         # Error checks
         #
-        self.check_model(lbp)
+        self.check_model(model)
         #
         # Process keyword options
         #
-        self._update_config(config_options)
+        self._update_config(options)
         #
         # Start clock
         #
         start_time = time.time()
 
-        self.standard_form, soln_manager = convert_LinearBilevelProblem_to_standard_form(lbp)
+        self.standard_form, soln_manager = convert_LinearBilevelProblem_to_standard_form(model)
 
         M = self._create_pyomo_model(self.standard_form, self.config.bigm)
         #
@@ -65,12 +79,10 @@ class LinearBilevelSolver_FA(LinearBilevelSolverBase):
         #
         results = LinearBilevelResults(solution_manager=soln_manager)
         with pe.SolverFactory(self.config.solver) as opt:
-            if self.config.mipgap is not None:
-                opt.options['mipgap'] = self.config.mipgap
-            if options is not None:
-                opt.options.update(options)
+            if self.config.solver_options is not None:
+                opt.options.update(self.config.solver_options)
             pyomo_results = opt.solve(M, tee=self.config.tee, 
-                                         timelimit=self.config.timelimit,
+                                         timelimit=self.config.time_limit,
                                          load_solutions=self.config.load_solutions)
             pyomo.opt.check_optimal_termination(pyomo_results)
 
@@ -79,7 +91,7 @@ class LinearBilevelSolver_FA(LinearBilevelSolverBase):
 
             if self.config.load_solutions:
                 # Load results from the Pyomo model to the LinearBilevelProblem
-                results.copy_from_to(pyomo=M, lbp=lbp)
+                results.copy_from_to(pyomo=M, lbp=model)
             else:
                 # Load results from the Pyomo model to the Results
                 results.load_from(pyomo_results)
@@ -140,4 +152,7 @@ class LinearBilevelSolver_FA(LinearBilevelSolverBase):
             print("lam",j,pe.value(M.kkt.lam[j]))
         for j in M.kkt.nu:
             print("nu",j,pe.value(M.kkt.nu[j]))
+
+
+LinearBilevelSolver_FA._update_solve_docstring(LinearBilevelSolver_FA.config)
 
