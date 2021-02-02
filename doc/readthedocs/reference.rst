@@ -7,7 +7,7 @@ in PAO:
 .. toctree::
    :maxdepth: 1
 
-   solvers.rst
+   solverapi.rst
    pyomo.rst
    compact.rst
 

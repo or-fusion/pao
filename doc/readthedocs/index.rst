@@ -25,6 +25,7 @@ adversarial dynamics.  PAO integrates two different modeling abstractions:
    installation.rst
    overview.rst
    examples.rst
+   representations.rst
    reference.rst
    bibliography.rst
 
