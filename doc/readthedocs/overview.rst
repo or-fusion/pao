@@ -1,5 +1,5 @@
 Overview
-------------
+========
 
 Many planning situations involve the analysis of a hierarchy of
 decision-makers with competing objectives.  For example, policy decisions

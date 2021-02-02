@@ -1,5 +1,5 @@
 Installation
-------------
+============
 
 PAO currently supports the following versions of Python:
 
@@ -7,7 +7,7 @@ PAO currently supports the following versions of Python:
 
 
 Using GIT
-~~~~~~~~~
+---------
 
 PAO can be installed by cloning the PAO software repostory and 
 then directly installing the software.  For example, the *master*
@@ -20,12 +20,12 @@ branch can be installed as follows:
    python setup.py develop
 
 Using CONDA
-~~~~~~~~~~~
+-----------
 
 Coming soon.
 
 Using PIP
-~~~~~~~~~
+---------
 
 The standard utility for installing Python packages is *pip*.  You
 can use *pip* to install from the PAO software repository.  For
@@ -45,7 +45,7 @@ Coming soon: installation from PyPI.
         pip install pao
 
 Conditional Dependencies
-~~~~~~~~~~~~~~~~~~~~~~~~
+------------------------
 
 PAO and Pyomo have conditional dependencies on a variety of third-party
 packages, including Python packages like scipy, numpy and optimization

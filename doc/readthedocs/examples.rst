@@ -1,5 +1,5 @@
 Simple Examples
----------------
+===============
 
 We illustrate the PAO algebraic and compact representations with a series
 of simple examples.  Consider the following bilevel problem introduced
@@ -25,7 +25,7 @@ PAO using a Pyomo model representation and the ``LinearBilevelProblem``
 representation.
 
 Using Pyomo
-~~~~~~~~~~~
+-----------
 
 The following python script defines a bilevel problem in Pyomo:
 
@@ -63,7 +63,7 @@ and the solver status.
 
 
 Using LinearBilevelProblem
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+--------------------------
 
 Bilevel linear problems can also be represented using the
 ``LinearBilevelProblem`` class.  This class provides a simple mechanism
@@ -73,7 +73,7 @@ above, but this representation can naturally be used to express multi-level prob
 as problems with multiple lower-levels.
 
 Using Numpy and Scipy Data
-==========================
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The following python script defines a bilevel problem using ``LinearBilevelProblem`` with
 numpy and scipy data:
@@ -125,7 +125,7 @@ difference is the specification of the solver name that indicates the
 expected type of the model that will be solved.
 
 Using Python Lists and Dictionaries
-===================================
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Although the constraint matrices are dense, the ``coo_matrix``
 is used to illustrate the general support for sparse data.  The

@@ -350,11 +350,32 @@ class PyomoSubmodel_SolutionManager_LBP(object):
 
 def convert_pyomo2LinearBilevelProblem1(model, *, determinism=1, inequalities=True):
     """
-    Traverse the model an generate a LinearBilevelProblem.  Generate errors
-    if this problem cannot be represented in this form.
+    Generate a LinearBilevelProblem from a Pyomo model.
 
-    This conversion applies the following transformations:
-        * replaces quadratic terms, x*y, where x or y is integer and both x and y are bounded
+    This function generates a variety of exceptions if the Pyomo model
+    cannot be represented in this form.
+
+    Args
+    ---- 
+    model
+        A Pyomo model object.
+    determinism: int
+        Indicates whether the traversal of **model** is
+        ordered.  Valid values are:
+
+                * 0 - Unordered traversal of **model**
+                * 1 - Ordered traversal of component indices in **model**
+                * 2 - Ordered traversal of components by name in **model**
+
+    inequalities: bool
+        If True, then the LinearBilevelProblem object represents all
+        constraints as less-than-or-equal inequalities.  Otherwise,
+        the LinearBilevelProblem represents all constraints as equalities.
+
+    Returns
+    -------
+    LinearBilevelProblem
+        This object corresponds to the problem in **model**.
     """
     #
     # Cleanup global memory

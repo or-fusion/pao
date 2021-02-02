@@ -92,3 +92,5 @@ html_static_path = ['_static']
 pygments_style = 'sphinx'
 highlight_language = 'none'
 todo_include_todos = True
+default_domain = 'py'
+add_module_names = False
