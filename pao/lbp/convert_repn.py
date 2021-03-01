@@ -109,6 +109,131 @@ def _find_nonpositive_variables(V, inequalities):
     return changes
 
 
+def _process_changes_obj(changes, V, c, d):
+    if c is None:
+        return c, d
+
+    d = copy.copy(d)
+
+    for chg in changes:
+        v = chg.v
+        if type(chg) is VChangeLowerBound:      # real variable bounded below
+            # Replace v >= lb with v' >= 0
+            # v' = v - lb
+            # c[v]*v = c[v]*lb + c[v]*v'
+            lb = chg.lb
+            d += c[v]*lb
+
+        elif type(chg) is VChangeUpperBound:    # real variable bounded above
+            ub = chg.ub
+            d += c[v]*ub
+            c[v] *= -1
+
+        elif type(chg) is VChangeRange:         # real variable bounded
+            lb = chg.lb
+            ub = chg.ub
+            d += c[v]*lb
+            w = chg.w
+            if w is not None:
+                c[w] = 0
+
+        else:                                   # real variable unbounded
+            w = chg.w
+            c[w] = -c[v]
+
+    return c, d
+
+
+def _process_changes_con(changes, V, A, b, add_rows=False):
+    b = copy.copy(b)
+
+    if A is None:
+        Acsc = csc_matrix(0)
+        nrows = 0
+    else:
+        Acsc = A.tocsc()
+        nrows = A.shape[0]
+
+    B = {}
+    for chg in changes:
+        v = chg.v
+        if type(chg) is VChangeLowerBound:      # real variable bounded below
+            # Replace v >= lb with v' >= 0
+            # v' = v - lb
+            lb = chg.lb
+            if A is not None:
+                # i is index of the vth column in the A matrix
+                i = Acsc.indptr[v]
+                inext = Acsc.indptr[v+1]
+                while i<inext:
+                    row = Acsc.indices[i]
+                    b[row] -= Acsc[row, v]*lb
+                    i += 1
+
+        elif type(chg) is VChangeUpperBound:    # real variable bounded above
+            ub = chg.ub
+            if A is not None:
+                # i is index of the vth column in the A matrix
+                i = Acsc.indptr[v]
+                inext = Acsc.indptr[v+1]
+                while i<inext:
+                    row = Acsc.indices[i]
+                    b[row] -= Acsc[row, v]*ub
+                    Acsc[row, v] *= -1
+                    i += 1
+
+        elif type(chg) is VChangeRange:         # real variable bounded
+            lb = chg.lb
+            ub = chg.ub
+            w = chg.w
+            if A is not None:
+                # i is index of the vth column in the A matrix
+                i = Acsc.indptr[v]
+                inext = Acsc.indptr[v+1]
+                while i<inext:
+                    row = Acsc.indices[i]
+                    b[row] -= Acsc[row, v]*lb
+                    i += 1
+            if add_rows:
+                # Add new constraint
+                # If w is not None, then we are adding an associated slack variable
+                # NOTE: We only add the constraint to the level that "owns" the variables
+                b = np.append(b, ub-lb)
+                B[nrows, v] = 1
+                if w is not None:
+                    B[nrows, w] = 1
+                nrows += 1
+
+        else:                                   # real variable unbounded
+            w = chg.w
+            if A is not None:
+                # i is index of the vth column in the A matrix
+                i = Acsc.indptr[v]
+                inext = Acsc.indptr[v+1]
+                while i<inext:
+                    row = Acsc.indices[i]
+                    B[row, w] = - Acsc[row, v]
+                    i += 1
+
+    if nrows == 0:
+        return None, b
+
+    Bdok = dok_matrix((nrows, changes.nxR+changes.nxZ+V.nxB))
+    # Collect the items from B
+    for k,v in B.items():
+        Bdok[k] = v
+    # Merge in the items from A, shifting columns
+    Adok = Acsc.todok()
+    for k,v in Adok.items():
+        Bdok[k] = v
+    return Bdok.tocoo(), b
+
+
+def _process_changes_P(changes, V, P, add_rows=False):
+    pass
+
+
+
 def _process_changes(changes, V, c, d, A, b, add_rows=False):
     d = copy.copy(d)
     b = copy.copy(b)
@@ -230,8 +355,10 @@ def convert_to_nonnegative_variables(ans, inequalities):
         L.x.lower_bounds = np.zeros(len(L.x))
         if len(changes[L.id]) > 0:
             for X in L.levels():
-                X.c[L], X.d, X.A[L], X.b = \
-                    _process_changes(changes[L.id], L.x, X.c[L], X.d, X.A[L], X.b, add_rows=L.id == X.id)
+                X.c[L], X.d = _process_changes_obj(changes[L.id], L.x, X.c[L], X.d)
+                X.A[L], X.b = _process_changes_con(changes[L.id], L.x, X.A[L], X.b, add_rows=L.id == X.id)
+                for i,j in X.P:
+                    X.c[i], X.P[i,j], X.c[j] = _process_changes_P(changes[L.id], L.x, X.c[i], X.P[i,j], X.c[j], i == L.id)
     return changes
 
 
