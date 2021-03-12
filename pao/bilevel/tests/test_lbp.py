@@ -8,7 +8,7 @@ import pyomo.opt
 solvers = pyomo.opt.check_available_solvers('glpk','gurobi','ipopt')
 
 
-class Test_submodel_FA(unittest.TestCase):
+class Test_pyomo_FA(unittest.TestCase):
 
     # TODO - test with either gurobi or glpk
 
@@ -68,7 +68,7 @@ class Test_submodel_FA(unittest.TestCase):
 
 
 @unittest.skipIf('ipopt' not in solvers, "Ipopt solver is not available")
-class Test_submodel_REG(unittest.TestCase):
+class Test_pyomo_REG(unittest.TestCase):
 
     def test_bard511(self):
         M = examples.bard511.create()
@@ -117,7 +117,7 @@ class Test_submodel_REG(unittest.TestCase):
 
 
 @unittest.skipIf('gurobi' not in solvers, "Gurobi solver is not available")
-class Test_submodel_PCCG(unittest.TestCase):
+class Test_pyomo_PCCG(unittest.TestCase):
 
     def test_bard511(self):
         M = examples.bard511.create()
