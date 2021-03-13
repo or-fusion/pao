@@ -55,7 +55,7 @@ jobs:
         python setup.py develop
         pip install wheel
         pip install nose coverage codecov pyyaml numpy scipy
-        conda install -c conda-forge glpk ipopt
+        conda install -c conda-forge coincbc glpk ipopt
         conda list
 
     - name: Run tests
