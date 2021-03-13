@@ -9,7 +9,7 @@ on:
       - master
 
 jobs:
-  pyomo-linux-tests:
+  linux:
     name: py${{ matrix.python-version }}
     runs-on: ubuntu-latest
     timeout-minutes: 90
@@ -31,10 +31,6 @@ jobs:
         conda info
         conda init bash
         conda env list
-
-    #- name: Conda list
-    #  shell: pwsh
-    #  run: conda list
 
     - uses: actions/checkout@v1
 
