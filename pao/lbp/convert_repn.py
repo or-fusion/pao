@@ -472,11 +472,21 @@ def convert_binaries_to_integers(lbp):
 
 def convert_to_standard_form(M, inequalities=False):
     """
-    After applying this transformation, the problem has the form:
-        1. Each real variable x is nonnegative (x >= 0)
-        2. Constraints are equalities
-    Thus, if a level only has real variables, it will be in standard form
-    following this transformation.
+    Normalize the LinearBilevelProblem into a standard form.
+
+    This function copies the LinearBilevelProblem, **lbp**, and 
+    transforms the problem such that
+
+    1. Each real variable x is nonnegative (x >= 0)
+    2. Constraints are equalities
+
+    Args
+    ----
+    lbp : LinearBilevelProblem
+        The model that is being normalized
+    inequalities : bool, optional
+        A bool that is True if the normalized form has inequalities or equalities otherwise.
+        The default is False.
     """
     assert (type(M) in [LinearMultilevelProblem, QuadraticMultilevelProblem]), "Expected linear or quadratic multilevel problem"
     #

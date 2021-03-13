@@ -16,6 +16,7 @@ import numpy as np
 import pyutilib
 import pyomo.environ as pe
 import pyomo.opt
+from pyomo.common.config import ConfigBlock, ConfigValue
 from pyomo.mpec import ComplementarityList, complements
 from ..solver import SolverFactory, LinearMultilevelSolverBase, LinearMultilevelResults
 from ..repn import LinearMultilevelProblem
@@ -29,15 +30,47 @@ from .pccg_solver import execute_PCCG_solver
         doc='A solver for linear bilevel programs using using projected column constraint generation')
 class LinearMultilevelSolver_PCCG(LinearMultilevelSolverBase):
 
+    config = LinearBilevelSolverBase.config()
+    config.declare('solver', ConfigValue(
+        default='cbc',
+        description="The name of the MIP solver used by PCCG.  (default is cbc)"
+        ))
+    config.declare('solver_options', ConfigValue(
+        default=None,
+        description="A dictionary that defines the solver options for the MIP solver.  (default is None)"))
+    config.declare('bigm', ConfigValue(
+        default=1e6,
+        domain=float,
+        description="The big-M value used to enforce complementarity conditions.       (default is 1e6)"
+        ))
+    config.declare('epsilon', ConfigValue(
+        default=1e-4,
+        domain=float,
+        description="Parameter used in disjunction approximation. (default is 1e-4)"
+        ))
+    config.declare('atol', ConfigValue(
+        default=1e-8,
+        domain=float,
+        description="Convergence tolerance for |UB-LB|. (default is 1e-8)"
+        ))
+    config.declare('rtol', ConfigValue(
+        default=1e-8,
+        domain=float,
+        description="Convergence tolerance for |UB-LB|. (default is 1e-8)"
+        ))
+    config.declare('maxit', ConfigValue(
+        default=None,
+        domain=int,
+        description="Maximum number of iterations. (default is None)"
+        ))
+    config.declare('quiet', ConfigValue(
+        default=True,
+        domain=bool,
+        description="If False, then enable verbose solver output. (default is True)"
+        ))
+
     def __init__(self, **kwds):
         super().__init__(name='pao.lbp.PCCG')
-        self.config.epsilon = 1e-4      #For use in disjunction approximation
-        self.config.xi = 0              #tolerance for UB-LB to claim convergence
-        self.config.maxit = None        #Maximum number of iterations
-        self.config.bigm = 1e6          # upper bound on variables
-        self.config.solver = 'gurobi'
-        self.config.quiet = True
-
 
     def check_model(self, lbp):
         #
@@ -78,3 +111,6 @@ class LinearMultilevelSolver_PCCG(LinearMultilevelSolverBase):
 
         results.solver.wallclock_time = time.time() - start_time
         return results
+
+
+LinearBilevelSolver_PCCG._update_solve_docstring(LinearBilevelSolver_PCCG.config)

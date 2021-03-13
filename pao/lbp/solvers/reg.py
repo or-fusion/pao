@@ -7,6 +7,7 @@ import numpy as np
 import pyutilib
 import pyomo.environ as pe
 import pyomo.opt
+from pyomo.common.config import ConfigBlock, ConfigValue
 from pyomo.mpec import ComplementarityList, complements
 
 import pao.common
@@ -78,10 +79,22 @@ def create_model_replacing_LL_with_kkt(repn):
         doc="A solver for linear bilevel programs using regularization discussed by Scheel and Scholtes (2000) and Ralph and Wright (2004).")
 class LinearMultilevelSolver_REG(LinearMultilevelSolverBase):
 
+    config = LinearBilevelSolverBase.config()
+    config.declare('solver', ConfigValue(
+        default='ipopt',
+        description="The name of the NLP solver used by REG.  (default is ipopt)"
+        ))
+    config.declare('solver_options', ConfigValue(
+        default=None,
+        description="A dictionary that defines the solver options for the NLP solver.  (default is None)"))
+    config.declare('rho', ConfigValue(
+        default=1e-7,
+        domain=float,
+        description="The tolerance for constraints that enforce complementarity conditions.  (default is 1e-7)"
+        ))
+
     def __init__(self, **kwds):
         super().__init__(name='pao.lbp.REG')
-        self.config.solver = 'ipopt'
-        self.config.rho = 1e-7
 
     def check_model(self, lbp):
         #
@@ -106,15 +119,15 @@ class LinearMultilevelSolver_REG(LinearMultilevelSolverBase):
             assert (L.x.nxZ == 0), "Cannot use solver %s with model with integer lower-level variables" % self.name
             assert (L.x.nxB == 0), "Cannot use solver %s with model with binary lower-level variables" % self.name
 
-    def solve(self, lbp, options=None, **config_options):
+    def solve(self, model, **options):
         #
         # Error checks
         #
-        self.check_model(lbp)
+        self.check_model(model)
         #
         # Process keyword options
         #
-        self._update_config(config_options)
+        self._update_config(options)
         #
         # Start clock
         #
@@ -128,8 +141,8 @@ class LinearMultilevelSolver_REG(LinearMultilevelSolverBase):
         #
         results = LinearMultilevelResults(solution_manager=soln_manager)
         with pe.SolverFactory(self.config.solver) as opt:
-            if options is not None:
-                opt.options.update(options)
+            if self.config.solver_options is not None:
+                opt.options.update(self.config.solver_options)
             pyomo_results = opt.solve(M, tee=self.config.tee, 
                                          timelimit=self.config.time_limit,
                                          load_solutions=self.config.load_solutions)
@@ -195,3 +208,5 @@ class LinearMultilevelSolver_REG(LinearMultilevelSolverBase):
         for j in M.kkt.nu:
             print("nu",j,pe.value(M.kkt.nu[j]))
 
+
+LinearBilevelSolver_REG._update_solve_docstring(LinearBilevelSolver_REG.config)
