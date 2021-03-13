@@ -33,8 +33,8 @@ class LinearBilevelSolver_PCCG(LinearBilevelSolverBase):
 
     config = LinearBilevelSolverBase.config()
     config.declare('solver', ConfigValue(
-        default='gurobi',
-        description="The name of the MIP solver used by PCCG.  (default is gurobi)"
+        default='cbc',
+        description="The name of the MIP solver used by PCCG.  (default is cbc)"
         ))
     config.declare('solver_options', ConfigValue(
         default=None,
@@ -49,10 +49,15 @@ class LinearBilevelSolver_PCCG(LinearBilevelSolverBase):
         domain=float,
         description="Parameter used in disjunction approximation. (default is 1e-4)"
         ))
-    config.declare('xi', ConfigValue(
-        default=0,
+    config.declare('atol', ConfigValue(
+        default=1e-8,
         domain=float,
-        description="Convergence tolerance for UB-LB. (default is 0)"
+        description="Convergence tolerance for |UB-LB|. (default is 1e-8)"
+        ))
+    config.declare('rtol', ConfigValue(
+        default=1e-8,
+        domain=float,
+        description="Convergence tolerance for |UB-LB|. (default is 1e-8)"
         ))
     config.declare('maxit', ConfigValue(
         default=None,
