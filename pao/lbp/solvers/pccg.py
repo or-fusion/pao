@@ -33,8 +33,8 @@ class LinearBilevelSolver_PCCG(LinearBilevelSolverBase):
 
     config = LinearBilevelSolverBase.config()
     config.declare('solver', ConfigValue(
-        default='gurobi',
-        description="The name of the MIP solver used by PCCG.  (default is gurobi)"
+        default='cbc',
+        description="The name of the MIP solver used by PCCG.  (default is cbc)"
         ))
     config.declare('solver_options', ConfigValue(
         default=None,
