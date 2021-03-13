@@ -4,9 +4,7 @@
 [![codecov](https://codecov.io/gh/pyomo-annex/pao/branch/master/graph/badge.svg)](https://codecov.io/gh/pyomo-annex/pao)
 [![Documentation Status](https://readthedocs.org/projects/pao/badge/?version=latest)](http://pao.readthedocs.org/en/latest/)
 
-[![Pyomo Checks - GitHub Master](https://github.com/pyomo-annex/pao/workflows/pyomo-checks/master/badge.svg)](https://github.com/pyomo-annex/pao/actions)
-[![Pyomo Checks - PyPI](https://github.com/pyomo-annex/pao/workflows/pyomo-checks/pypi/badge.svg)](https://github.com/pyomo-annex/pao/actions)
-[![Pyomo Checks - Conda](https://github.com/pyomo-annex/pao/workflows/pyomo-checks/conda/badge.svg)](https://github.com/pyomo-annex/pao/actions)
+[![Pyomo Checks](https://github.com/pyomo-annex/pao/workflows/pyomo-checks/badge.svg)](https://github.com/pyomo-annex/pao/actions)
 
 [![GitHub contributors](https://img.shields.io/github/contributors/pyomo-annex/pao.svg)](https://github.com/pyomo-annex/pao/graphs/contributors)
 [![Merged PRs](https://img.shields.io/github/issues-pr-closed-raw/pyomo-annex/pao.svg?label=merged+PRs)](https://github.com/pyomo-annex/pao/pulls?q=is:pr+is:merged)
