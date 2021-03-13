@@ -1,22 +1,20 @@
-name: continuous-integration/github/pr/linux
+name: pyomo-checks
 
 on:
   push:
     branches:
       - master
-  pull_request:
-    branches:
-      - master
 
 jobs:
-  linux:
-    name: py${{ matrix.python-version }}
+  pyomo-checks:
+    name: ${{ matrix.install }}
     runs-on: ubuntu-latest
-    timeout-minutes: 90
     strategy:
       max-parallel: 3
       matrix:
-        python-version: [3.7, 3.8, 3.9]
+        install: ["conda", "github-main", "pypi"]
+        python-version: [3.9]
+    timeout-minutes: 90
 
     steps:
     - name: Setup Conda
@@ -46,23 +44,27 @@ jobs:
         conda activate test
         conda config --set always_yes yes
         python -m pip install --upgrade pip
-        pip install --quiet git+https://github.com/PyUtilib/pyutilib
-        pip install --quiet git+https://github.com/Pyomo/pyomo
-        python setup.py develop
         pip install wheel
-        pip install nose coverage codecov pyyaml numpy scipy
+        pip install nose pyyaml numpy scipy
         conda install -c conda-forge coincbc glpk ipopt
+        case "${{matrix.install}}" in
+        'conda')
+            pip install --quiet git+https://github.com/PyUtilib/pyutilib
+            pip install --quiet git+https://github.com/Pyomo/pyomo
+            ;;
+        'github-main')
+            pip install --quiet git+https://github.com/PyUtilib/pyutilib
+            pip install --quiet git+https://github.com/Pyomo/pyomo
+            ;;
+        'pypi')
+            pip install --quiet pyutilib
+            pip install --quiet pyomo
+            ;;
+        esac
+        python setup.py develop
         conda list
 
     - name: Run tests
       shell: bash -l {0}
       run: |
-        conda list
-        nosetests --with-xunit --with-coverage --cover-xml -v .
-        coverage report -m
-
-    - name: Send coverage data to codecov
-      shell: bash -l {0}
-      run: |
-        export CODECOV_TOKEN="a045cd48-34f2-47ea-a819-ed1ec4e41f36"
-        codecov
+        nosetests -v .
