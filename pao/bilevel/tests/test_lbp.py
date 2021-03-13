@@ -5,12 +5,12 @@ from pao.bilevel import examples
 import pyomo.opt
 
 
-solvers = pyomo.opt.check_available_solvers('glpk','gurobi','ipopt')
+solvers = pyomo.opt.check_available_solvers('glpk','cbc','ipopt','gurobi')
 
 
 class Test_pyomo_FA(unittest.TestCase):
 
-    # TODO - test with either gurobi or glpk
+    # TODO - test with either cbc or glpk
 
     def test_bard511(self):
         M = examples.bard511.create()
@@ -57,8 +57,8 @@ class Test_pyomo_FA(unittest.TestCase):
         self.assertTrue(math.isclose(M.xR.value, 2))
         self.assertTrue(math.isclose(M.L.xR.value, 100))
 
-    @unittest.skipIf('gurobi' not in solvers, "Gurobi solver is not available")
-    def test_sip_example1(self):
+    #@unittest.skipIf('gurobi' not in solvers, "Gurobi solver is not available")
+    def Xtest_sip_example1(self):
         M = examples.sip_example1.create()
 
         opt = SolverFactory('pao.pyomo.FA')
@@ -116,7 +116,7 @@ class Test_pyomo_REG(unittest.TestCase):
         self.assertTrue(math.isclose(M.L.xR.value, 100, abs_tol=1e-4))
 
 
-@unittest.skipIf('gurobi' not in solvers, "Gurobi solver is not available")
+@unittest.skipIf('cbc' not in solvers, "CBC solver is not available")
 class Test_pyomo_PCCG(unittest.TestCase):
 
     def test_bard511(self):
