@@ -2,13 +2,13 @@
 
 [![Documentation Status](https://readthedocs.org/projects/pao/badge/?version=latest)](http://pao.readthedocs.org/en/latest/)
 
-[![Actions Status](https://github.com/pyomo-annex/pao/workflows/continuous-integration/github/pr/linux/badge.svg)](https://github.com/pyomo-annex/pao/actions)
-[![Pyomo Checks](https://github.com/pyomo-annex/pao/workflows/pyomo-checks/badge.svg)](https://github.com/pyomo-annex/pao/actions)
-[![codecov](https://codecov.io/gh/pyomo-annex/pao/branch/master/graph/badge.svg)](https://codecov.io/gh/pyomo-annex/pao)
+[![Actions Status](https://github.com/or-fusion/pao/workflows/continuous-integration/github/pr/linux/badge.svg)](https://github.com/or-fusion/pao/actions)
+[![Pyomo Checks](https://github.com/or-fusion/pao/workflows/pyomo-checks/badge.svg)](https://github.com/or-fusion/pao/actions)
+[![codecov](https://codecov.io/gh/or-fusion/pao/branch/master/graph/badge.svg)](https://codecov.io/gh/or-fusion/pao)
 
-[![GitHub contributors](https://img.shields.io/github/contributors/pyomo-annex/pao.svg)](https://github.com/pyomo-annex/pao/graphs/contributors)
-[![Merged PRs](https://img.shields.io/github/issues-pr-closed-raw/pyomo-annex/pao.svg?label=merged+PRs)](https://github.com/pyomo-annex/pao/pulls?q=is:pr+is:merged)
-[![Issue stats](http://isitmaintained.com/badge/resolution/pyomo-annex/pao.svg)](http://isitmaintained.com/project/pyomo-annex/pao)
+[![GitHub contributors](https://img.shields.io/github/contributors/or-fusion/pao.svg)](https://github.com/or-fusion/pao/graphs/contributors)
+[![Merged PRs](https://img.shields.io/github/issues-pr-closed-raw/or-fusion/pao.svg?label=merged+PRs)](https://github.com/or-fusion/pao/pulls?q=is:pr+is:merged)
+[![Issue stats](http://isitmaintained.com/badge/resolution/or-fusion/pao.svg)](http://isitmaintained.com/project/or-fusion/pao)
 [![Project Status: Active - The project has reached a stable, usable state and is being actively developed.](http://www.repostatus.org/badges/latest/active.svg)](http://www.repostatus.org/#active)
 
 # PAO Overview
@@ -50,8 +50,8 @@ Testing
 
 ### Getting Help
 
-* [Add a Ticket](https://github.com/pyomo-annex/pao/issues/new)
-* [Find a Ticket](https://github.com/pyomo-annex/pao/issues) and **Vote On It**!
+* [Add a Ticket](https://github.com/or-fusion/pao/issues/new)
+* [Find a Ticket](https://github.com/or-fusion/pao/issues) and **Vote On It**!
 
 ### Developers
 
