@@ -11,7 +11,7 @@ from pyomo.common.config import ConfigBlock, ConfigValue
 from pyomo.mpec import ComplementarityList, complements
 from ..solver import SolverFactory, LinearMultilevelSolverBase, LinearMultilevelResults
 from ..repn import LinearMultilevelProblem
-from ..convert_repn import convert_LinearMultilevelProblem_to_standard_form
+from ..convert_repn import convert_to_standard_form
 from . import pyomo_util
 from .reg import create_model_replacing_LL_with_kkt
 
@@ -21,7 +21,7 @@ from .reg import create_model_replacing_LL_with_kkt
         doc='A solver for linear bilevel programs using big-M relaxations discussed by Fortuny-Amat and McCarl, 1981.')
 class LinearMultilevelSolver_FA(LinearMultilevelSolverBase):
 
-    config = LinearBilevelSolverBase.config()
+    config = LinearMultilevelSolverBase.config()
     config.declare('solver', ConfigValue(
         default='glpk',
         description="The name of the MIP solver used by FA.  (default is glpk)"
@@ -38,21 +38,21 @@ class LinearMultilevelSolver_FA(LinearMultilevelSolverBase):
     def __init__(self, **kwds):
         super().__init__(name='pao.lbp.FA')
 
-    def check_model(self, lbp):
+    def check_model(self, model):
         #
         # Confirm that the LinearMultilevelProblem is well-formed
         #
-        assert (type(lbp) is LinearMultilevelProblem), "Solver '%s' can only solve a LinearMultilevelProblem" % self.name
-        lbp.check()
+        assert (type(model) is LinearMultilevelProblem), "Solver '%s' can only solve a LinearMultilevelProblem" % self.name
+        model.check()
         #
         # Confirm that this is a bilevel problem
         #
-        for L in lbp.U.LL:
+        for L in model.U.LL:
             assert (len(L.LL) == 0), "Can only solve bilevel problems"
         #
         # No binary or integer lower level variables
         #
-        for L in lbp.U.LL:
+        for L in model.U.LL:
             assert (L.x.nxZ == 0), "Cannot use solver %s with model with integer lower-level variables" % self.name
             assert (L.x.nxB == 0), "Cannot use solver %s with model with binary lower-level variables" % self.name
 
@@ -70,7 +70,7 @@ class LinearMultilevelSolver_FA(LinearMultilevelSolverBase):
         #
         start_time = time.time()
 
-        self.standard_form, soln_manager = convert_LinearMultilevelProblem_to_standard_form(lbp)
+        self.standard_form, soln_manager = convert_to_standard_form(model)
 
         M = self._create_pyomo_model(self.standard_form, self.config.bigm)
         #
@@ -90,7 +90,7 @@ class LinearMultilevelSolver_FA(LinearMultilevelSolverBase):
 
             if self.config.load_solutions:
                 # Load results from the Pyomo model to the LinearMultilevelProblem
-                results.copy_from_to(pyomo=M, lbp=lbp)
+                results.copy_from_to(pyomo=M, lbp=model)
             else:
                 # Load results from the Pyomo model to the Results
                 results.load_from(pyomo_results)
@@ -153,5 +153,5 @@ class LinearMultilevelSolver_FA(LinearMultilevelSolverBase):
             print("nu",j,pe.value(M.kkt.nu[j]))
 
 
-LinearBilevelSolver_FA._update_solve_docstring(LinearBilevelSolver_FA.config)
+LinearMultilevelSolver_FA._update_solve_docstring(LinearMultilevelSolver_FA.config)
 

@@ -20,15 +20,15 @@ def load():
     """
     Import the plugins defined in pao.bilevel
     """
-    import pao.bilevel.plugins.dual
-    import pao.bilevel.plugins.lcp
-    import pao.bilevel.plugins.highpoint
-    import pao.bilevel.solvers.solver1
-    import pao.bilevel.solvers.solver2
-    import pao.bilevel.solvers.solver3
-    import pao.bilevel.solvers.solver4
-    import pao.bilevel.solvers.solver5
-    import pao.bilevel.solvers.solver6
-    import pao.bilevel.solvers.solver7
+    #import pao.bilevel.plugins.dual
+    #import pao.bilevel.plugins.lcp
+    #import pao.bilevel.plugins.highpoint
+    #import pao.bilevel.solvers.solver1
+    #import pao.bilevel.solvers.solver2
+    #import pao.bilevel.solvers.solver3
+    #import pao.bilevel.solvers.solver4
+    #import pao.bilevel.solvers.solver5
+    #import pao.bilevel.solvers.solver6
+    #import pao.bilevel.solvers.solver7
     import pao.bilevel.solvers.lbp_solvers
 

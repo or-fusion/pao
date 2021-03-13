@@ -10,7 +10,7 @@ import pyomo.environ as pe
 import pyomo.opt
 from ..solver import SolverFactory, LinearMultilevelSolverBase, LinearMultilevelResults
 from ..repn import LinearMultilevelProblem
-from ..convert_repn import convert_LinearMultilevelProblem_to_standard_form
+from ..convert_repn import convert_to_standard_form
 from . import pyomo_util
 
 nan = float('nan')
@@ -84,7 +84,7 @@ class LinearMultilevelSolver_interdiction(LinearMultilevelSolverBase):
         #
         start_time = time.time()
 
-        self.standard_form, soln_manager = convert_LinearMultilevelProblem_to_standard_form(lbp)
+        self.standard_form, soln_manager = convert_to_standard_form(lbp)
 
         M = self._create_pyomo_model(self.standard_form)
         #

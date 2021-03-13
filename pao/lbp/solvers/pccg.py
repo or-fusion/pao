@@ -20,7 +20,7 @@ from pyomo.common.config import ConfigBlock, ConfigValue
 from pyomo.mpec import ComplementarityList, complements
 from ..solver import SolverFactory, LinearMultilevelSolverBase, LinearMultilevelResults
 from ..repn import LinearMultilevelProblem
-from ..convert_repn import convert_LinearMultilevelProblem_to_standard_form, convert_sense, convert_binaries_to_integers
+from ..convert_repn import convert_to_standard_form, convert_sense, convert_binaries_to_integers
 from . import pyomo_util
 from .pccg_solver import execute_PCCG_solver
 
@@ -30,7 +30,7 @@ from .pccg_solver import execute_PCCG_solver
         doc='A solver for linear bilevel programs using using projected column constraint generation')
 class LinearMultilevelSolver_PCCG(LinearMultilevelSolverBase):
 
-    config = LinearBilevelSolverBase.config()
+    config = LinearMultilevelSolverBase.config()
     config.declare('solver', ConfigValue(
         default='cbc',
         description="The name of the MIP solver used by PCCG.  (default is cbc)"
@@ -99,7 +99,7 @@ class LinearMultilevelSolver_PCCG(LinearMultilevelSolverBase):
 
         # PCCG requires a standard form with inequalities and 
         # a maximization lower-level
-        self.standard_form, soln_manager = convert_LinearMultilevelProblem_to_standard_form(lbp, inequalities=True)
+        self.standard_form, soln_manager = convert_to_standard_form(lbp, inequalities=True)
         convert_sense(self.standard_form.U.LL, minimize=False)
         
         results = LinearMultilevelResults(solution_manager=soln_manager)
@@ -113,4 +113,4 @@ class LinearMultilevelSolver_PCCG(LinearMultilevelSolverBase):
         return results
 
 
-LinearBilevelSolver_PCCG._update_solve_docstring(LinearBilevelSolver_PCCG.config)
+LinearMultilevelSolver_PCCG._update_solve_docstring(LinearMultilevelSolver_PCCG.config)

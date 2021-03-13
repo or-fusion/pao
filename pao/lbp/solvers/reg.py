@@ -13,7 +13,7 @@ from pyomo.mpec import ComplementarityList, complements
 import pao.common
 from ..solver import SolverFactory, LinearMultilevelSolverBase, LinearMultilevelResults
 from ..repn import LinearMultilevelProblem
-from ..convert_repn import convert_LinearMultilevelProblem_to_standard_form
+from ..convert_repn import convert_to_standard_form
 from . import pyomo_util
 
 
@@ -79,7 +79,7 @@ def create_model_replacing_LL_with_kkt(repn):
         doc="A solver for linear bilevel programs using regularization discussed by Scheel and Scholtes (2000) and Ralph and Wright (2004).")
 class LinearMultilevelSolver_REG(LinearMultilevelSolverBase):
 
-    config = LinearBilevelSolverBase.config()
+    config = LinearMultilevelSolverBase.config()
     config.declare('solver', ConfigValue(
         default='ipopt',
         description="The name of the NLP solver used by REG.  (default is ipopt)"
@@ -133,7 +133,7 @@ class LinearMultilevelSolver_REG(LinearMultilevelSolverBase):
         #
         start_time = time.time()
 
-        self.standard_form, soln_manager = convert_LinearMultilevelProblem_to_standard_form(lbp)
+        self.standard_form, soln_manager = convert_to_standard_form(model)
 
         M = self._create_pyomo_model(self.standard_form, self.config.rho)
         #
@@ -153,7 +153,7 @@ class LinearMultilevelSolver_REG(LinearMultilevelSolverBase):
 
             if self.config.load_solutions:
                 # Load results from the Pyomo model to the LinearMultilevelProblem
-                results.copy_from_to(pyomo=M, lbp=lbp)
+                results.copy_from_to(pyomo=M, lbp=model)
             else:
                 # Load results from the Pyomo model to the Results
                 results.load_from(pyomo_results)
@@ -209,4 +209,4 @@ class LinearMultilevelSolver_REG(LinearMultilevelSolverBase):
             print("nu",j,pe.value(M.kkt.nu[j]))
 
 
-LinearBilevelSolver_REG._update_solve_docstring(LinearBilevelSolver_REG.config)
+LinearMultilevelSolver_REG._update_solve_docstring(LinearMultilevelSolver_REG.config)

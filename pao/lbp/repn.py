@@ -1,10 +1,10 @@
 import math
+import weakref
+import copy
 import pprint
+import collections.abc
 from scipy.sparse import csr_matrix, dok_matrix
 import numpy as np
-import copy
-import collections.abc
-import weakref
 from pyutilib.misc import Bunch
 
 
@@ -18,7 +18,7 @@ def _equal_nparray(Ux, U_coef, Lx, L_coef):
             return False
     return True
 
-def _update_matrix(A, old, new, update_columns=True):
+def _update_matrix(*, A, old, new, update_columns=True):
     A = A.todok()
     if not update_columns:
         A = A.transpose()
@@ -510,7 +510,7 @@ class LinearLevelRepn(object):
         #
         A = self.A[level]
         if A is not None:
-            self.A[level] = _update_matrix(A, old, new)
+            self.A[level] = _update_matrix(A=A, old=old, new=new)
 
     #
     # Iterate over the sublevels and parents in DFS order
@@ -640,14 +640,14 @@ class QuadraticLevelRepn(LinearLevelRepn):
         #
         for L1,L2 in self.P:
             if L1 == level.id or L2 == level.id:
-                self.P[L1,L2] = _update_matrix(self.P[L1,L2], old, new, L2==level.id)
+                self.P[L1,L2] = _update_matrix(A=self.P[L1,L2], old=old, new=new, update_columns=L2==level.id)
         #
         # Update 'Q'
         #
         for L1,L2 in self.Q:
             if L1 == level.id or L2 == level.id:
                 Q = self.Q[L1,L2]
-                self.Q[L1,L2] = [None if m is None else _update_matrix(m, old, new, L2==level.id) for m in Q]
+                self.Q[L1,L2] = [None if m is None else _update_matrix(A=m, old=old, new=new, update_columns=L2==level.id) for m in Q]
 
     def clone(self, parent=None):
         ans = self._clone(QuadraticLevelRepn(0,0,0), parent=parent, data=['x', 'c', 'A', 'b', 'minimize', 'inequalities', 'equalities', 'd', 'LL', 'UL', 'P', 'Q'])
@@ -703,20 +703,20 @@ class LinearMultilevelProblem(object):
         U   = LinearMultilevelProblem.U
         L   = U.L
         x   = [U.x, L.x]'       # dense column vector
-        U.c = [U.c[U], U.c[L]]  # dense row vector
-        L.c = [L.c[U], L.c[L]]  # dense row vector
+        U.c = [U.c[U], U.c[L]]' # dense column vector
+        L.c = [L.c[U], L.c[L]]' # dense column vector
         U.A = [U.A[U], U.A[L]]  # sparse matrix
         L.A = [L.A[U], L.A[L]]  # sparse matrix
 
     Then we have
 
-        min_{U.x}   U.c * x + U.d
-        s.t.        U.A * x <= U.b                      # Or ==
+        min_{U.x}   U.c' * x + U.d
+        s.t.        U.A  * x       <= U.b                  # Or ==
 
                 where L.x satisifies
 
-                    min_{L.x}   L.c * x + L.d
-                    s.t.        L.A * x <= L.b      # Or ==
+                    min_{L.x}   L.c' * x + L.d
+                    s.t.        L.A  * x       <= L.b      # Or ==
     """
 
     def __init__(self, name=None):
@@ -774,13 +774,13 @@ class QuadraticMultilevelProblem(object):
         U   = QuadraticMultilevelProblem.U
         L   = U.L
         x   = [U.x, L.x]'           # dense column vector
-        U.c = [U.c[U], U.c[L]]      # dense row vector
+        U.c = [U.c[U], U.c[L]]'     # dense column vector
         U.P = [U.P[U,U], U.P[U,L]]  # sparse matrix
               [0,        U.P[L,L]]
         U.A = [U.A[U], U.A[L]]      # sparse matrix
         U.Q = [U.Q[U,U], U.Q[U,L]]  # sparse matrix
               [0,        U.Q[L,L]]
-        L.c = [L.c[U], L.c[L]]      # dense row vector
+        L.c = [L.c[U], L.c[L]]'     # dense column vector
         L.P = [L.P[U,U], L.P[U,L]]  # sparse matrix
               [0,        L.P[L,L]]
         L.A = [L.A[U], L.A[L]]      # sparse matrix
@@ -789,13 +789,13 @@ class QuadraticMultilevelProblem(object):
 
     Then we have
 
-        min_{U.x}   U.c * x + x' * U.P * x + U.d
-        s.t.        U.A * x + x' * U.Q * x       <= U.b                 # Or ==
+        min_{U.x}   U.c' * x + x' * U.P * x + U.d
+        s.t.        U.A  * x + x' * U.Q * x       <= U.b                 # Or ==
 
                 where L.x satisifies
 
-                    min_{L.x}   L.c * x + x' * L.P * x + L.d
-                    s.t.        L.A * x + x' * L.Q * x       <= L.b     # Or ==
+                    min_{L.x}   L.c' * x + x' * L.P * x + L.d
+                    s.t.        L.A  * x + x' * L.Q * x       <= L.b     # Or ==
     """
 
     def __init__(self, name=None, bilinear=False):
