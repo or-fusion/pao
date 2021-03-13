@@ -433,12 +433,26 @@ def get_value(config, name, default):
         return default
     return value
 
+def check_termination(LB, UB, atol, rtol, quiet):
+    if LB-UB > atol or (LB-UB)/(1+min(abs(LB),abs(UB))) > rtol: #Output
+        if not quiet:
+            raise RuntimeError(f'Error: Upper bound greater than lower bound after {k} iterations and {elapsed} seconds: Obj={LB} UB={UB}')
+
+    if abs(UB-LB) <= atol or abs(UB-LB)/(1+min(abs(LB),abs(UB))) <= rtol: #Output
+        if not quiet:
+            print(f'Optimal Solution Found in {k} iterations and {elapsed} seconds: Obj={UB}')
+        return 1
+
+    return 0
+
+
 def execute_PCCG_solver(lbp, config, results):
     t = time.time()
 
     #These parameters can be changed for your specific problem
     epsilon = get_value(config, 'epsilon', 1e-4) #For use in disjunction approximation
-    xi      = get_value(config, 'xi', 0)        #tolerance for UB-LB to claim convergence
+    atol    = get_value(config, 'atol', 1e-8)   #absolute tolerance for UB-LB to claim convergence
+    rtol    = get_value(config, 'rtol', 1e-8)   #relative tolerance for UB-LB to claim convergence
     maxit   = get_value(config, 'maxit', 5)     #Maximum number of iterations
     M       = get_value(config, 'bigm', 1e6)    #upper bound on variables
     solver  = config.solver                     # MIP solver to use here
@@ -454,10 +468,10 @@ def execute_PCCG_solver(lbp, config, results):
 
     bigm_xfrm = TransformationFactory('gdp.bigm')
 
+    #Step 1: Initialization (done)
     with SolverFactory(solver) as opt:
         #Iteration
-        while UB-LB > xi and k < maxit:
-            #Step 1: Initialization (done)
+        while k < maxit:
             #Step 2: Solve the Master Problem
             TransformationFactory('mpec.simple_disjunction').apply_to(Parent.Master)
             bigm_xfrm.apply_to(Parent.Master) 
@@ -477,12 +491,11 @@ def execute_PCCG_solver(lbp, config, results):
             LB=value(Parent.Master.Theta_star) 
             if not quiet:
                 print(f'Iteration {k}: Master Obj={LB} UB={UB}')
+
             #Step 3: Terminate?
-            if UB-LB <= xi: #Output
+            flag = check_termination(LB, UB, atol, rtol, quiet)
+            if flag:
                 elapsed = time.time() - t
-                flag=1 
-                if not quiet:
-                    print(f'Optimal Solution Found in {k} iterations and {elapsed} seconds: Obj={UB}')
                 break
 
             #print("Step 4")
@@ -497,7 +510,6 @@ def execute_PCCG_solver(lbp, config, results):
                 Parent.xl_hat[i]=Parent.sub1.xl[i].value 
             for i in Parent.yl_hat:
                 Parent.yl_hat[i]=int(round(Parent.sub1.yl[i].value)) 
-
             
             #print("Step 5")
             #Step 5: Solve second subproblem
@@ -518,7 +530,7 @@ def execute_PCCG_solver(lbp, config, results):
                 for i in Parent.yl_arc:
                     Parent.yl_arc[i]=Parent.yl_hat[i]  
             else: 
-                 raise RuntimeError("ERROR! ERROR! Subproblem2 not infeasible or optimal solution not found: SOMETHING WENT VERY VERY WRONG") 
+                 raise RuntimeError("ERROR! Unexpected termination condition for Subproblem2: %s.  Expected an infeasible or optimal solution." % str(results2.solver.termination_condition)) 
             
             #Step 6: Add new constraints
             k = k+1
@@ -527,12 +539,10 @@ def execute_PCCG_solver(lbp, config, results):
             
             Master_add(Parent, k, epsilon)
             #Step 7: Loop 
-            #print(f'yu={Parent.Master.yu[1].value}')
-            #print(f'xu={Parent.Master.xu[1].value}')
-            #print(f'yl0={Parent.sub1.yl[1].value}')
-            #print(f'xl0={Parent.sub1.xl[1].value}')
-            
-
+            flag = check_termination(LB, UB, atol, rtol, quiet)
+            if flag:
+                elapsed = time.time() - t
+                break
 
     #Output Information regarding objective and time/iterations to convergence    
     elapsed = time.time() - t
