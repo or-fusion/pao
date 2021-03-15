@@ -10,7 +10,7 @@ import pyomo.opt
 from pyomo.common.config import ConfigBlock, ConfigValue
 from pyomo.mpec import ComplementarityList, complements
 from ..solver import SolverFactory, LinearMultilevelSolverBase, LinearMultilevelResults
-from ..repn import LinearMultilevelProblem
+from ..repn import LinearMultilevelProblem, QuadraticMultilevelProblem
 from ..convert_repn import convert_to_standard_form
 from . import pyomo_util
 from .reg import create_model_replacing_LL_with_kkt
