@@ -18,6 +18,9 @@ from . import pyomo_util
 
 
 def create_model_replacing_LL_with_kkt(repn):
+    """
+    TODO - Document this transformation
+    """
     U = repn.U
     LL = repn.U.LL
     N = len(LL)

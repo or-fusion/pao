@@ -18,7 +18,7 @@ from .reg import create_model_replacing_LL_with_kkt
 
 @SolverFactory.register(
         name='pao.lbp.FA',
-        doc='A solver for linear bilevel programs using big-M relaxations discussed by Fortuny-Amat and McCarl, 1981.')
+        doc='A solver for linear and quadratic bilevel programs using big-M relaxations discussed by Fortuny-Amat and McCarl, 1981.')
 class LinearMultilevelSolver_FA(LinearMultilevelSolverBase):
 
     config = LinearMultilevelSolverBase.config()
@@ -42,7 +42,7 @@ class LinearMultilevelSolver_FA(LinearMultilevelSolverBase):
         #
         # Confirm that the LinearMultilevelProblem is well-formed
         #
-        assert (type(model) is LinearMultilevelProblem), "Solver '%s' can only solve a LinearMultilevelProblem" % self.name
+        assert (type(model) in [LinearMultilevelProblem,QuadraticMultilevelProblem]), "Solver '%s' can only solve a linear or quadratic multilevel problem" % self.name
         model.check()
         #
         # Confirm that this is a bilevel problem
@@ -55,6 +55,9 @@ class LinearMultilevelSolver_FA(LinearMultilevelSolverBase):
         for L in model.U.LL:
             assert (L.x.nxZ == 0), "Cannot use solver %s with model with integer lower-level variables" % self.name
             assert (L.x.nxB == 0), "Cannot use solver %s with model with binary lower-level variables" % self.name
+        #
+        # TODO - Check if we can handle non-integer upper-level variables in the lower level quadratic expressions
+        #
 
     def solve(self, model, **options):
         #
@@ -127,13 +130,14 @@ class LinearMultilevelSolver_FA(LinearMultilevelSolverBase):
 
     def _create_pyomo_model(self, repn, bigM):
         M = create_model_replacing_LL_with_kkt(repn)
-
         #
         # Transform the problem to a MIP
         #
         # TODO - directly create the bigM relaxation here.  Applying
         # Pyomo transformations in sequence creates a model object that is
         # difficult to interpret.
+        #
+        # TODO - transform bilinear terms here
         #
         xfrm = pe.TransformationFactory('mpec.simple_disjunction')
         xfrm.apply_to(M)
