@@ -606,6 +606,8 @@ def merge_matrices(M1, M2, nrows, ncols):
     M.resize( (max(M.shape[0], nrows), max(M.shape[1], ncols)) )
     for k,v in M2.items():
         M[k] = v
+    if M.shape[0] == 0 or M.shape[1] == 0:
+        return None
     return M 
 
 
@@ -661,16 +663,16 @@ def linearize_bilinear_terms(M, bigM=1e6):
         for i,j in L.P:
             for v1,v2 in L.P[i,j].keys():
                 assert (v1 >= LL[i].x.nxR+LL[i].x.nxZ), "Expected binary variable %d in bilinear term %s.P[%d,%d]" % (v1,str(L),i,j)
-                if (i,v1,j,v2) not in bilevel[i]:
-                    bilevel[i][i,v1,j,v2] = len(bilevel[i]),L.P[i,j][v1,v2]
+                if (i,v1,j,v2) not in bilevel[j]:
+                    bilevel[j][i,v1,j,v2] = len(bilevel[j]),L.P[i,j][v1,v2]
         for i,j in L.Q:
             for c,Q in enumerate(L.Q[i,j]):
                 if Q is None:
                     continue
                 for v1,v2 in Q.todok().keys():
                     assert (v1 >= LL[i].x.nxR+LL[i].x.nxZ), "Expected binary variable %d in bilinear term %s.Q[%d,%d][%d,%d]" % (v1,L.name,i,j,v1,v2)
-                    if (i,v1,j,v2) not in bilevel[i]:
-                        bilevel[i][i,v1,j,v2] = len(bilevel[i]),L.Q[i,j][c][v1,v2]
+                    if (i,v1,j,v2) not in bilevel[j]:
+                        bilevel[j][i,v1,j,v2] = len(bilevel[j]),L.Q[i,j][c][v1,v2]
     #
     # Now we walk through each level
     #
@@ -694,6 +696,8 @@ def linearize_bilinear_terms(M, bigM=1e6):
             # w = xy
             i,v1,j,v2 = key
             w,coef = value
+            if i not in B:
+                B[i] = {}
             if j not in C:
                 C[j] = {}
             lb = LL[j].x.lower_bounds[v2]
@@ -709,7 +713,7 @@ def linearize_bilinear_terms(M, bigM=1e6):
             nrows += 1
             # Uy + x - w <= U
             C[j][nrows,v2] = ub
-            B[nrows,v1] = 1
+            B[i][nrows,v1] = 1
             A[l][nrows,nxR+w] = -1
             b.append(ub)
             nrows += 1
@@ -720,12 +724,13 @@ def linearize_bilinear_terms(M, bigM=1e6):
             nrows += 1
             # w - x - Ly <= -L
             C[j][nrows,v2] = - lb
-            B[nrows,v1] = -1
+            B[i][nrows,v1] = -1
             A[l][nrows,nxR+w] = 1
             b.append(-lb)
             nrows += 1
         L.b = list(L.b) + b
-        L.A[l] = merge_matrices(L.A[l], B, len(L.b), len(L.x))
+        for i in B:
+            L.A[i] = merge_matrices(L.A[i], B[i], len(L.b), len(LL[i].x))
         for j in C:
             L.A[j] = merge_matrices(L.A[j], C[j], len(L.b), len(LL[j].x))
     #
@@ -741,9 +746,9 @@ def linearize_bilinear_terms(M, bigM=1e6):
         l = L.id
         for i,j in L.P:
             for v1,v2 in L.P[i,j].keys():
-                w,coef = bilevel[i][i,v1,j,v2]
-                # The coefficient in ans at level l for variables in level i at (w + number of reals in M) is coef
-                LL[l].c[i][w+nxR[i]] = coef   
+                w,coef = bilevel[j][i,v1,j,v2]
+                # The coefficient in ans at level l for variables in level j at (w + number of reals in M) is coef
+                LL[l].c[j][w+nxR[j]] = coef   
     #
     # Merge the cached terms now that we've shifted the variables
     #
@@ -760,9 +765,9 @@ def linearize_bilinear_terms(M, bigM=1e6):
                 if Q is None:
                     continue
                 for v1,v2 in Q.todok().keys():
-                    w,coef = bilevel[i][i,v1,j,v2]
-                    A[c,w+nxR[i]] = coef
-            LL[l].A[i] = merge_matrices(LL[l].A[i], A, len(LL[l].b), len(LL[i].x))
+                    w,coef = bilevel[j][i,v1,j,v2]
+                    A[c,w+nxR[j]] = coef
+            LL[l].A[j] = merge_matrices(LL[l].A[j], A, len(LL[l].b), len(LL[j].x))
 
     return ans
 
