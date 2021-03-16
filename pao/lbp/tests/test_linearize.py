@@ -30,12 +30,12 @@ class Test_Trivial(unittest.TestCase):
 
         self.assertEqual(len(ans.U.c[U]), len(lbp.U.c[U])+3)
         self.assertEqual(len(ans.U.c[L]), len(lbp.U.c[L]))
-        self.assertEqual(list(ans.U.c[U]), [1,0,0,0,1,1,1,1,1])
+        self.assertEqual(list(ans.U.c[U]), [1,11,13,17,1,1,1,1,1])
         self.assertEqual(list(ans.U.c[L]), [2,2,2,2,2,2,2])
 
         self.assertEqual(len(ans.U.LL.c[U]), len(lbp.U.LL.c[U])+3)
         self.assertEqual(len(ans.U.LL.c[L]), len(lbp.U.LL.c[L]))
-        self.assertEqual(list(ans.U.LL.c[U]), [3,0,0,0,3,3,3,3,3])
+        self.assertEqual(list(ans.U.LL.c[U]), [3,11,13,17,3,3,3,3,3])
         self.assertEqual(list(ans.U.LL.c[L]), [4,4,4,4,4,4,4])
 
         self.assertEqual(ans.U.d, 0)
@@ -82,7 +82,7 @@ class Test_Trivial(unittest.TestCase):
         L.minimize = False
         L.c[U] = [3, 3, 3, 3, 3, 3]
         L.c[L] = [4, 4, 4, 4, 4, 4, 4]
-        L.P[U,L] = (6,7), {(3,1):11, (4,2):13, (5,4):17}
+        L.P[U,L] = (6,7), {(3,1):19, (4,2):23, (5,4):31}
         lbp.check()
 
         ans = linearize_bilinear_terms(lbp)
@@ -91,12 +91,12 @@ class Test_Trivial(unittest.TestCase):
 
         self.assertEqual(len(ans.U.c[U]), len(lbp.U.c[U])+6)
         self.assertEqual(len(ans.U.c[L]), len(lbp.U.c[L]))
-        self.assertEqual(list(ans.U.c[U]), [1,0,0,0,0,0,0,1,1,1,1,1])
+        self.assertEqual(list(ans.U.c[U]), [1,11,13,17,0,0,0,1,1,1,1,1])
         self.assertEqual(list(ans.U.c[L]), [2,2,2,2,2,2,2])
 
         self.assertEqual(len(ans.U.LL.c[U]), len(lbp.U.LL.c[U])+6)
         self.assertEqual(len(ans.U.LL.c[L]), len(lbp.U.LL.c[L]))
-        self.assertEqual(list(ans.U.LL.c[U]), [3,0,0,0,0,0,0,3,3,3,3,3])
+        self.assertEqual(list(ans.U.LL.c[U]), [3,0,0,0,19,23,31,3,3,3,3,3])
         self.assertEqual(list(ans.U.LL.c[L]), [4,4,4,4,4,4,4])
 
         self.assertEqual(ans.U.d, 0)
@@ -208,12 +208,12 @@ class Test_Trivial(unittest.TestCase):
 
         self.assertEqual(len(ans.U.c[U]), len(lbp.U.c[U])+6)
         self.assertEqual(len(ans.U.c[L]), len(lbp.U.c[L]))
-        self.assertEqual(list(ans.U.c[U]), [1,0,0,0,0,0,0,1,1,1,1,1])
+        self.assertEqual(list(ans.U.c[U]), [1,11,13,17,0,0,0,1,1,1,1,1])
         self.assertEqual(list(ans.U.c[L]), [2,2,2,2,2,2,2])
 
         self.assertEqual(len(ans.U.LL.c[U]), len(lbp.U.LL.c[U])+6)
         self.assertEqual(len(ans.U.LL.c[L]), len(lbp.U.LL.c[L]))
-        self.assertEqual(list(ans.U.LL.c[U]), [3,0,0,0,0,0,0,3,3,3,3,3])
+        self.assertEqual(list(ans.U.LL.c[U]), [3,0,0,0,11,13,17,3,3,3,3,3])
         self.assertEqual(list(ans.U.LL.c[L]), [4,4,4,4,4,4,4])
 
         self.assertEqual(ans.U.d, 0)
@@ -330,12 +330,12 @@ class Test_Trivial(unittest.TestCase):
 
         self.assertEqual(len(ans.U.c[U]), len(lbp.U.c[U])+6)
         self.assertEqual(len(ans.U.c[L]), len(lbp.U.c[L]))
-        self.assertEqual(list(ans.U.c[U]), [1,0,0,0,0,0,0,1,1,1,1,1])
+        self.assertEqual(list(ans.U.c[U]), [1,11,13,17,0,0,0,1,1,1,1,1])
         self.assertEqual(list(ans.U.c[L]), [2,2,2,2,2,2,2])
 
         self.assertEqual(len(ans.U.LL.c[U]), len(lbp.U.LL.c[U])+6)
         self.assertEqual(len(ans.U.LL.c[L]), len(lbp.U.LL.c[L]))
-        self.assertEqual(list(ans.U.LL.c[U]), [3,0,0,0,0,0,0,3,3,3,3,3])
+        self.assertEqual(list(ans.U.LL.c[U]), [3,0,0,0,11,13,17,3,3,3,3,3])
         self.assertEqual(list(ans.U.LL.c[L]), [4,4,4,4,4,4,4])
 
         self.assertEqual(ans.U.d, 0)

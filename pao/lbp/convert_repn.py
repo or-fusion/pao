@@ -656,7 +656,7 @@ def linearize_bilinear_terms(M, bigM=1e6):
             for v1,v2 in L.P[i,j].keys():
                 assert (v1 >= L.x.nxR+L.x.nxZ), "Expected binary variable %d in bilinear term %s.P[%d,%d]" % (v1,str(L),i,j)
                 if (i,v1,j,v2) not in bilevel[i]:
-                    bilevel[i][i,v1,j,v2] = len(bilevel[i])
+                    bilevel[i][i,v1,j,v2] = len(bilevel[i]),L.P[i,j][v1,v2]
     #
     # Collect all of the levels in the model
     #
@@ -680,9 +680,10 @@ def linearize_bilinear_terms(M, bigM=1e6):
         B = {}
         # C[j] is the new terms in the constraint matrix for variables in level j that appear in level l
         C = {}
-        for key,w in bilevel[l].items():
+        for key,value in bilevel[l].items():
             # w = xy
             i,v1,j,v2 = key
+            w,coef = value
             if j not in C:
                 C[j] = {}
             lb = LL[j].x.lower_bounds[v2]
@@ -728,6 +729,17 @@ def linearize_bilinear_terms(M, bigM=1e6):
     #
     for l,L in LL.items():
         L.A[l] = merge_matrices(L.A[l], A[l], len(L.b), len(L.x))
+    #
+    # Update the coefficients of the objectives
+    #
+    LL_ = {L.id:L for L in M.levels()}
+    for L in M.levels():
+        l = L.id
+        for i,j in L.P:
+            for v1,v2 in L.P[i,j].keys():
+                w,coef = bilevel[i][i,v1,j,v2]
+                # The coefficient in ans at level l for variables in level i at (w + number of reals in M) is coef
+                LL[l].c[i][w+LL_[i].x.nxR] = coef   
 
     return ans
 
