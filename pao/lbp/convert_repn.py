@@ -630,6 +630,8 @@ def linearize_bilinear_terms(M, bigM=1e6):
         A linearized version of the input model
     """
     assert (type(M) is QuadraticMultilevelProblem), "Expected quadratic multilevel problem"
+    for L in M.levels():
+        assert (L.inequalities), "The function linearize_bilinear_terms can only handle QMPs with inequalities"
 
     #
     # Explicit clone logic, since we are converting a Quadratic to a Linear representation
@@ -641,9 +643,13 @@ def linearize_bilinear_terms(M, bigM=1e6):
     ans.check()
 
     #
+    # Collect all of the levels in the model
+    #
+    LL = {L.id:L for L in ans.levels()}
+    #
     # Collect all of the bilevel terms
     #
-    # The terms in P[i,j] generate a variable in level i,
+    # The terms in P[i,j] and Q[i,j] generate a variable in level i,
     # regardless where they appear in the model.  Hence, we need to collect
     # these terms before adding their replacement throughout the model.
     #
@@ -654,13 +660,17 @@ def linearize_bilinear_terms(M, bigM=1e6):
         l = L.id
         for i,j in L.P:
             for v1,v2 in L.P[i,j].keys():
-                assert (v1 >= L.x.nxR+L.x.nxZ), "Expected binary variable %d in bilinear term %s.P[%d,%d]" % (v1,str(L),i,j)
+                assert (v1 >= LL[i].x.nxR+LL[i].x.nxZ), "Expected binary variable %d in bilinear term %s.P[%d,%d]" % (v1,str(L),i,j)
                 if (i,v1,j,v2) not in bilevel[i]:
                     bilevel[i][i,v1,j,v2] = len(bilevel[i]),L.P[i,j][v1,v2]
-    #
-    # Collect all of the levels in the model
-    #
-    LL = {L.id:L for L in ans.levels()}
+        for i,j in L.Q:
+            for c,Q in enumerate(L.Q[i,j]):
+                if Q is None:
+                    continue
+                for v1,v2 in Q.todok().keys():
+                    assert (v1 >= LL[i].x.nxR+LL[i].x.nxZ), "Expected binary variable %d in bilinear term %s.Q[%d,%d][%d,%d]" % (v1,L.name,i,j,v1,v2)
+                    if (i,v1,j,v2) not in bilevel[i]:
+                        bilevel[i][i,v1,j,v2] = len(bilevel[i]),L.Q[i,j][c][v1,v2]
     #
     # Now we walk through each level
     #
@@ -722,24 +732,37 @@ def linearize_bilinear_terms(M, bigM=1e6):
     # Resize the variables
     #
     for l,L in LL.items():
-        #print(l,str(L),len(bilevel[l]))
         L.resize(nxR=L.x.nxR+len(bilevel[l]), nxZ=L.x.nxZ, nxB=L.x.nxB)
-    #
-    # Merge the cached terms now that we've shifted the variables
-    #
-    for l,L in LL.items():
-        L.A[l] = merge_matrices(L.A[l], A[l], len(L.b), len(L.x))
     #
     # Update the coefficients of the objectives
     #
-    LL_ = {L.id:L for L in M.levels()}
+    nxR = {L.id:L.x.nxR for L in M.levels()}
     for L in M.levels():
         l = L.id
         for i,j in L.P:
             for v1,v2 in L.P[i,j].keys():
                 w,coef = bilevel[i][i,v1,j,v2]
                 # The coefficient in ans at level l for variables in level i at (w + number of reals in M) is coef
-                LL[l].c[i][w+LL_[i].x.nxR] = coef   
+                LL[l].c[i][w+nxR[i]] = coef   
+    #
+    # Merge the cached terms now that we've shifted the variables
+    #
+    for l,L in LL.items():
+        L.A[l] = merge_matrices(L.A[l], A[l], len(L.b), len(L.x))
+    #
+    # Update the A matrices with coefficients from Q[i,j]
+    #
+    for L in M.levels():
+        l = L.id
+        for i,j in L.Q:
+            A = {}
+            for c,Q in enumerate(L.Q[i,j]):
+                if Q is None:
+                    continue
+                for v1,v2 in Q.todok().keys():
+                    w,coef = bilevel[i][i,v1,j,v2]
+                    A[c,w+nxR[i]] = coef
+            LL[l].A[i] = merge_matrices(LL[l].A[i], A, len(LL[l].b), len(LL[i].x))
 
     return ans
 
