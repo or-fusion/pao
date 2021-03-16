@@ -22,7 +22,7 @@ def create():
 
     U = M.add_upper(nxB=1)
     L = U.add_lower(nxR=2)
-    L.equalities = True
+    L.minimize=False
 
     U.c[U] = [1]
     U.c[L] = [1, 0]
@@ -30,15 +30,17 @@ def create():
     L.c[U] = [1]
     L.c[L] = [1, 0]
 
-    L.A[L] = [[1, 0]]
-    L.Q[U,L] = (1,1,2), {(0,0,1):1}
-    L.b    = [0]
+    L.A[L] = [[ 1, 0],
+              [-1, 0]]
+    L.Q[U,L] = (2,1,2), {(0,0,1):-1, (1,0,1):1}
+    L.b    = [0, 0]
 
     return M
 
 
 if __name__ == "__main__":          #pragma: no cover
     M = create()
+    m = linearize_bilinear_terms(M)
     opt = SolverFactory('pao.lbp.FA')
-    opt.solve(M)
-    M.print()
+    opt.solve(m, tee=True)
+    m.print()
