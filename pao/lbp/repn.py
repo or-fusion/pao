@@ -54,9 +54,9 @@ class SimplifiedList(collections.abc.MutableSequence):
     def __init__(self):
         self._data = []
 
-    def clone(self, parent=None):
+    def clone(self, parent=None, clone_fn=None):
         ans = SimplifiedList()
-        ans._data = [ val.clone(parent=parent) for val in self._data ]
+        ans._data = [ val.clone(parent=parent, clone_fn=clone_fn) for val in self._data ]
         return ans
 
     def append(self, val):
@@ -533,7 +533,10 @@ class LinearLevelRepn(object):
             for X in L._sublevels():
                 yield X
 
-    def _clone(self, ans, parent=None, data=[]):
+    @staticmethod
+    def _clone_level(self, parent=None, data=[], ans=None):
+        if ans is None:
+            ans = LinearLevelRepn(0,0,0)
         ans.x = self.x.clone()
         ans.c = self.c.clone()
         ans.A = self.A.clone()
@@ -541,7 +544,6 @@ class LinearLevelRepn(object):
         ans.minimize = self.minimize
         ans.inequalities = self.inequalities
         ans.d = self.d
-        ans.LL = self.LL.clone(parent=ans)
         if parent is None:
             ans.UL = lambda: None # "empty weakref"
         else:
@@ -557,8 +559,12 @@ class LinearLevelRepn(object):
             setattr(ans, attr, copy.copy(getattr(self, attr)))
         return ans
 
-    def clone(self, parent=None):
-        return self._clone(LinearLevelRepn(0,0,0), parent=parent, data=['x', 'c', 'A', 'b', 'minimize', 'inequalities', 'equalities', 'd', 'LL', 'UL'])
+    def clone(self, parent=None, clone_fn=None):
+        if clone_fn is None:
+            clone_fn = LinearLevelRepn._clone_level
+        ans = clone_fn(self, parent=parent, data=['x', 'c', 'A', 'b', 'minimize', 'inequalities', 'equalities', 'd', 'LL', 'UL'])
+        ans.LL = self.LL.clone(parent=ans, clone_fn=clone_fn)
+        return ans
 
     def print(self, names):       # pragma: no cover
         print("")
@@ -649,10 +655,20 @@ class QuadraticLevelRepn(LinearLevelRepn):
                 Q = self.Q[L1,L2]
                 self.Q[L1,L2] = [None if m is None else _update_matrix(A=m, old=old, new=new, update_columns=L2==level.id) for m in Q]
 
-    def clone(self, parent=None):
-        ans = self._clone(QuadraticLevelRepn(0,0,0), parent=parent, data=['x', 'c', 'A', 'b', 'minimize', 'inequalities', 'equalities', 'd', 'LL', 'UL', 'P', 'Q'])
+    @staticmethod
+    def _clone_level(self, parent, data, ans=None):
+        if ans is None:
+            ans = QuadraticLevelRepn(0,0,0)
+        LinearLevelRepn._clone_level(self, parent, data, ans=ans)
         ans.P = self.P.clone()
         ans.Q = self.Q.clone()
+        return ans
+        
+    def clone(self, parent=None, clone_fn=None):
+        if clone_fn is None:
+            clone_fn = QuadraticLevelRepn._clone_level
+        ans = clone_fn(self, parent=parent, data=['x', 'c', 'A', 'b', 'minimize', 'inequalities', 'equalities', 'd', 'LL', 'UL', 'P', 'Q'])
+        ans.LL = self.LL.clone(parent=ans, clone_fn=clone_fn)
         return ans
 
     def print(self, names):       # pragma: no cover
@@ -735,10 +751,10 @@ class LinearMultilevelProblem(object):
     def levels(self):
         yield from self.U._sublevels()
 
-    def clone(self):
+    def clone(self, clone_fn=None):
         ans = LinearMultilevelProblem()
         ans.name = self.name
-        ans.U = self.U.clone()
+        ans.U = self.U.clone(clone_fn=clone_fn)
         return ans
 
     def print(self):                            # pragma: no cover
@@ -815,10 +831,10 @@ class QuadraticMultilevelProblem(object):
     def levels(self):
         yield from self.U._sublevels()
 
-    def clone(self):
+    def clone(self, clone_fn=None):
         ans = QuadraticMultilevelProblem()
         ans.name = self.name
-        ans.U = self.U.clone()
+        ans.U = self.U.clone(clone_fn=clone_fn)
         return ans
 
     def print(self):                            # pragma: no cover

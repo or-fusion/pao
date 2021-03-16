@@ -1,7 +1,7 @@
 import copy
 from scipy.sparse import coo_matrix, dok_matrix, csc_matrix, vstack
 import numpy as np
-from .repn import LinearMultilevelProblem, QuadraticMultilevelProblem, QuadraticLevelRepn
+from .repn import LinearMultilevelProblem, QuadraticMultilevelProblem, LinearLevelRepn
 from .soln_manager import LMP_SolutionManager
 
 #
@@ -231,7 +231,7 @@ def _process_changes_con(changes, V, A, b, add_rows=False):
     return Bdok.tocoo(), b
 
 
-def _process_changes_P(changes, Lx, Xci, P, Xcj, changes_i, changes_j):
+def X_process_changes_P(changes, Lx, Xci, P, Xcj, changes_i, changes_j): #pragma: ignore
     if P is None:
         return Xci, P, Xcj
 
@@ -305,7 +305,7 @@ def _process_changes_P(changes, Lx, Xci, P, Xcj, changes_i, changes_j):
         #print(Xcj, _Xcj)
         return _Xci, _P.transpose(), _Xcj
 
-def X_process_changes(changes, V, c, d, A, b, add_rows=False):
+def X_process_changes(changes, V, c, d, A, b, add_rows=False):  #pragma: ignore
     d = copy.copy(d)
     b = copy.copy(b)
 
@@ -403,7 +403,7 @@ def X_process_changes(changes, V, c, d, A, b, add_rows=False):
     return c, d, Bdok.tocoo(), b
 
 
-def convert_to_nonnegative_variables(ans, inequalities, quadratic):
+def convert_to_nonnegative_variables(ans, inequalities):
     #
     # Collect real and integer variables that are changing
     #
@@ -428,9 +428,12 @@ def convert_to_nonnegative_variables(ans, inequalities, quadratic):
             for X in L.levels():
                 X.c[L], X.d = _process_changes_obj(changes[L.id], L.x, X.c[L], X.d)
                 X.A[L], X.b = _process_changes_con(changes[L.id], L.x, X.A[L], X.b, add_rows=L.id == X.id)
-                if quadratic:
-                    for i,j in X.P:
-                        X.c[i], X.P[i,j], X.c[j] = _process_changes_P(changes[L.id], L.x, X.c[i], X.P[i,j], X.c[j], i == L.id, j==L.id)
+                #
+                # NOTE: Conversion of a quadratic multilevel problem is not supported
+                #
+                #if quadratic:
+                #    for i,j in X.P:
+                #        X.c[i], X.P[i,j], X.c[j] = _process_changes_P(changes[L.id], L.x, X.c[i], X.P[i,j], X.c[j], i == L.id, j==L.id)
     return changes
 
 
@@ -461,9 +464,9 @@ def convert_sense(L, minimize=True):
         L.d *= -1
         for i in L.c:
             L.c[i] *= -1
-        if type(L) is QuadraticLevelRepn:
-            for i,j in L.P:
-                L.P[i,j] = L.P[i,j].multiply(-1)
+        #if type(L) is QuadraticLevelRepn:
+        #    for i,j in L.P:
+        #        L.P[i,j] = L.P[i,j].multiply(-1)
 
 
 def convert_to_minimization(ans):
@@ -539,7 +542,7 @@ def convert_binaries_to_integers(lbp):
 
 def convert_to_standard_form(M, inequalities=False):
     """
-    Normalize the LinearBilevelProblem into a standard form.
+    Normalize the LinearMultilevelProblem into a standard form.
 
     This function copies the multilevel problem, **M**, and transforms
     the problem such that
@@ -549,7 +552,7 @@ def convert_to_standard_form(M, inequalities=False):
 
     Args
     ----
-    M : LinearMultilevelProblem or QuadraticMultilevelProblem
+    M : LinearMultilevelProblem
         The model that is being normalized
     inequalities : bool (Default: False)
         A bool that is True if the normalized form has inequalities or equalities otherwise.
@@ -557,11 +560,12 @@ def convert_to_standard_form(M, inequalities=False):
 
     Returns
     -------
-    LinearMultilevelProblem or QuadraticMultilevelProblem
+    LinearMultilevelProblem
         A normalized version of the input model
     """
-    assert (type(M) in [LinearMultilevelProblem, QuadraticMultilevelProblem]), "Expected linear or quadratic multilevel problem"
-    quadratic = type(M) is QuadraticMultilevelProblem
+    # TODO - Linearize?  Or check that the problem is linear?
+    #assert (type(M) is LinearMultilevelProblem), "Expected linear multilevel problem"
+
     #
     # Clone the object
     #
@@ -577,7 +581,7 @@ def convert_to_standard_form(M, inequalities=False):
     #
     # Normalize variables
     #
-    changes = convert_to_nonnegative_variables(ans, inequalities, quadratic)
+    changes = convert_to_nonnegative_variables(ans, inequalities)
     #
     # Resize matrices
     #
@@ -592,4 +596,138 @@ def convert_to_standard_form(M, inequalities=False):
     multipliers = get_multipliers(M, changes)
 
     return ans, LMP_SolutionManager(multipliers)
+
+
+def merge_matrices(M1, M2, nrows, ncols):
+    if M1 is None:
+        M = dok_matrix((0,0))
+    else:
+        M = M1.todok()
+    M.resize( (max(M.shape[0], nrows), max(M.shape[1], ncols)) )
+    for k,v in M2.items():
+        M[k] = v
+    return M 
+
+
+def linearize_bilinear_terms(M, bigM=1e6):
+    """
+    Generate a linear multilevel problem from a quadratic multilevel
+    problem by linearizing bilinear terms.
+
+    This function copies the linear terms in the multilevel problem,
+    **M**, and replaces bilinear terms with a new variable.  This
+    transformation only applies when at least one of the variables in
+    each bilinear term is binary or integer.
+
+    Args
+    ----
+    M : QuadraticMultilevelProblem
+        The model that is being linearized
+
+    Returns
+    -------
+    LinearMultilevelProblem
+        A linearized version of the input model
+    """
+    assert (type(M) is QuadraticMultilevelProblem), "Expected quadratic multilevel problem"
+
+    #
+    # Explicit clone logic, since we are converting a Quadratic to a Linear representation
+    #
+    #ans = M.clone(clone_fn=_clone_level)
+    ans = LinearMultilevelProblem()
+    ans.name = M.name
+    ans.U = M.U.clone(clone_fn=LinearLevelRepn._clone_level)
+    ans.check()
+
+    #
+    # Collect all of the bilevel terms
+    #
+    # The terms in P[i,j] generate a variable in level i,
+    # regardless where they appear in the model.  Hence, we need to collect
+    # these terms before adding their replacement throughout the model.
+    #
+    bilevel = {} 
+    for L in M.levels():
+        bilevel[L.id] = {}
+    for L in M.levels():
+        l = L.id
+        for i,j in L.P:
+            for v1,v2 in L.P[i,j].keys():
+                assert (v1 >= L.x.nxR+L.x.nxZ), "Expected binary variable %d in bilinear term %s.P[%d,%d]" % (v1,str(L),i,j)
+                if (i,v1,j,v2) not in bilevel[i]:
+                    bilevel[i][i,v1,j,v2] = len(bilevel[i])
+    #
+    # Collect all of the levels in the model
+    #
+    LL = {L.id:L for L in ans.levels()}
+    #
+    # Now we walk through each level
+    #
+    # Add constraint terms for the existing variables that are in each term
+    #
+    # NOTE: We cache the constraint terms for the *new* variables
+    #
+    A = {}
+    for l,L in LL.items():
+        lenb = len(L.b)
+        nxR = L.x.nxR
+        nrows = lenb
+        b = []
+        # A[l] is the new terms in the constraint matrix for new variables in level l
+        A[l] = {}
+        # B[i] is the new terms in the constraint matrix for variables in level l
+        B = {}
+        # C[j] is the new terms in the constraint matrix for variables in level j that appear in level l
+        C = {}
+        for key,w in bilevel[l].items():
+            # w = xy
+            i,v1,j,v2 = key
+            if j not in C:
+                C[j] = {}
+            lb = LL[j].x.lower_bounds[v2]
+            if lb == np.NINF:
+                lb = -bigM
+            ub = LL[j].x.upper_bounds[v2]
+            if ub == np.PINF:
+                ub = bigM
+            # Ly - w <= 0
+            C[j][nrows,v2] = lb
+            A[l][nrows,nxR+w] = -1
+            b.append(0)
+            nrows += 1
+            # Uy + x - w <= U
+            C[j][nrows,v2] = ub
+            B[nrows,v1] = 1
+            A[l][nrows,nxR+w] = -1
+            b.append(ub)
+            nrows += 1
+            # w - Uy <= 0
+            C[j][nrows,v2] = -ub
+            A[l][nrows,nxR+w] = 1
+            b.append(0)
+            nrows += 1
+            # w - x - Ly <= -L
+            C[j][nrows,v2] = - lb
+            B[nrows,v1] = -1
+            A[l][nrows,nxR+w] = 1
+            b.append(-lb)
+            nrows += 1
+        L.b = list(L.b) + b
+        L.A[l] = merge_matrices(L.A[l], B, len(L.b), len(L.x))
+        for j in C:
+            L.A[j] = merge_matrices(L.A[j], C[j], len(L.b), len(LL[j].x))
+    #
+    # Resize the variables
+    #
+    for l,L in LL.items():
+        #print(l,str(L),len(bilevel[l]))
+        L.resize(nxR=L.x.nxR+len(bilevel[l]), nxZ=L.x.nxZ, nxB=L.x.nxB)
+    #
+    # Merge the cached terms now that we've shifted the variables
+    #
+    for l,L in LL.items():
+        L.A[l] = merge_matrices(L.A[l], A[l], len(L.b), len(L.x))
+
+    return ans
 
