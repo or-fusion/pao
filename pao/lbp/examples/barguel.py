@@ -24,6 +24,9 @@ def create():
     L = U.add_lower(nxR=2)
     L.minimize=False
 
+    L.x.lower_bounds=[0, 0]
+    L.x.upper_bounds=[1, 1]
+
     U.c[U] = [1]
     U.c[L] = [1, 0]
 
@@ -41,6 +44,8 @@ def create():
 if __name__ == "__main__":          #pragma: no cover
     M = create()
     m = linearize_bilinear_terms(M)
+    m.print()
+
     opt = SolverFactory('pao.lbp.FA')
     opt.solve(m, tee=True)
     m.print()

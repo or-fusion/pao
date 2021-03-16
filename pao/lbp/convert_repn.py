@@ -664,7 +664,7 @@ def linearize_bilinear_terms(M, bigM=1e6):
             for v1,v2 in L.P[i,j].keys():
                 assert (v1 >= LL[i].x.nxR+LL[i].x.nxZ), "Expected binary variable %d in bilinear term %s.P[%d,%d]" % (v1,str(L),i,j)
                 if (i,v1,j,v2) not in bilevel[j]:
-                    bilevel[j][i,v1,j,v2] = len(bilevel[j]),L.P[i,j][v1,v2]
+                    bilevel[j][i,v1,j,v2] = len(bilevel[j])
         for i,j in L.Q:
             for c,Q in enumerate(L.Q[i,j]):
                 if Q is None:
@@ -672,7 +672,8 @@ def linearize_bilinear_terms(M, bigM=1e6):
                 for v1,v2 in Q.todok().keys():
                     assert (v1 >= LL[i].x.nxR+LL[i].x.nxZ), "Expected binary variable %d in bilinear term %s.Q[%d,%d][%d,%d]" % (v1,L.name,i,j,v1,v2)
                     if (i,v1,j,v2) not in bilevel[j]:
-                        bilevel[j][i,v1,j,v2] = len(bilevel[j]),L.Q[i,j][c][v1,v2]
+                        #print(i,j,c,v1,v2, L.Q[i,j][c][v1,v2])
+                        bilevel[j][i,v1,j,v2] = len(bilevel[j])
     #
     # Now we walk through each level
     #
@@ -692,10 +693,9 @@ def linearize_bilinear_terms(M, bigM=1e6):
         B = {}
         # C[j] is the new terms in the constraint matrix for variables in level j that appear in level l
         C = {}
-        for key,value in bilevel[l].items():
+        for key,w in bilevel[l].items():
             # w = xy
             i,v1,j,v2 = key
-            w,coef = value
             if i not in B:
                 B[i] = {}
             if j not in C:
@@ -726,7 +726,10 @@ def linearize_bilinear_terms(M, bigM=1e6):
             C[j][nrows,v2] = - lb
             B[i][nrows,v1] = -1
             A[l][nrows,nxR+w] = 1
-            b.append(-lb)
+            if lb == 0:
+                b.append(0)
+            else:
+                b.append(-lb)
             nrows += 1
         L.b = list(L.b) + b
         for i in B:
@@ -746,9 +749,9 @@ def linearize_bilinear_terms(M, bigM=1e6):
         l = L.id
         for i,j in L.P:
             for v1,v2 in L.P[i,j].keys():
-                w,coef = bilevel[j][i,v1,j,v2]
+                w = bilevel[j][i,v1,j,v2]
                 # The coefficient in ans at level l for variables in level j at (w + number of reals in M) is coef
-                LL[l].c[j][w+nxR[j]] = coef   
+                LL[l].c[j][w+nxR[j]] = L.P[i,j][v1,v2]
     #
     # Merge the cached terms now that we've shifted the variables
     #
@@ -765,8 +768,8 @@ def linearize_bilinear_terms(M, bigM=1e6):
                 if Q is None:
                     continue
                 for v1,v2 in Q.todok().keys():
-                    w,coef = bilevel[j][i,v1,j,v2]
-                    A[c,w+nxR[j]] = coef
+                    w = bilevel[j][i,v1,j,v2]
+                    A[c,w+nxR[j]] = Q[v1,v2]
             LL[l].A[j] = merge_matrices(LL[l].A[j], A, len(LL[l].b), len(LL[j].x))
 
     return ans
