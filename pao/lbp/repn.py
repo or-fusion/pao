@@ -273,8 +273,8 @@ class LevelValues(object):
                 if value.size:
                     print("        shape: %d %d" % (value.shape[0], value.shape[1]))
                 print("        nonzeros:")
-                for row in str(value).split('\n'):
-                    print("        "+row)
+                for row in value.toarray().tolist():
+                    print("        ",row)
             elif self._matrix_list:
                 print("    %s:" % name)
                 for i,m in enumerate(value):
