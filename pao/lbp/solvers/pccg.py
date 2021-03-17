@@ -103,12 +103,14 @@ class LinearMultilevelSolver_PCCG(LinearMultilevelSolverBase):
         # a maximization lower-level
         self.standard_form, soln_manager = convert_to_standard_form(lbp, inequalities=True)
         convert_sense(self.standard_form.U.LL, minimize=False)
+        convert_binaries_to_integers(self.standard_form)
         
         results = LinearMultilevelResults(solution_manager=soln_manager)
 
         UxR, UxZ, LxR, LxZ = execute_PCCG_solver(self.standard_form, self.config, results)
         xR = {lbp.U.id:UxR, lbp.U.LL[0].id:LxR}
         xZ = {lbp.U.id:UxZ, lbp.U.LL[0].id:LxZ}
+
         results.copy_solution(From=Munch(LxR=xR, LxZ=xZ), To=lbp)
 
         results.solver.wallclock_time = time.time() - start_time

@@ -32,6 +32,29 @@ class Test_bilevel_FA(unittest.TestCase):
         self.assertTrue(math.isclose(lbp.U.x.values[0], 4))
         self.assertTrue(math.isclose(lbp.U.LL.x.values[0], 4))
 
+    def test_barguel(self):
+        qmp = examples.barguel.create()
+        qmp.check()
+
+        opt = SolverFactory('pao.lbp.FA')
+        try:
+            opt.solve(qmp)
+            self.fail("Expected an assertion error")
+        except AssertionError:
+            pass
+
+        lmp = linearize_bilinear_terms(qmp) 
+        lmp.check()
+        opt.solve(lmp)
+
+        self.assertTrue(math.isclose(lmp.U.x.values[0], 0))
+        self.assertTrue(math.isclose(lmp.U.LL.x.values[0], 0))
+        self.assertTrue(math.isclose(lmp.U.LL.x.values[1], 0))
+        #
+        # NOTE: lmp.U.LL.x.values[2] is a temporary variable that does not
+        #   appear in qmp.U.LL.x
+        #
+
     def test_besancon27(self):
         lbp = examples.besancon27.create()
         lbp.check()
@@ -95,6 +118,18 @@ class Test_bilevel_REG(unittest.TestCase):
 
         self.assertTrue(math.isclose(lbp.U.x.values[0], 4, abs_tol=1e-4))
         self.assertTrue(math.isclose(lbp.U.LL.x.values[0], 4, abs_tol=1e-4))
+
+    def test_barguel(self):
+        qmp = examples.barguel.create()
+        qmp.check()
+
+        opt = SolverFactory('pao.lbp.REG')
+        try:
+            opt.solve(qmp)
+            self.fail("Expected an assertion error")
+        except AssertionError:
+            # This problem has binary upper-level variables
+            pass
 
     def test_besancon27(self):
         lbp = examples.besancon27.create()
@@ -161,6 +196,30 @@ class Test_bilevel_PCCG(unittest.TestCase):
 
         self.assertTrue(math.isclose(lbp.U.x.values[0], 4, abs_tol=1e-4))
         self.assertTrue(math.isclose(lbp.U.LL.x.values[0], 4, abs_tol=1e-4))
+
+    def test_barguel(self):
+        qmp = examples.barguel.create()
+        qmp.check()
+
+        opt = SolverFactory('pao.lbp.PCCG')
+        try:
+            opt.solve(qmp)
+            self.fail("Expected an assertion error")
+        except AssertionError:
+            pass
+
+        lmp = linearize_bilinear_terms(qmp) 
+        lmp.check()
+        #lmp.print()
+        opt.solve(lmp)
+
+        self.assertTrue(math.isclose(lmp.U.x.values[0], 0))
+        self.assertTrue(math.isclose(lmp.U.LL.x.values[0], 0))
+        self.assertTrue(math.isclose(lmp.U.LL.x.values[1], 0))
+        #
+        # NOTE: lmp.U.LL.x.values[2] is a temporary variable that does not
+        #   appear in qmp.U.LL.x
+        #
 
     def test_besancon27(self):
         lbp = examples.besancon27.create()

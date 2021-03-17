@@ -33,14 +33,13 @@ class LMP_SolutionManager(object):
                 for j in range(L.x.nxZ):
                     jj = j+L.x.nxR
                     L.x.values[jj] = round(sum(pe.value(From.LxZ[L.id][v-L.x.nxR]) * c for v,c in multipliers[jj]))
-                if From.get('LxB',None) is not None:
-                    if len(From.LxB) == 0:
-                        # Binaries are at the end of the integers
-                        for j in range(L.x.nxB):
-                            L.x.values[j+L.x.nxR+L.x.nxZ] = round(pe.value(From.LxZ[L.id][j+L.x.nxZ]))
-                    else:
-                        for j in range(L.x.nxB):
-                            L.x.values[j+L.x.nxR+L.x.nxZ] = round(pe.value(From.LxB[L.id][j]))
+                if From.get('LxB',None) is None:
+                    # Binaries are at the end of the integers
+                    for j in range(L.x.nxB):
+                        L.x.values[j+L.x.nxR+L.x.nxZ] = round(pe.value(From.LxZ[L.id][j+L.x.nxZ]))
+                else:
+                    for j in range(L.x.nxB):
+                        L.x.values[j+L.x.nxR+L.x.nxZ] = round(pe.value(From.LxB[L.id][j]))
 
         else:
             raise RuntimeError("Unexpected types: From=%s To=%s" % (str(type(From)), str(type(To))))
