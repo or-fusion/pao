@@ -175,9 +175,14 @@ class Node(object):
                 t2, nid2, j2 = vidmap[id(v2)]
                 L1 = levelmap[nid1]
                 L2 = levelmap[nid2]
-                if P.get((nid1,nid2),None) is None:
-                    P[nid1,nid2] = {}
-                P[nid1,nid2][j1+offset(t1,L1.x), j2+offset(t2,L2.x)] = pe.value(val)
+                if nid1 <= nid2:
+                    if P.get((nid1,nid2),None) is None:
+                        P[nid1,nid2] = {}
+                    P[nid1,nid2][j1+offset(t1,L1.x), j2+offset(t2,L2.x)] = pe.value(val)
+                else:
+                    if P.get((nid2,nid1),None) is None:
+                        P[nid2,nid1] = {}
+                    P[nid2,nid1][j2+offset(t2,L2.x), j1+offset(t1,L1.x)] = pe.value(val)
             for n1,n2 in P:
                 level.P[n1,n2] = (len(levelmap[n1].x),len(levelmap[n2].x)), P[n1,n2]
         #
@@ -221,9 +226,14 @@ class Node(object):
                     t2, nid2, j2 = vidmap[id(v2)]
                     L1 = levelmap[nid1]
                     L2 = levelmap[nid2]
-                    if Q.get((nid1,nid2),None) is None:
-                        Q[nid1,nid2] = {}
-                    Q[nid1,nid2][k, j1+offset(t1,L1.x), j2+offset(t2,L2.x)] = pe.value(val)
+                    if nid1 <= nid2:
+                        if Q.get((nid1,nid2),None) is None:
+                            Q[nid1,nid2] = {}
+                        Q[nid1,nid2][k, j1+offset(t1,L1.x), j2+offset(t2,L2.x)] = pe.value(val)
+                    else:
+                        if Q.get((nid2,nid1),None) is None:
+                            Q[nid2,nid1] = {}
+                        Q[nid2,nid1][k, j2+offset(t2,L2.x), j1+offset(t1,L1.x)] = pe.value(val)
             for n1,n2 in Q:
                 level.Q[n1,n2] = (len(self.crepn), len(levelmap[n1].x),len(levelmap[n2].x)), Q[n1,n2]
             #
@@ -279,6 +289,10 @@ def collect_multilevel_tree(block, var, vidmap={}, sortOrder=SortComponents.unso
     #
     # Constraints
     #
+    # If we call conversion twice, then we delete the variables from the previous conversion
+    #
+    block.del_component('zzz_PAO_SlackVariables')
+    block.del_component('zzz_PAO_SlackVariables_index')
     block.zzz_PAO_SlackVariables = pe.VarList(domain=pe.NonNegativeReals)
     for cdata in block.component_data_objects(pe.Constraint, active=True, sort=sortOrder, descend_into=True):
         if (not cdata.has_lb()) and (not cdata.has_ub()):

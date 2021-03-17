@@ -1,5 +1,5 @@
 import time
-from .convert import convert_pyomo2LinearMultilevelProblem, convert_pyomo2QuadraticMultilevelProblem
+from .convert import convert_pyomo2MultilevelProblem
 import pao.common
 import pao.lbp
 
@@ -45,6 +45,7 @@ class PyomoSubmodelSolverBase_LBP(PyomoSubmodelSolverBase):
         options = self._update_config(options, validate_options=False)
         solver_options = {k:self.config[k] for k in self.config}
         solver_options['load_solutions'] = True
+        linearize_bilevel = options.get('linearize_bilinear_terms',False)
         #
         # Start the clock
         #
@@ -53,10 +54,14 @@ class PyomoSubmodelSolverBase_LBP(PyomoSubmodelSolverBase):
         # Convert the Pyomo model to a LBP
         #
         try:
-            lmp, soln_manager = convert_pyomo2LinearMultilevelProblem(model)
+            mp, soln_manager = convert_pyomo2MultilevelProblem(model)
         except RuntimeError as err:
-            print("Cannot convert Pyomo model to a LinearMultilevelProblem")
+            print("Cannot convert Pyomo model to a multilevel problem") 
             raise
+        if linearize_bilevel:
+            lmp = pao.lbp.linearize_bilinear_terms(mp)
+        else:
+            lmp = mp
         #
         results = PyomoSubmodelResults(solution_manager=soln_manager)
         with SolverFactory(self.lmp_solver) as opt:

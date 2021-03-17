@@ -7,20 +7,23 @@
 # This model has an optimal objective value of 0
 # To see this, fix u and optimize the lower level
 #
+import pyomo.environ as pe
+from pao.bilevel import SubModel
+
+
 def create():
-    M = ConcreteModel()
-    M.u = Var(within=Binary, initialize=1)
-    M.x = Var(bounds=(0,1)) # dual var for UB: v1
-    M.y = Var(bounds=(0,1)) # dual var for UB: v2
+    M = pe.ConcreteModel()
+    M.u = pe.Var(within=pe.Binary, initialize=1)
+    M.x = pe.Var(bounds=(0,1)) # dual var for UB: v1
+    M.y = pe.Var(bounds=(0,1)) # dual var for UB: v2
 
     # Note that the upper and lower level objectives
     # are the same.
-    M.o = Objective(expr=M.x + M.u)
+    M.o = pe.Objective(expr=M.x + M.u)
 
-    #M.sub = SubModel(fixed=M.x)
     M.sub = SubModel(fixed=M.u)
-    M.sub.o = Objective(expr=M.x + M.u, sense=maximize)
-    M.sub.c = Constraint(expr= M.x == M.y*M.u) # x - y*u = 0, dual var: u1
+    M.sub.o = pe.Objective(expr=M.x + M.u, sense=pe.maximize)
+    M.sub.c = pe.Constraint(expr= M.x == M.y*M.u) # x - y*u = 0, dual var: u1
 
     return M
 
