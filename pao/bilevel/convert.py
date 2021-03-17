@@ -393,20 +393,10 @@ class PyomoSubmodel_SolutionManager_LBP(object):
             t, nid, j = self.vidmap[vid]
             if nid == 0:
                 U = lbp.U
-                if t == 0:
-                    v.value = lbp.U.x.values[j]
-                elif t == 1:
-                    v.value = lbp.U.x.values[j+U.x.nxR]
-                elif t == 2:
-                    v.value = lbp.U.x.values[j+U.x.nxR+U.x.nxZ]
+                v.value = lbp.U.x.values[j+offset(t,U.x)]
             else:
                 L = lbp.U.LL[nid-1]
-                if t == 0:
-                    v.value = lbp.U.LL[nid-1].x.values[j]
-                elif t == 1:
-                    v.value = lbp.U.LL[nid-1].x.values[j+L.x.nxR]
-                elif t == 2:
-                    v.value = lbp.U.LL[nid-1].x.values[j+L.x.nxR+L.x.nxZ]
+                v.value = lbp.U.LL[nid-1].x.values[j+offset(t,L.x)]
 
 
 def convert_pyomo2LinearMultilevelProblem(model, *, determinism=1, inequalities=True):
