@@ -675,6 +675,12 @@ def linearize_bilinear_terms(M, bigM=1e6):
                         #print(i,j,c,v1,v2, L.Q[i,j][c][v1,v2])
                         bilevel[j][i,v1,j,v2] = len(bilevel[j])
     #
+    # Return if no bilevel terms were found
+    #
+    if sum(len(bilevel[i]) for i in bilevel) == 0:
+        return ans
+
+    #
     # Now we walk through each level
     #
     # Add constraint terms for the existing variables that are in each term
