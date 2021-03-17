@@ -32,8 +32,8 @@ class LinearMultilevelResults(pao.common.Results):
         super(pao.common.Results, self).__init__()
         self._solution_manager=solution_manager
 
-    def copy_from_to(self, **kwds):
-        self._solution_manager.copy_from_to(**kwds)
+    def copy_solution(self, **kwds):
+        self._solution_manager.copy(**kwds)
 
     def load_from(self, data):          # pragma: no cover
         assert (False), "load_from() is not implemented"

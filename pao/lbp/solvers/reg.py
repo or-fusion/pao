@@ -156,7 +156,7 @@ class LinearMultilevelSolver_REG(LinearMultilevelSolverBase):
 
             if self.config.load_solutions:
                 # Load results from the Pyomo model to the LinearMultilevelProblem
-                results.copy_from_to(pyomo=M, lbp=model)
+                results.copy_solution(From=M, To=model)
             else:
                 # Load results from the Pyomo model to the Results
                 results.load_from(pyomo_results)

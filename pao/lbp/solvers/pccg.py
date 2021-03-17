@@ -13,11 +13,13 @@
 #
 import time
 import numpy as np
+from munch import Munch
 import pyutilib
 import pyomo.environ as pe
 import pyomo.opt
 from pyomo.common.config import ConfigBlock, ConfigValue
 from pyomo.mpec import ComplementarityList, complements
+
 from ..solver import SolverFactory, LinearMultilevelSolverBase, LinearMultilevelResults
 from ..repn import LinearMultilevelProblem
 from ..convert_repn import convert_to_standard_form, convert_sense, convert_binaries_to_integers
@@ -107,7 +109,7 @@ class LinearMultilevelSolver_PCCG(LinearMultilevelSolverBase):
         UxR, UxZ, LxR, LxZ = execute_PCCG_solver(self.standard_form, self.config, results)
         xR = {lbp.U.id:UxR, lbp.U.LL[0].id:LxR}
         xZ = {lbp.U.id:UxZ, lbp.U.LL[0].id:LxZ}
-        results.copy_from_to(LxR=xR, LxZ=xZ, lbp=lbp)
+        results.copy_solution(From=Munch(LxR=xR, LxZ=xZ), To=lbp)
 
         results.solver.wallclock_time = time.time() - start_time
         return results
