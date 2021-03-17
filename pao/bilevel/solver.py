@@ -1,5 +1,5 @@
 import time
-from .convert import convert_pyomo2LinearMultilevelProblem
+from .convert import convert_pyomo2LinearMultilevelProblem, convert_pyomo2QuadraticMultilevelProblem
 import pao.common
 import pao.lbp
 
@@ -26,9 +26,9 @@ class PyomoSubmodelSolverBase_LBP(PyomoSubmodelSolverBase):
     Define the API for solvers that optimize a Pyomo model using SubModel components
     """
 
-    def __init__(self, name, lbp_solver, inequalities):
+    def __init__(self, name, lmp_solver, inequalities):
         super().__init__(name)
-        self.lbp_solver = lbp_solver
+        self.lmp_solver = lmp_solver
         self.inequalities = inequalities
 
     def Xinequalities(self):
@@ -53,33 +53,33 @@ class PyomoSubmodelSolverBase_LBP(PyomoSubmodelSolverBase):
         # Convert the Pyomo model to a LBP
         #
         try:
-            lbp, soln_manager = convert_pyomo2LinearMultilevelProblem(instance)
+            lmp, soln_manager = convert_pyomo2LinearMultilevelProblem(model)
         except RuntimeError as err:
             print("Cannot convert Pyomo model to a LinearMultilevelProblem")
             raise
         #
         results = PyomoSubmodelResults(solution_manager=soln_manager)
-        with SolverFactory(self.lbp_solver) as opt:
-            lbp_results = opt.solve(lbp, **solver_options)
+        with SolverFactory(self.lmp_solver) as opt:
+            lmp_results = opt.solve(lmp, **solver_options)
 
-            self._initialize_results(results, lbp_results, model, lbp, options)
+            self._initialize_results(results, lmp_results, model, lmp, options)
             results.solver.rc = getattr(opt, '_rc', None)
-            results.copy_from_to(lbp=lbp, pyomo=model)
+            results.copy_from_to(lbp=lmp, pyomo=model)
             
         results.solver.wallclock_time = time.time() - start_time
         return results
 
-    def _initialize_results(self, results, lbp_results, instance, lbp, options):
+    def _initialize_results(self, results, lmp_results, instance, lmp, options):
         #
         # SOLVER
         #
         solv = results.solver
         solv.name = self.name
-        solv.lbp_solver = self.lbp_solver
+        solv.lmp_solver = self.lmp_solver
         solv.config = self.config
-        solv.termination_condition = lbp_results.solver.termination_condition
-        solv.solver_time = lbp_results.solver.time
-        solv.best_feasible_objective = lbp_results.solver.best_feasible_objective
+        solv.termination_condition = lmp_results.solver.termination_condition
+        solv.solver_time = lmp_results.solver.time
+        solv.best_feasible_objective = lmp_results.solver.best_feasible_objective
         #
         # PROBLEM
         #
@@ -91,9 +91,9 @@ class PyomoSubmodelSolverBase_LBP(PyomoSubmodelSolverBase):
         prob.number_of_integer_variables = instance.statistics.number_of_integer_variables
         prob.number_of_continuous_variables = instance.statistics.number_of_continuous_variables
         prob.number_of_objectives = instance.statistics.number_of_objectives
-        prob.lower_bound = lbp_results.problem.lower_bound
-        prob.upper_bound = lbp_results.problem.upper_bound
-        prob.sense = lbp_results.problem.sense
+        prob.lower_bound = lmp_results.problem.lower_bound
+        prob.upper_bound = lmp_results.problem.upper_bound
+        prob.sense = lmp_results.problem.sense
 
         return results
 
