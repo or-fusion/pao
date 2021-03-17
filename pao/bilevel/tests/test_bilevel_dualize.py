@@ -34,7 +34,8 @@ reformulation_model_names = ['bqp_example1','bqp_example2']
 reformulation_models = [join(current_dir, 'auxiliary', '{}.py'.format(i)) for i in reformulation_model_names]
 reformulations = [join(current_dir, 'auxiliary','reformulation','{}_dual.txt'.format(i)) for i in reformulation_model_names]
 
-class TestBilevelDualize(unittest.TestCase):
+#class TestBilevelDualize(unittest.TestCase):
+class XTestBilevelDualize(object):
     """
     Testing for bilevel dualization that use the pao.duality.linear_dual transformation for the SubModel
 
