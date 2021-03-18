@@ -231,7 +231,7 @@ def _process_changes_con(changes, V, A, b, add_rows=False):
     return Bdok.tocoo(), b
 
 
-def X_process_changes_P(changes, Lx, Xci, P, Xcj, changes_i, changes_j): #pragma: ignore
+def X_process_changes_P(changes, Lx, Xci, P, Xcj, changes_i, changes_j): #pragma: nocover
     if P is None:
         return Xci, P, Xcj
 
@@ -305,7 +305,7 @@ def X_process_changes_P(changes, Lx, Xci, P, Xcj, changes_i, changes_j): #pragma
         #print(Xcj, _Xcj)
         return _Xci, _P.transpose(), _Xcj
 
-def X_process_changes(changes, V, c, d, A, b, add_rows=False):  #pragma: ignore
+def X_process_changes(changes, V, c, d, A, b, add_rows=False):  #pragma: nocover
     d = copy.copy(d)
     b = copy.copy(b)
 
