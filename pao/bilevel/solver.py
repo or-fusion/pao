@@ -59,7 +59,7 @@ class PyomoSubmodelSolverBase_LBP(PyomoSubmodelSolverBase):
             print("Cannot convert Pyomo model to a multilevel problem") 
             raise
         if linearize_bilevel:
-            lmp = pao.lbp.linearize_bilinear_terms(mp)
+            lmp, soln = pao.lbp.linearize_bilinear_terms(mp)
         else:
             lmp = mp
         #
@@ -69,7 +69,11 @@ class PyomoSubmodelSolverBase_LBP(PyomoSubmodelSolverBase):
 
             self._initialize_results(results, lmp_results, model, lmp, options)
             results.solver.rc = getattr(opt, '_rc', None)
-            results.copy_from_to(lbp=lmp, pyomo=model)
+            if linearize_bilevel:
+                soln.copy(From=lmp, To=mp)
+                results.copy(From=mp, To=model)
+            else:
+                results.copy(From=lmp, To=model)
             
         results.solver.wallclock_time = time.time() - start_time
         return results
@@ -109,8 +113,8 @@ class PyomoSubmodelResults(pao.common.Results):
         super(pao.common.Results, self).__init__()
         self._solution_manager=solution_manager
 
-    def copy_from_to(self, **kwds):
-        self._solution_manager.copy_from_to(**kwds)
+    def copy(self, **kwds):
+        self._solution_manager.copy(**kwds)
 
     def load_from(self, data):          # pragma: no cover
         assert (False), "load_from() is not implemented"

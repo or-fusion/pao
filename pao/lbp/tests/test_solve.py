@@ -43,17 +43,14 @@ class Test_bilevel_FA(unittest.TestCase):
         except AssertionError:
             pass
 
-        lmp = linearize_bilinear_terms(qmp) 
+        lmp, soln = linearize_bilinear_terms(qmp) 
         lmp.check()
         opt.solve(lmp)
+        soln.copy(From=lmp, To=qmp)
 
-        self.assertTrue(math.isclose(lmp.U.x.values[0], 0))
-        self.assertTrue(math.isclose(lmp.U.LL.x.values[0], 0))
-        self.assertTrue(math.isclose(lmp.U.LL.x.values[1], 0))
-        #
-        # NOTE: lmp.U.LL.x.values[2] is a temporary variable that does not
-        #   appear in qmp.U.LL.x
-        #
+        self.assertTrue(math.isclose(qmp.U.x.values[0], 0))
+        self.assertTrue(math.isclose(qmp.U.LL.x.values[0], 0))
+        self.assertTrue(math.isclose(qmp.U.LL.x.values[1], 0))
 
     def test_besancon27(self):
         lbp = examples.besancon27.create()
@@ -208,18 +205,14 @@ class Test_bilevel_PCCG(unittest.TestCase):
         except AssertionError:
             pass
 
-        lmp = linearize_bilinear_terms(qmp) 
+        lmp, soln = linearize_bilinear_terms(qmp) 
         lmp.check()
-        #lmp.print()
         opt.solve(lmp)
+        soln.copy(From=lmp, To=qmp)
 
-        self.assertTrue(math.isclose(lmp.U.x.values[0], 0))
-        self.assertTrue(math.isclose(lmp.U.LL.x.values[0], 0))
-        self.assertTrue(math.isclose(lmp.U.LL.x.values[1], 0))
-        #
-        # NOTE: lmp.U.LL.x.values[2] is a temporary variable that does not
-        #   appear in qmp.U.LL.x
-        #
+        self.assertTrue(math.isclose(qmp.U.x.values[0], 0))
+        self.assertTrue(math.isclose(qmp.U.LL.x.values[0], 0))
+        self.assertTrue(math.isclose(qmp.U.LL.x.values[1], 0))
 
     def test_besancon27(self):
         lbp = examples.besancon27.create()

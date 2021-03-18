@@ -48,3 +48,21 @@ class LMP_SolutionManager(object):
         # TODO - should we copy the data from a Pyomo model?  or a Pyomo results object?
         #           
         assert (False), "LMP_SolutionManager.load_from() is not implemented yet"
+
+class SolutionManager_Linearized_Bilinear_Terms(object):
+
+    def copy(self, From=None, To=None):
+        #
+        # The linearization adds real values, so we just ignore those when copying back
+        # to the original model
+        #
+        to_levels =  {level.id:level for level in To.levels()}
+        from_levels = {level.id:level for level in From.levels()}
+        for i,L in to_levels.items():
+            L_ = from_levels[i]
+            for j in range(L.x.nxR):
+                L.x.values[j] = L_.x.values[j]
+            for j in range(L.x.nxZ):
+                L.x.values[j + L.x.nxR] = L_.x.values[j + L_.x.nxR]
+            for j in range(L.x.nxB):
+                L.x.values[j + L.x.nxR+L.x.nxZ] = L_.x.values[j + L_.x.nxR+L_.x.nxZ]

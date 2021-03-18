@@ -2,7 +2,7 @@ import copy
 from scipy.sparse import coo_matrix, dok_matrix, csc_matrix, vstack
 import numpy as np
 from .repn import LinearMultilevelProblem, QuadraticMultilevelProblem, LinearLevelRepn
-from .soln_manager import LMP_SolutionManager
+from .soln_manager import LMP_SolutionManager, SolutionManager_Linearized_Bilinear_Terms
 
 #
 # Variable Change objects that cache information needed to
@@ -778,5 +778,5 @@ def linearize_bilinear_terms(M, bigM=1e6):
                     A[c,w+nxR[j]] = Q[v1,v2]
             LL[l].A[j] = merge_matrices(LL[l].A[j], A, len(LL[l].b), len(LL[j].x))
 
-    return ans
+    return ans, SolutionManager_Linearized_Bilinear_Terms()
 

@@ -397,20 +397,22 @@ def collect_multilevel_tree(block, var, vidmap={}, sortOrder=SortComponents.unso
 
 class PyomoSubmodel_SolutionManager_LBP(object):
 
-    def __init__(self, var, vidmap):
+    def __init__(self, var, vidmap, pyomo_id):
         self.var = var
         self.vidmap = vidmap
+        self.pyomo_id = pyomo_id
 
-    def copy_from_to(self, *, lbp, pyomo):
+    def copy(self, *, From, To):
+        assert (id(To) == self.pyomo_id), "Attempting to copy data into a different model than was used to create the multilevel problem"
         for vid in self.vidmap:
             v = self.var[vid]
             t, nid, j = self.vidmap[vid]
             if nid == 0:
-                U = lbp.U
-                v.value = lbp.U.x.values[j+offset(t,U.x)]
+                U = From.U
+                v.value = From.U.x.values[j+offset(t,U.x)]
             else:
-                L = lbp.U.LL[nid-1]
-                v.value = lbp.U.LL[nid-1].x.values[j+offset(t,L.x)]
+                L = From.U.LL[nid-1]
+                v.value = From.U.LL[nid-1].x.values[j+offset(t,L.x)]
 
 
 def convert_pyomo2LinearMultilevelProblem(model, *, determinism=1, inequalities=True):
@@ -551,7 +553,7 @@ def convert_pyomo2MultilevelProblem(model, *, determinism=1, inequalities=True, 
     #
     Node.global_list = []
 
-    return M, PyomoSubmodel_SolutionManager_LBP(var, vidmap)
+    return M, PyomoSubmodel_SolutionManager_LBP(var, vidmap, id(model))
     
 
 convert_pyomo2lmp = convert_pyomo2LinearMultilevelProblem
