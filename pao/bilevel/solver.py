@@ -16,27 +16,15 @@ class PyomoSubmodelSolverBase(pao.common.Solver):
         super().__init__()
         self.name = name
 
-    def Xcheck_model(self, problem):         # pragma: no cover
-        # Confirm that the compact problem representation is well-formed.
-        pass
-
 
 class PyomoSubmodelSolverBase_LBP(PyomoSubmodelSolverBase):
     """
     Define the API for solvers that optimize a Pyomo model using SubModel components
     """
 
-    def __init__(self, name, lmp_solver, inequalities):
+    def __init__(self, name, lmp_solver):
         super().__init__(name)
         self.lmp_solver = lmp_solver
-        self.inequalities = inequalities
-
-    def Xinequalities(self):
-        #
-        # Return True if the conversion to LinearMultilevelProblem should
-        # use inequalities (True) or equalities (False)
-        #
-        return False
 
     def solve(self, model, **options):
         #
@@ -53,8 +41,11 @@ class PyomoSubmodelSolverBase_LBP(PyomoSubmodelSolverBase):
         #
         # Convert the Pyomo model to a LBP
         #
+        # For now, this always generates a multilevel problem with inequalities.
+        # This facilitates the linearization of bilinear terms.
+        #
         try:
-            mp, soln_manager = convert_pyomo2MultilevelProblem(model)
+            mp, soln_manager = convert_pyomo2MultilevelProblem(model, inequalities=True)
         except RuntimeError as err:
             print("Cannot convert Pyomo model to a multilevel problem") 
             raise

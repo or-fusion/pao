@@ -22,7 +22,7 @@ from pyomo.environ import *
 import itertools
 from pyomo.core import Objective
 from pao.bilevel.components import SubModel
-from pao.bilevel.plugins.collect import BilevelMatrixRepn
+#from pao.bilevel.plugins.collect import BilevelMatrixRepn
 
 current_dir = dirname(abspath(__file__))
 aux_dir = join(dirname(abspath(__file__)),'auxiliary')
@@ -33,7 +33,8 @@ reformulation_models = [join(current_dir, 'auxiliary', '{}.py'.format(i)) for i 
 reformulations = [join(current_dir, 'auxiliary','reformulation','{}.txt'.format(i)) for i in reformulation_model_names]
 
 
-class TestBilevelMatrixRepn(unittest.TestCase):
+#class TestBilevelMatrixRepn(unittest.TestCase):
+class XTestBilevelMatrixRepn(object):
     """
     Testing for bilevel matrix representation of models
 
