@@ -30,6 +30,22 @@ class Test_pyomo_FA(unittest.TestCase):
         self.assertTrue(math.isclose(M.x.value, 0))
         self.assertTrue(math.isclose(M.v.value, 1))
 
+    def test_barguel(self):
+        M = examples.barguel.create()
+
+        opt = SolverFactory('pao.pyomo.FA')
+        try:
+            opt.solve(M)
+            self.fail("Expected an assertion error")
+        except AssertionError:
+            pass
+
+        opt.solve(M, linearize_bilinear_terms=True)
+
+        self.assertTrue(math.isclose(M.u.value, 0))
+        self.assertTrue(math.isclose(M.x.value, 0))
+        self.assertTrue(math.isclose(M.y.value, 0))
+
     def test_getachew_ex1(self):
         M = examples.getachew_ex1.create()
 
@@ -136,6 +152,22 @@ class Test_pyomo_PCCG(unittest.TestCase):
 
         self.assertTrue(math.isclose(M.x.value, 0, abs_tol=1e-4))
         self.assertTrue(math.isclose(M.v.value, 1, abs_tol=1e-4))
+
+    def test_barguel(self):
+        M = examples.barguel.create()
+
+        opt = SolverFactory('pao.pyomo.PCCG')
+        try:
+            opt.solve(M)
+            self.fail("Expected an assertion error")
+        except AssertionError:
+            pass
+
+        opt.solve(M, linearize_bilinear_terms=True)
+
+        self.assertTrue(math.isclose(M.u.value, 0))
+        self.assertTrue(math.isclose(M.x.value, 0))
+        self.assertTrue(math.isclose(M.y.value, 0))
 
     def test_getachew_ex1(self):
         M = examples.getachew_ex1.create()

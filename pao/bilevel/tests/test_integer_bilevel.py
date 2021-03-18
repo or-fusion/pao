@@ -45,8 +45,9 @@ solutions = [-22, -20, -243.500]
 # cartesian product of lists for a full coverage unittest run
 cartesian_solutions = [elem for elem in itertools.product(*[solvers,pao_solvers,zip(solution_model_names,solution_models,solutions)])]
 
-@unittest.skipIf(len(cartesian_solutions)==0, "No solvers available")
-class TestBilevelSolve(unittest.TestCase):
+#@unittest.skipIf(len(cartesian_solutions)==0, "No solvers available")
+#class TestBilevelSolve(unittest.TestCase):
+class XTestBilevelSolve(): #(unittest.TestCase):
     """
     Testing for bilevel solutions that use the runtime parameters specified in cartesian_solutions list
 

@@ -9,20 +9,19 @@ import pyomo.environ as pe
 import pyomo.opt
 from pyomo.common.config import ConfigBlock, ConfigValue
 from pyomo.mpec import ComplementarityList, complements
-
-from ..solver import SolverFactory, LinearBilevelSolverBase, LinearBilevelResults
-from ..repn import LinearBilevelProblem
-from ..convert_repn import convert_LinearBilevelProblem_to_standard_form
-from .. import pyomo_util
+from ..solver import SolverFactory, LinearMultilevelSolverBase, LinearMultilevelResults
+from ..repn import LinearMultilevelProblem
+from ..convert_repn import convert_to_standard_form
+from . import pyomo_util
 from .reg import create_model_replacing_LL_with_kkt
 
 
 @SolverFactory.register(
         name='pao.lbp.FA',
         doc='A solver for linear bilevel programs using big-M relaxations discussed by Fortuny-Amat and McCarl, 1981.')
-class LinearBilevelSolver_FA(LinearBilevelSolverBase):
+class LinearMultilevelSolver_FA(LinearMultilevelSolverBase):
 
-    config = LinearBilevelSolverBase.config()
+    config = LinearMultilevelSolverBase.config()
     config.declare('solver', ConfigValue(
         default='glpk',
         description="The name of the MIP solver used by FA.  (default is glpk)"
@@ -39,21 +38,21 @@ class LinearBilevelSolver_FA(LinearBilevelSolverBase):
     def __init__(self, **kwds):
         super().__init__(name='pao.lbp.FA')
 
-    def check_model(self, lbp):
+    def check_model(self, model):
         #
-        # Confirm that the LinearBilevelProblem is well-formed
+        # Confirm that the LinearMultilevelProblem is well-formed
         #
-        assert (type(lbp) is LinearBilevelProblem), "Solver '%s' can only solve a LinearBilevelProblem" % self.name
-        lbp.check()
+        assert (type(model) is LinearMultilevelProblem), "Solver '%s' can only solve a linear multilevel problem" % self.name
+        model.check()
         #
         # Confirm that this is a bilevel problem
         #
-        for L in lbp.U.LL:
+        for L in model.U.LL:
             assert (len(L.LL) == 0), "Can only solve bilevel problems"
         #
         # No binary or integer lower level variables
         #
-        for L in lbp.U.LL:
+        for L in model.U.LL:
             assert (L.x.nxZ == 0), "Cannot use solver %s with model with integer lower-level variables" % self.name
             assert (L.x.nxB == 0), "Cannot use solver %s with model with binary lower-level variables" % self.name
 
@@ -71,13 +70,13 @@ class LinearBilevelSolver_FA(LinearBilevelSolverBase):
         #
         start_time = time.time()
 
-        self.standard_form, soln_manager = convert_LinearBilevelProblem_to_standard_form(model)
+        self.standard_form, soln_manager = convert_to_standard_form(model)
 
         M = self._create_pyomo_model(self.standard_form, self.config.bigm)
         #
         # Solve the Pyomo model the specified solver
         #
-        results = LinearBilevelResults(solution_manager=soln_manager)
+        results = LinearMultilevelResults(solution_manager=soln_manager)
         with pe.SolverFactory(self.config.solver) as opt:
             if self.config.solver_options is not None:
                 opt.options.update(self.config.solver_options)
@@ -90,8 +89,8 @@ class LinearBilevelSolver_FA(LinearBilevelSolverBase):
             results.solver.rc = getattr(opt, '_rc', None)
 
             if self.config.load_solutions:
-                # Load results from the Pyomo model to the LinearBilevelProblem
-                results.copy_from_to(pyomo=M, lbp=model)
+                # Load results from the Pyomo model to the LinearMultilevelProblem
+                results.copy_solution(From=M, To=model)
             else:
                 # Load results from the Pyomo model to the Results
                 results.load_from(pyomo_results)
@@ -128,7 +127,6 @@ class LinearBilevelSolver_FA(LinearBilevelSolverBase):
 
     def _create_pyomo_model(self, repn, bigM):
         M = create_model_replacing_LL_with_kkt(repn)
-
         #
         # Transform the problem to a MIP
         #
@@ -154,5 +152,5 @@ class LinearBilevelSolver_FA(LinearBilevelSolverBase):
             print("nu",j,pe.value(M.kkt.nu[j]))
 
 
-LinearBilevelSolver_FA._update_solve_docstring(LinearBilevelSolver_FA.config)
+LinearMultilevelSolver_FA._update_solve_docstring(LinearMultilevelSolver_FA.config)
 

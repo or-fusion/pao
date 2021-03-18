@@ -1,9 +1,9 @@
 import numpy as np
 import pyutilib.th as unittest
 import pyomo.environ as pe
-from pao.bilevel.convert import collect_multilevel_tree, convert_pyomo2LinearBilevelProblem
+from pao.bilevel.convert import collect_multilevel_tree, convert_pyomo2LinearMultilevelProblem, convert_pyomo2MultilevelProblem
 from pao.bilevel import SubModel
-from pao.lbp import LinearBilevelProblem
+from pao.lbp import LinearMultilevelProblem, QuadraticMultilevelProblem
 
 
 class TestMultilevelTree(unittest.TestCase):
@@ -215,7 +215,7 @@ class TestMultilevelTree(unittest.TestCase):
         M.s = SubModel(fixed=M.x)
         M.s.o = pe.Objective(expr=5+6*M.x+7*sum(M.y[i] for i in M.y)+8*sum(M.z[i] for i in M.z))
 
-        lbp,_ = convert_pyomo2LinearBilevelProblem(M, inequalities=True)
+        lbp,_ = convert_pyomo2LinearMultilevelProblem(M, inequalities=True)
         
         U = lbp.U
         L = lbp.U.LL
@@ -252,7 +252,7 @@ class TestMultilevelTree(unittest.TestCase):
         
         M.s = SubModel(fixed=M.x)
 
-        lbp,_ = convert_pyomo2LinearBilevelProblem(M, inequalities=True)
+        lbp,_ = convert_pyomo2LinearMultilevelProblem(M, inequalities=True)
         
         U = lbp.U
         L = lbp.U.LL
@@ -292,7 +292,7 @@ class TestMultilevelTree(unittest.TestCase):
         M.s.c2 = pe.Constraint(expr=M.x[0] <= np.PINF)
         M.s.c3 = pe.Constraint(expr=M.p <= 2)
 
-        lbp,_ = convert_pyomo2LinearBilevelProblem(M, inequalities=True)
+        lbp,_ = convert_pyomo2LinearMultilevelProblem(M, inequalities=True)
         
         U = lbp.U
         L = lbp.U.LL
@@ -325,7 +325,7 @@ class TestMultilevelTree(unittest.TestCase):
         M.s = SubModel(fixed=M.x)
         #M.s.c = pe.Constraint(expr=M.x[0]+sum(M.y[i] for i in M.y)+sum(M.z[i] for i in M.z) == 0)
 
-        lbp,_ = convert_pyomo2LinearBilevelProblem(M, inequalities=True)
+        lbp,_ = convert_pyomo2LinearMultilevelProblem(M, inequalities=True)
         
         U = lbp.U
         L = lbp.U.LL
@@ -355,7 +355,7 @@ class TestMultilevelTree(unittest.TestCase):
         M.s = SubModel(fixed=M.x)
         #M.s.c = pe.Constraint(expr=M.x[0]+sum(M.y[i] for i in M.y)+sum(M.z[i] for i in M.z) == 0)
 
-        lbp,_ = convert_pyomo2LinearBilevelProblem(M, inequalities=False)
+        lbp,_ = convert_pyomo2LinearMultilevelProblem(M, inequalities=False)
         
         U = lbp.U
         L = lbp.U.LL
@@ -391,7 +391,7 @@ class TestMultilevelTree(unittest.TestCase):
         M.s = SubModel(fixed=M.x)
         M.s.c = pe.Constraint(expr=M.X[0]+sum(M.Y[i] for i in M.Y)+sum(M.Z[i] for i in M.Z) == 0)
 
-        lbp,_ = convert_pyomo2LinearBilevelProblem(M, inequalities=True)
+        lbp,_ = convert_pyomo2LinearMultilevelProblem(M, inequalities=True)
         
         U = lbp.U
         L = U.LL
@@ -433,7 +433,7 @@ class TestMultilevelTree(unittest.TestCase):
         M.s = SubModel(fixed=M.x)
         M.s.c = pe.Constraint(expr=M.X[0]+sum(M.Y[i] for i in M.Y)+sum(M.Z[i] for i in M.Z) == 0)
 
-        lbp,_ = convert_pyomo2LinearBilevelProblem(M, inequalities=False)
+        lbp,_ = convert_pyomo2LinearMultilevelProblem(M, inequalities=False)
         
         U = lbp.U
         L = U.LL
@@ -455,6 +455,91 @@ class TestMultilevelTree(unittest.TestCase):
         # 2 rows because the lbp is an inequality, so the equality is split in two
         self.assertEqual(L.A[L].shape, (1,6))
         self.assertEqual([list(L.A[L].toarray()[i]) for i in range(1)], [[1,1,1,1,1,1]])
+
+    def test_initialize_6(self):
+        # Bilinear terms in objective
+        M = pe.ConcreteModel()
+        M.x = pe.Var(within=pe.Binary)
+        M.y = pe.Var([1,2], within=pe.Reals)
+        M.z = pe.Var([3,4,5], within=pe.Integers)
+        M.o = pe.Objective(expr=2*M.z[3] + 3*M.x*M.y[1])
+        M.c = pe.Constraint(expr=M.x+2*sum(M.y[i] for i in M.y)+3*sum(M.z[i] for i in M.z) <= 0)
+        
+        M.s = SubModel(fixed=M.x)
+        M.s.o = pe.Objective(expr=4*M.z[3] + 3*M.y[1] - 5*M.x*M.y[2])
+
+        qmp,_ = convert_pyomo2MultilevelProblem(M)
+        #qmp.print()
+        
+        self.assertEqual(type(qmp), QuadraticMultilevelProblem)
+        U = qmp.U
+        L = qmp.U.LL
+
+        self.assertEqual(len(U.x), 3)
+        self.assertEqual(len(L.x), 3)
+
+        self.assertEqual(U.c[U], None)
+        self.assertEqual(list(U.c[L]), [0,0,2])
+        self.assertEqual(U.P[U,L].toarray().tolist(),
+[[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [3.0, 0.0, 0.0]])
+
+        self.assertEqual(L.c[U], None)
+        self.assertEqual(list(L.c[L]), [3,0,4])
+        self.assertEqual(L.P[U,L].toarray().tolist(),
+[[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, -5.0, 0.0]])
+
+        self.assertEqual(U.A[U].toarray().tolist(),
+[[3.0, 3.0, 1.0]])
+        self.assertEqual(U.A[L].toarray().tolist(), [[2,2,3]])
+
+        self.assertEqual(L.A[U], None)
+        self.assertEqual(L.A[L], None)
+
+    def test_initialize_7(self):
+        # Bilinear terms in objective
+        M = pe.ConcreteModel()
+        M.x = pe.Var(within=pe.Binary)
+        M.y = pe.Var([1,2], within=pe.Reals)
+        M.z = pe.Var([3,4,5], within=pe.Integers)
+        M.o = pe.Objective(expr=2*M.z[3] + 3*M.x*M.y[1])
+        M.c = pe.Constraint(expr=M.x+2*sum(M.y[i] for i in M.y)+3*sum(M.z[i] for i in M.z) + 7*M.x*M.y[1] <= 0)
+        
+        M.s = SubModel(fixed=M.x)
+        M.s.o = pe.Objective(expr=4*M.z[3] + 3*M.y[1] - 5*M.x*M.y[2])
+        M.s.c = pe.Constraint(expr=11*M.x*M.z[3] == 0)
+
+        qmp,_ = convert_pyomo2MultilevelProblem(M)
+        #qmp.print()
+        
+        self.assertEqual(type(qmp), QuadraticMultilevelProblem)
+        U = qmp.U
+        L = qmp.U.LL
+
+        self.assertEqual(len(U.x), 3)
+        self.assertEqual(len(L.x), 3)
+
+        self.assertEqual(U.c[U], None)
+        self.assertEqual(list(U.c[L]), [0,0,2])
+        self.assertEqual(U.P[U,L].toarray().tolist(),
+[[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [3.0, 0.0, 0.0]])
+
+        self.assertEqual(L.c[U], None)
+        self.assertEqual(list(L.c[L]), [3,0,4])
+        self.assertEqual(L.P[U,L].toarray().tolist(),
+[[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, -5.0, 0.0]])
+
+        self.assertEqual(U.A[U].toarray().tolist(),
+[[3.0, 3.0, 1.0]])
+        self.assertEqual(U.A[L].toarray().tolist(), [[2,2,3]])
+        self.assertEqual(U.Q[U,L][0].toarray().tolist(),
+[[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [7.0, 0.0, 0.0]])
+
+        self.assertEqual(L.A[U], None)
+        self.assertEqual(L.A[L], None)
+        self.assertEqual(L.Q[U,L][0].toarray().tolist(),
+[[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 11.0]])
+        self.assertEqual(L.Q[U,L][1].toarray().tolist(),
+[[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, -11.0]])
 
 if __name__ == "__main__":
     unittest.main()

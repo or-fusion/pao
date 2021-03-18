@@ -4,30 +4,36 @@ import pao.common
 SolverFactory = pao.common.SolverFactory
 
 
-class LinearBilevelSolverBase(pao.common.Solver):
+class LinearMultilevelSolverBase(pao.common.Solver):
     """
-    Define the API for solvers that optimize a LinearBilevelProblem
+    Define the API for solvers that optimize a LinearMultilevelProblem
     """
 
     def __init__(self, name):
         super().__init__()
         self.name = name
 
-    def check_model(self, lbp):         # pragma: no cover
+    def check_model(self, lmp):         # pragma: no cover
         #
-        # Confirm that the LinearBilevelProblem is well-formed
+        # Confirm that the LinearMultilevelProblem is well-formed
         #
-        lbp.check()
+        lmp.check()
+
+    def solve(self, *args, **kwds):     # pragma: no cover
+        #
+        # Solve the LinearMultilevelProblem
+        #
+        pass
 
 
-class LinearBilevelResults(pao.common.Results):
+class LinearMultilevelResults(pao.common.Results):
 
     def __init__(self, solution_manager=None):
         super(pao.common.Results, self).__init__()
         self._solution_manager=solution_manager
 
-    def copy_from_to(self, **kwds):
-        self._solution_manager.copy_from_to(**kwds)
+    def copy_solution(self, **kwds):
+        self._solution_manager.copy(**kwds)
 
     def load_from(self, data):          # pragma: no cover
         assert (False), "load_from() is not implemented"

@@ -1,8 +1,8 @@
 import copy
-from scipy.sparse import coo_matrix, dok_matrix, csc_matrix, vstack, hstack
+from scipy.sparse import coo_matrix, dok_matrix, csc_matrix, vstack
 import numpy as np
-from .repn import LinearBilevelProblem
-from .soln_manager import LBP_SolutionManager
+from .repn import LinearMultilevelProblem, QuadraticMultilevelProblem, LinearLevelRepn
+from .soln_manager import LMP_SolutionManager, SolutionManager_Linearized_Bilinear_Terms
 
 #
 # Variable Change objects that cache information needed to
@@ -42,12 +42,12 @@ class VChangeUnbounded(VChange):
 
 class VChanges(object):
 
-    def __init__(self):
-        self._data = []
-        self.nxR_old = 0
-        self.nxZ_old = 0
-        self.nxR = 0
-        self.nxZ = 0
+    def __init__(self, nxR, nxZ):
+        self._data = []     # List of VChange object
+        self.nxR_old = nxR  # The old nxR value before applying changes
+        self.nxZ_old = nxZ  # The old nxZ value before applying changes
+        self.nxR = nxR      # The new nxR value after applying changes
+        self.nxZ = nxZ      # The new nxZ value after applying changes
 
     def append(self, chg):
         self._data.append(chg)
@@ -59,42 +59,48 @@ class VChanges(object):
         for chg in self._data:
             yield chg
 
+def _matrix_rows(M, col):
+    if M is None or M.data.size == 0:
+        return
+    i = M.indptr[col]
+    inext = M.indptr[col+1]
+    while i<inext:
+        row = M.indices[i]
+        yield row
+        i += 1
 
 def _find_nonpositive_variables(V, inequalities):
-    changes = VChanges()
     nxV = V.nxR+V.nxZ
     nxR = V.nxR
     nxZ = V.nxZ
-    changes.nxR_old = nxR
-    changes.nxZ_old = nxZ
+    changes = VChanges(nxR, nxZ)
 
     for i in range(nxV):
         lb = V.lower_bounds[i]
         ub = V.upper_bounds[i]
-        #print(lb, ub)
         if ub == np.PINF:
             if lb == 0:
-                #print("HERE0")
                 continue
             elif lb == np.NINF:
                 # Unbounded variable
                 if i<V.nxR:
                     changes.append( VChangeUnbounded(real=True, v=i, w=nxR) )
-                    #print("HERE1")
                     nxR += 1
                 else:
                     changes.append( VChangeUnbounded(real=False, v=i, w=nxZ) )
-                    #print("HERE2")
                     nxZ += 1
             else:
+                # Bounded below
                 changes.append( VChangeLowerBound(real=i<V.nxR, v=i, lb=lb) )
         elif lb == np.NINF:
+            # Bounded above
             changes.append( VChangeUpperBound(real=i<V.nxR, v=i, ub=ub) )
         elif inequalities:
+            # Bounded above and below (inequality formulation)
             changes.append( VChangeRange(real=i<V.nxR, v=i, lb=lb, ub=ub) )
         else:
+            # Bounded above and below (equality formulation)
             changes.append( VChangeRange(real=i<V.nxR, v=i, lb=lb, ub=ub, w=nxR) )
-            #print("HERE2")
             nxR += 1
 
     # Reset the variable id for integers, given the final value of nxR
@@ -107,11 +113,199 @@ def _find_nonpositive_variables(V, inequalities):
     assert (nxR+nxZ == nxV + sum(1 if c.w is not None else 0 for c in changes))
     changes.nxR = nxR
     changes.nxZ = nxZ
-    #print(nxR, nxZ, V.nxB)
     return changes
 
 
-def _process_changes(changes, V, c, d, A, b, add_rows=False):
+def _process_changes_obj(changes, V, c, d):
+    if c is None:
+        return c, d
+
+    d = copy.copy(d)
+
+    for chg in changes:
+        v = chg.v
+        if type(chg) is VChangeLowerBound:      # real variable bounded below
+            # Replace v >= lb with v' >= 0
+            # v = lb + v'
+            # c[v]*v = c[v]*lb + c[v]*v'
+            lb = chg.lb
+            d += c[v]*lb
+
+        elif type(chg) is VChangeUpperBound:    # real variable bounded above
+            # Replace v <= ub with v' >= 0
+            # v = ub - v'
+            # c[v]*v = c[v]*ub - c[v]*v'
+            ub = chg.ub
+            d += c[v]*ub
+            c[v] *= -1
+
+        elif type(chg) is VChangeRange:         # real variable bounded
+            # Replace lb <= v <= ub with v' >= 0
+            # v = lb + v'
+            # c[v]*v = c[v]*lb + c[v]*v'
+            lb = chg.lb
+            ub = chg.ub
+            d += c[v]*lb
+            w = chg.w
+            if w is not None:
+                c[w] = 0
+
+        else:                                   # real variable unbounded
+            # Replace unbounded v with v',v'' >= 0
+            # v = v' - v''
+            # c[v]*v = c[v]*v' - c[v]*v''
+            w = chg.w
+            c[w] = -c[v]
+
+    return c, d
+
+
+def _process_changes_con(changes, V, A, b, add_rows=False):
+    b = copy.copy(b)
+
+    if A is None:
+        Acsc = csc_matrix(0)
+        nrows = 0
+    else:
+        Acsc = A.tocsc()
+        nrows = A.shape[0]
+
+    B = {}
+    for chg in changes:
+        v = chg.v
+        if type(chg) is VChangeLowerBound:      # real variable bounded below
+            # Replace v >= lb with v' >= 0
+            # v = lb + v'
+            # A[row,v]*v = A[row,v]*lb + A[row,v]*v'
+            lb = chg.lb
+            for row in _matrix_rows(Acsc, v):
+                b[row] -= Acsc[row, v]*lb
+
+        elif type(chg) is VChangeUpperBound:    # real variable bounded above
+            # Replace v <= ub with v' >= 0
+            # v = ub - v'
+            # A[row,v]*v = A[row,v]*ub - A[row,v]*v'
+            ub = chg.ub
+            for row in _matrix_rows(Acsc, v):
+                b[row] -= Acsc[row, v]*ub
+                Acsc[row, v] *= -1
+
+        elif type(chg) is VChangeRange:         # real variable bounded
+            # Replace lb <= v <= ub with v' >= 0
+            # v = lb + v'
+            # A[row,v]*v = A[row,v]*lb + A[row,v]*v'
+            lb = chg.lb
+            ub = chg.ub
+            w = chg.w
+            for row in _matrix_rows(Acsc, v):
+                b[row] -= Acsc[row, v]*lb
+            if add_rows:
+                # Add new constraint
+                # If w is not None, then we are adding an associated slack variable
+                # NOTE: We only add the constraint to the level that "owns" the variables
+                b = np.append(b, ub-lb)
+                B[nrows, v] = 1
+                if w is not None:
+                    B[nrows, w] = 1
+                nrows += 1
+
+        else:                                   # real variable unbounded
+            # Replace unbounded v with v',v'' >= 0
+            # v = v' - v''
+            # A[row,v]*v = A[row,v]*v' - A[row,v]*v''
+            w = chg.w
+            for row in _matrix_rows(Acsc, v):
+                B[row, w] = - Acsc[row, v]
+
+    if nrows == 0:
+        return None, b
+
+    Bdok = dok_matrix((nrows, changes.nxR+changes.nxZ+V.nxB))
+    # Collect the items from B
+    for k,v in B.items():
+        Bdok[k] = v
+    # Merge in the items from A, shifting columns
+    Adok = Acsc.todok()
+    for k,v in Adok.items():
+        Bdok[k] = v
+    return Bdok.tocoo(), b
+
+
+def X_process_changes_P(changes, Lx, Xci, P, Xcj, changes_i, changes_j): #pragma: ignore
+    if P is None:
+        return Xci, P, Xcj
+
+    if Xci is None:
+        Xci = np.zeros(P.shape[0])
+    if Xcj is None:
+        Xcj = np.zeros(P.shape[1])
+
+    if changes_i and changes_j:
+        raise RuntimeError("PAO does not (yet) support quadratic and bilinear terms amongst variables in the same level")
+
+    elif changes_j:
+        Pcsc = P.tocsc()
+
+        B = {}
+        for chg in changes:
+            v = chg.v
+            if type(chg) is VChangeLowerBound:      # real variable bounded below
+                # Replace v >= lb with v' >= 0
+                # v = lb + v'
+                # P[row,v]*v = P[row,v]*lb + P[row,v]*v'
+                lb = chg.lb
+                for row in _matrix_rows(Pcsc, v):
+                    Xci[row] += Pcsc[row, v]*lb
+
+            elif type(chg) is VChangeUpperBound:    # real variable bounded above
+                # Replace v <= ub with v' >= 0
+                # v = ub - v'
+                # P[row,v]*v = P[row,v]*ub - P[row,v]*v'
+                ub = chg.ub
+                for row in _matrix_rows(Pcsc, v):
+                    Xci[row] += pcsc[row, v]*ub
+                    Pcsc[row, v] *= -1
+
+            elif type(chg) is VChangeRange:         # real variable bounded
+                # Replace lb <= v <= ub with v' >= 0
+                # v = lb + v'
+                # P[row,v]*v = P[row,v]*lb + P[row,v]*v'
+                lb = chg.lb
+                for row in _matrix_rows(Pcsc, v):
+                    Xci[row] += Pcsc[row, v]*lb
+
+            else:                                   # real variable unbounded
+                # Replace unbounded v with v',v'' >= 0
+                # v = v' - v''
+                # A[row,v]*v = A[row,v]*v' - A[row,v]*v''
+                w = chg.w
+                for row in _matrix_rows(Pcsc, v):
+                    B[row, w] = - Pcsc[row, v]
+
+        Bdok = dok_matrix((Pcsc.shape[0], changes.nxR+changes.nxZ+Lx.nxB))
+        # Collect the items from B
+        for k,v in B.items():
+            Bdok[k] = v
+        # Merge in the items from Pcsc
+        Pdok = Pcsc.todok()
+        for k,v in Pdok.items():
+            Bdok[k] = v
+
+        if len(Xci.nonzero()) == 0:
+            Xci = None
+        if len(Xcj.nonzero()) == 0:
+            Xcj = None
+
+        return Xci, Bdok.tocoo(), Xcj
+
+    else:   # changes_i
+        #print("HERE")
+        _Xcj, _P, _Xci = _process_changes_P(changes, Lx, Xcj, P.transpose(), Xci, changes_j, changes_i)
+        #print(Xci, _Xci)
+        #print(Xcj, _Xcj)
+        return _Xci, _P.transpose(), _Xcj
+
+def X_process_changes(changes, V, c, d, A, b, add_rows=False):  #pragma: ignore
     d = copy.copy(d)
     b = copy.copy(b)
 
@@ -126,8 +320,11 @@ def _process_changes(changes, V, c, d, A, b, add_rows=False):
     for chg in changes:
         v = chg.v
         if type(chg) is VChangeLowerBound:      # real variable bounded below
+            # Replace v >= lb with v' >= 0
+            # v' = v - lb
             lb = chg.lb
             if c is not None:
+                # c[v]*v = c[v]*lb + c[v]*v'
                 d += c[v]*lb
             if A is not None:
                 # i is index of the vth column in the A matrix
@@ -196,8 +393,6 @@ def _process_changes(changes, V, c, d, A, b, add_rows=False):
         return c, d, None, b
 
     Bdok = dok_matrix((nrows, changes.nxR+changes.nxZ+V.nxB))
-    #print(Bdok.shape)
-    #print(Acsc.shape)
     # Collect the items from B
     for k,v in B.items():
         Bdok[k] = v
@@ -212,40 +407,37 @@ def convert_to_nonnegative_variables(ans, inequalities):
     #
     # Collect real and integer variables that are changing
     #
+    # Iterate over all levels in the model.  For each level,
+    # collect the changes needed to make the variables non-negative.
+    #
     changes = {}
-    #ans.print()
     for L in ans.levels():
         changes[L.id] = _find_nonpositive_variables(L.x, inequalities)
-        L.resize(nxR=changes[L.id].nxR, nxZ=changes[L.id].nxZ, nxB=L.x.nxB)
-        L.x.lower_bounds = np.zeros(len(L.x))
-
-        #print(L.name)
-        #for chg in changes[L.id]:
-        #    print(chg)
     #
     # Process changes 
     #
+    # Iterate over all levels of the model.  For each level,
+    # resize the variables and set the lower bounds.  Then iterate over the levels that
+    # could reference those variables, and update the data structures in those
+    # levels.
+    #
     for L in ans.levels():
+        L.resize(nxR=changes[L.id].nxR, nxZ=changes[L.id].nxZ, nxB=L.x.nxB)
+        L.x.lower_bounds = np.zeros(len(L.x))
         if len(changes[L.id]) > 0:
             for X in L.levels():
-                X.c[L], X.d, X.A[L], X.b = \
-                    _process_changes(changes[L.id], L.x, X.c[L], X.d, X.A[L], X.b, add_rows=L.id == X.id)
-    #
-    # Resize constraint matrices
-    #
-    # After processing upper and lower variables, we may have added constraints.  The other
-    # upper/lower constraint matrices need to be resized as well.
-    #
-    #for i in range(len(L)):
-    #    if U.A[L[i]] is not None:
-    #        U.A[L[i]].resize( [len(U.b), len(L[i].x)] )
-    #    if L[i].A[U] is not None:
-    #        L[i].A[U].resize( [len(L[i].b), len(U.x)] )
-    #
+                X.c[L], X.d = _process_changes_obj(changes[L.id], L.x, X.c[L], X.d)
+                X.A[L], X.b = _process_changes_con(changes[L.id], L.x, X.A[L], X.b, add_rows=L.id == X.id)
+                #
+                # NOTE: Conversion of a quadratic multilevel problem is not supported
+                #
+                #if quadratic:
+                #    for i,j in X.P:
+                #        X.c[i], X.P[i,j], X.c[j] = _process_changes_P(changes[L.id], L.x, X.c[i], X.P[i,j], X.c[j], i == L.id, j==L.id)
     return changes
 
 
-def combine_matrices(A, B):         #pragma: nocover
+def Xcombine_matrices(A, B):         #pragma: nocover
     """
     Combining matrices with different shapes
 
@@ -272,6 +464,9 @@ def convert_sense(L, minimize=True):
         L.d *= -1
         for i in L.c:
             L.c[i] *= -1
+        #if type(L) is QuadraticLevelRepn:
+        #    for i,j in L.P:
+        #        L.P[i,j] = L.P[i,j].multiply(-1)
 
 
 def convert_to_minimization(ans):
@@ -344,73 +539,37 @@ def convert_binaries_to_integers(lbp):
         if L.x.nxB > 0:
             L.x._resize(nxR=L.x.nxR, nxZ=L.x.nxZ+L.x.nxB, nxB=0, lb=0, ub=1)
 
-"""
-            if nxZ == 0:
-                lbp.U.c.U.xZ = lbp.U.c.U.xB
-                lbp.U.A.U.xZ = lbp.U.A.U.xB
-            else:
-                lbp.U.c.U.xZ = np.concatenate((lbp.U.c.U.xZ, lbp.U.c.U.xB))
-                lbp.U.A.U.xZ = hstack([lbp.U.A.U.xZ, lbp.U.A.U.xB], format='csr')
-            lbp.U.c.U.xB = None
-            lbp.U.A.U.xB = None
-            for i in range(len(lbp.U.L)):
-                if nxZ == 0:
-                    lbp.U.L[i].c.U.xZ = lbp.U.L[i].c.U.xB
-                    lbp.U.L[i].A.U.xZ = lbp.U.L[i].A.U.xB
-                else:
-                    lbp.U.L[i].c.U.xZ = np.concatenate((lbp.U.L[i].c.U.xZ, lbp.U.L[i].c.U.xB))
-                    lbp.U.L[i].A.U.xZ = hstack([lbp.U.L[i].A.U.xZ, lbp.U.L[i].A.U.xB], format='csr')
-                lbp.U.L[i].c.U.xB = None
-                lbp.U.L[i].A.U.xB = None
 
-    for i in range(len(lbp.U.L)):
-        if len(lbp.U.L[i].xB) > 0:
-            nxZ = len(lbp.U.L[i].xZ)
-            nxB = len(lbp.U.L[i].xB)
-            lbp.U.L[i].xZ.resize(nxZ+nxB, lb=0, ub=1)
-            lbp.U.L[i].xB.resize(0)
-
-            if nxZ == 0:
-                lbp.U.c.U.L[i].xZ = lbp.U.c.U.L[i].xB
-                lbp.U.A.U.L[i].xZ = lbp.U.A.U.L[i].xB
-            else:
-                lbp.U.c.U.L[i].xZ = np.concatenate((lbp.U.c.U.L[i].xZ, lbp.U.c.U.L[i].xB))
-                lbp.U.A.L[i].xZ = hstack([lbp.U.A.L[i].xZ, lbp.U.A.L[i].xB], format='csr')
-            lbp.U.c.L[i].xB = None
-            lbp.U.A.L[i].xB = None
-            for i in range(len(lbp.L)):
-                if nxZ == 0:
-                    lbp.L[i].c.L[i].xZ = lbp.L[i].c.L[i].xB
-                    lbp.L[i].A.L[i].xZ = lbp.L[i].A.L[i].xB
-                else:
-                    lbp.L[i].c.L[i].xZ = np.concatenate((lbp.L[i].c.L[i].xZ, lbp.L[i].c.L[i].xB))
-                    lbp.L[i].A.L[i].xZ = hstack([lbp.L[i].A.L[i].xZ, lbp.L[i].A.L[i].xB], format='csr')
-                lbp.L[i].c.L[i].xB = None
-                lbp.L[i].A.L[i].xB = None
-"""
-
-def convert_LinearBilevelProblem_to_standard_form(lbp, inequalities=False):
+def convert_to_standard_form(M, inequalities=False):
     """
-    Normalize the LinearBilevelProblem into a standard form.
+    Normalize the LinearMultilevelProblem into a standard form.
 
-    This function copies the LinearBilevelProblem, **lbp**, and 
-    transforms the problem such that
+    This function copies the multilevel problem, **M**, and transforms
+    the problem such that
 
     1. Each real variable x is nonnegative (x >= 0)
     2. Constraints are equalities
 
     Args
     ----
-    lbp : LinearBilevelProblem
+    M : LinearMultilevelProblem
         The model that is being normalized
-    inequalities : bool, optional
+    inequalities : bool (Default: False)
         A bool that is True if the normalized form has inequalities or equalities otherwise.
         The default is False.
+
+    Returns
+    -------
+    LinearMultilevelProblem
+        A normalized version of the input model
     """
+    # TODO - Linearize?  Or check that the problem is linear?
+    #assert (type(M) is LinearMultilevelProblem), "Expected linear multilevel problem"
+
     #
-    # Clone the LBP object
+    # Clone the object
     #
-    ans = lbp.clone()
+    ans = M.clone()
     #
     # Convert maximization to minimization
     #
@@ -434,7 +593,190 @@ def convert_LinearBilevelProblem_to_standard_form(lbp, inequalities=False):
     #
     # Setup multipliers that are used to convert variables back to the original model
     #
-    multipliers = get_multipliers(lbp, changes)
+    multipliers = get_multipliers(M, changes)
 
-    return ans, LBP_SolutionManager(multipliers)
+    return ans, LMP_SolutionManager(multipliers)
+
+
+def merge_matrices(M1, M2, nrows, ncols):
+    if M1 is None:
+        M = dok_matrix((0,0))
+    else:
+        M = M1.todok()
+    M.resize( (max(M.shape[0], nrows), max(M.shape[1], ncols)) )
+    for k,v in M2.items():
+        M[k] = v
+    if M.shape[0] == 0 or M.shape[1] == 0:
+        return None
+    return M 
+
+
+def linearize_bilinear_terms(M, bigM=1e6):
+    """
+    Generate a linear multilevel problem from a quadratic multilevel
+    problem by linearizing bilinear terms.
+
+    This function copies the linear terms in the multilevel problem,
+    **M**, and replaces bilinear terms with a new variable.  This
+    transformation only applies when at least one of the variables in
+    each bilinear term is binary or integer.
+
+    Args
+    ----
+    M : QuadraticMultilevelProblem
+        The model that is being linearized
+
+    Returns
+    -------
+    LinearMultilevelProblem
+        A linearized version of the input model
+    """
+    assert (type(M) is QuadraticMultilevelProblem), "Expected quadratic multilevel problem"
+    for L in M.levels():
+        assert (L.inequalities), "The function linearize_bilinear_terms can only handle QMPs with inequalities"
+
+    #
+    # Explicit clone logic, since we are converting a Quadratic to a Linear representation
+    #
+    #ans = M.clone(clone_fn=_clone_level)
+    ans = LinearMultilevelProblem()
+    ans.name = M.name
+    ans.U = M.U.clone(clone_fn=LinearLevelRepn._clone_level)
+    ans.check()
+
+    #
+    # Collect all of the levels in the model
+    #
+    LL = {L.id:L for L in ans.levels()}
+    #
+    # Collect all of the bilevel terms
+    #
+    # The terms in P[i,j] and Q[i,j] generate a variable in level i,
+    # regardless where they appear in the model.  Hence, we need to collect
+    # these terms before adding their replacement throughout the model.
+    #
+    bilevel = {} 
+    for L in M.levels():
+        bilevel[L.id] = {}
+    for L in M.levels():
+        l = L.id
+        for i,j in L.P:
+            for v1,v2 in L.P[i,j].keys():
+                assert (v1 >= LL[i].x.nxR+LL[i].x.nxZ), "Expected binary variable %d in bilinear term %s.P[%d,%d]" % (v1,str(L),i,j)
+                if (i,v1,j,v2) not in bilevel[j]:
+                    bilevel[j][i,v1,j,v2] = len(bilevel[j])
+        for i,j in L.Q:
+            for c,Q in enumerate(L.Q[i,j]):
+                if Q is None:
+                    continue
+                for v1,v2 in Q.todok().keys():
+                    assert (v1 >= LL[i].x.nxR+LL[i].x.nxZ), "Expected binary variable %d in bilinear term %s.Q[%d,%d][%d,%d]" % (v1,L.name,i,j,v1,v2)
+                    if (i,v1,j,v2) not in bilevel[j]:
+                        #print(i,j,c,v1,v2, L.Q[i,j][c][v1,v2])
+                        bilevel[j][i,v1,j,v2] = len(bilevel[j])
+    #
+    # Return if no bilevel terms were found
+    #
+    if sum(len(bilevel[i]) for i in bilevel) == 0:
+        return ans
+
+    #
+    # Now we walk through each level
+    #
+    # Add constraint terms for the existing variables that are in each term
+    #
+    # NOTE: We cache the constraint terms for the *new* variables
+    #
+    A = {}
+    for l,L in LL.items():
+        lenb = len(L.b)
+        nxR = L.x.nxR
+        nrows = lenb
+        b = []
+        # A[l] is the new terms in the constraint matrix for new variables in level l
+        A[l] = {}
+        # B[i] is the new terms in the constraint matrix for variables in level l
+        B = {}
+        # C[j] is the new terms in the constraint matrix for variables in level j that appear in level l
+        C = {}
+        for key,w in bilevel[l].items():
+            # w = xy
+            i,v1,j,v2 = key
+            if i not in B:
+                B[i] = {}
+            if j not in C:
+                C[j] = {}
+            lb = LL[j].x.lower_bounds[v2]
+            if lb == np.NINF:
+                lb = -bigM
+            ub = LL[j].x.upper_bounds[v2]
+            if ub == np.PINF:
+                ub = bigM
+            # Ly - w <= 0
+            C[j][nrows,v2] = lb
+            A[l][nrows,nxR+w] = -1
+            b.append(0)
+            nrows += 1
+            # Uy + x - w <= U
+            C[j][nrows,v2] = ub
+            B[i][nrows,v1] = 1
+            A[l][nrows,nxR+w] = -1
+            b.append(ub)
+            nrows += 1
+            # w - Uy <= 0
+            C[j][nrows,v2] = -ub
+            A[l][nrows,nxR+w] = 1
+            b.append(0)
+            nrows += 1
+            # w - x - Ly <= -L
+            C[j][nrows,v2] = - lb
+            B[i][nrows,v1] = -1
+            A[l][nrows,nxR+w] = 1
+            if lb == 0:
+                b.append(0)
+            else:
+                b.append(-lb)
+            nrows += 1
+        L.b = list(L.b) + b
+        for i in B:
+            L.A[i] = merge_matrices(L.A[i], B[i], len(L.b), len(LL[i].x))
+        for j in C:
+            L.A[j] = merge_matrices(L.A[j], C[j], len(L.b), len(LL[j].x))
+    #
+    # Resize the variables
+    #
+    for l,L in LL.items():
+        L.resize(nxR=L.x.nxR+len(bilevel[l]), nxZ=L.x.nxZ, nxB=L.x.nxB)
+    #
+    # Update the coefficients of the objectives
+    #
+    nxR = {L.id:L.x.nxR for L in M.levels()}
+    for L in M.levels():
+        l = L.id
+        for i,j in L.P:
+            for v1,v2 in L.P[i,j].keys():
+                w = bilevel[j][i,v1,j,v2]
+                # The coefficient in ans at level l for variables in level j at (w + number of reals in M) is coef
+                LL[l].c[j][w+nxR[j]] = L.P[i,j][v1,v2]
+    #
+    # Merge the cached terms now that we've shifted the variables
+    #
+    for l,L in LL.items():
+        L.A[l] = merge_matrices(L.A[l], A[l], len(L.b), len(L.x))
+    #
+    # Update the A matrices with coefficients from Q[i,j]
+    #
+    for L in M.levels():
+        l = L.id
+        for i,j in L.Q:
+            A = {}
+            for c,Q in enumerate(L.Q[i,j]):
+                if Q is None:
+                    continue
+                for v1,v2 in Q.todok().keys():
+                    w = bilevel[j][i,v1,j,v2]
+                    A[c,w+nxR[j]] = Q[v1,v2]
+            LL[l].A[j] = merge_matrices(LL[l].A[j], A, len(LL[l].b), len(LL[j].x))
+
+    return ans, SolutionManager_Linearized_Bilinear_Terms()
 

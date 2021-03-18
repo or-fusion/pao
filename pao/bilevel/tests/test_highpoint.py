@@ -45,7 +45,7 @@ solutions = [join(current_dir, 'auxiliary','solution','{}.txt'.format(i)) for i 
 
 cartesian_solutions = [elem for elem in itertools.product(*[solvers,zip(solution_model_names,solution_models,solutions)])]
 
-class TestBilevelHighpoint():#unittest.TestCase):
+class XTestBilevelHighpoint():#unittest.TestCase):
     """
     Testing for bilevel highpoint relaxation that use the pao.bilevel.highpoint transformation
 
@@ -89,7 +89,7 @@ class TestBilevelHighpoint():#unittest.TestCase):
         #                               reformulation, tolerance=1e-5)
 
 
-class TestHighpointSolve(unittest.TestCase):
+class XTestHighpointSolve(): #unittest.TestCase):
     """
     Testing for bilevel solutions that use the runtime parameters specified in cartesian_solutions list
 

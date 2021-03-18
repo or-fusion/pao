@@ -439,8 +439,6 @@ def check_termination(LB, UB, atol, rtol, quiet):
             raise RuntimeError(f'Error: Upper bound greater than lower bound after {k} iterations and {elapsed} seconds: Obj={LB} UB={UB}')
 
     if abs(UB-LB) <= atol or abs(UB-LB)/(1+min(abs(LB),abs(UB))) <= rtol: #Output
-        if not quiet:
-            print(f'Optimal Solution Found in {k} iterations and {elapsed} seconds: Obj={UB}')
         return 1
 
     return 0
@@ -498,7 +496,8 @@ def execute_PCCG_solver(lbp, config, results):
                 elapsed = time.time() - t
                 break
 
-            #print("Step 4")
+            if not quiet:
+                print("Step 4")
             #Step 4: Solve first subproblem
             results1=opt.solve(Parent.sub1) 
             
@@ -511,7 +510,8 @@ def execute_PCCG_solver(lbp, config, results):
             for i in Parent.yl_hat:
                 Parent.yl_hat[i]=int(round(Parent.sub1.yl[i].value)) 
             
-            #print("Step 5")
+            if not quiet:
+                print("Step 5")
             #Step 5: Solve second subproblem
             results2=opt.solve(Parent.sub2)
             
@@ -532,12 +532,16 @@ def execute_PCCG_solver(lbp, config, results):
             else: 
                  raise RuntimeError("ERROR! Unexpected termination condition for Subproblem2: %s.  Expected an infeasible or optimal solution." % str(results2.solver.termination_condition)) 
             
+            if not quiet:
+                print("Step 6")
             #Step 6: Add new constraints
             k = k+1
             for i in Parent.yl_arc:  #range(nZ):
                 Parent.Master.Y[(i,k)]=Parent.yl_arc[i] #Make sure yl_arc is int or else Master.Y rejects
-            
             Master_add(Parent, k, epsilon)
+
+            if not quiet:
+                print(f'Iteration {k}: Step 7 Obj={LB} UB={UB}')
             #Step 7: Loop 
             flag = check_termination(LB, UB, atol, rtol, quiet)
             if flag:
@@ -555,11 +559,8 @@ def execute_PCCG_solver(lbp, config, results):
         results.solver.termination_condition = TerminationCondition.maxIterations
     elif k< maxit and flag !=1:
         if not quiet:
-            print(f'Optimal Solution Found in {k-1} iterations and {elapsed} seconds: Obj={UB}')
+            print(f'Optimal Solution Found in {k} iterations and {elapsed} seconds: Obj={UB}')
         results.solver.termination_condition = TerminationCondition.optimal
         results.best_feasible_objective = UB
-
-#    results.problem.upper_bound = UB
-#    results.problem.lower_bound = UB
 
     return Parent.Master.xu, Parent.Master.yu, Parent.Master.xl0, Parent.Master.yl0

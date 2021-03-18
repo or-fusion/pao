@@ -10,13 +10,17 @@ import pyomo.opt
 from pyomo.common.config import ConfigBlock, ConfigValue
 from pyomo.mpec import ComplementarityList, complements
 
-from ..solver import SolverFactory, LinearBilevelSolverBase, LinearBilevelResults
-from ..repn import LinearBilevelProblem
-from ..convert_repn import convert_LinearBilevelProblem_to_standard_form
-from .. import pyomo_util
+import pao.common
+from ..solver import SolverFactory, LinearMultilevelSolverBase, LinearMultilevelResults
+from ..repn import LinearMultilevelProblem
+from ..convert_repn import convert_to_standard_form
+from . import pyomo_util
 
 
 def create_model_replacing_LL_with_kkt(repn):
+    """
+    TODO - Document this transformation
+    """
     U = repn.U
     LL = repn.U.LL
     N = len(LL)
@@ -76,9 +80,9 @@ def create_model_replacing_LL_with_kkt(repn):
 @SolverFactory.register(
         name="pao.lbp.REG",
         doc="A solver for linear bilevel programs using regularization discussed by Scheel and Scholtes (2000) and Ralph and Wright (2004).")
-class LinearBilevelSolver_REG(LinearBilevelSolverBase):
+class LinearMultilevelSolver_REG(LinearMultilevelSolverBase):
 
-    config = LinearBilevelSolverBase.config()
+    config = LinearMultilevelSolverBase.config()
     config.declare('solver', ConfigValue(
         default='ipopt',
         description="The name of the NLP solver used by REG.  (default is ipopt)"
@@ -97,9 +101,9 @@ class LinearBilevelSolver_REG(LinearBilevelSolverBase):
 
     def check_model(self, lbp):
         #
-        # Confirm that the LinearBilevelProblem is well-formed
+        # Confirm that the LinearMultilevelProblem is well-formed
         #
-        assert (type(lbp) is LinearBilevelProblem), "Solver '%s' can only solve a LinearBilevelProblem" % self.name
+        assert (type(lbp) is LinearMultilevelProblem), "Solver '%s' can only solve a LinearMultilevelProblem" % self.name
         lbp.check()
         #
         # Confirm that this is a bilevel problem
@@ -132,13 +136,13 @@ class LinearBilevelSolver_REG(LinearBilevelSolverBase):
         #
         start_time = time.time()
 
-        self.standard_form, soln_manager = convert_LinearBilevelProblem_to_standard_form(model)
+        self.standard_form, soln_manager = convert_to_standard_form(model)
 
         M = self._create_pyomo_model(self.standard_form, self.config.rho)
         #
         # Solve the Pyomo model the specified solver
         #
-        results = LinearBilevelResults(solution_manager=soln_manager)
+        results = LinearMultilevelResults(solution_manager=soln_manager)
         with pe.SolverFactory(self.config.solver) as opt:
             if self.config.solver_options is not None:
                 opt.options.update(self.config.solver_options)
@@ -151,8 +155,8 @@ class LinearBilevelSolver_REG(LinearBilevelSolverBase):
             results.solver.rc = getattr(opt, '_rc', None)
 
             if self.config.load_solutions:
-                # Load results from the Pyomo model to the LinearBilevelProblem
-                results.copy_from_to(pyomo=M, lbp=model)
+                # Load results from the Pyomo model to the LinearMultilevelProblem
+                results.copy_solution(From=M, To=model)
             else:
                 # Load results from the Pyomo model to the Results
                 results.load_from(pyomo_results)
@@ -208,4 +212,4 @@ class LinearBilevelSolver_REG(LinearBilevelSolverBase):
             print("nu",j,pe.value(M.kkt.nu[j]))
 
 
-LinearBilevelSolver_REG._update_solve_docstring(LinearBilevelSolver_REG.config)
+LinearMultilevelSolver_REG._update_solve_docstring(LinearMultilevelSolver_REG.config)

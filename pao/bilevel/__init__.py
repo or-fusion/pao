@@ -15,8 +15,9 @@ This package defines modeling components for representing and solving
 bilevel programs.
 """
 
-from pao.bilevel.components import SubModel
-from pao.bilevel.util import *
-from .convert import convert_pyomo2LinearBilevelProblem
+from pao.bilevel.components import *
+#from pao.bilevel.components import SubModel
+#from pao.bilevel.util import *
+from .convert import convert_pyomo2LinearMultilevelProblem
 from . import examples
 from .solver import SolverFactory

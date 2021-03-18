@@ -4,11 +4,14 @@
 # Anandalingam, G.: A mathematical programming model of decentralized multi-level systems. 
 # J. Oper.Res. Soc.39(11), 1021–1033 (1988)
 #
+# This example illustrates how pao.lbp can model tri-level problems, though
+# we don't have PAO solvers that support these yet.
+#
 from pao.lbp import *
 
 
 def create():
-    M = LinearBilevelProblem()
+    M = LinearMultilevelProblem()
 
     U = M.add_upper(nxR=1)
     U.x.lower_bounds = [0]

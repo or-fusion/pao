@@ -1,12 +1,13 @@
 import copy
 import itertools
 import numpy as np
+from scipy.sparse import dok_matrix
+
 import pyomo.environ as pe
 from pyomo.repn import generate_standard_repn
 from pyomo.core.base import SortComponents, is_fixed
-from scipy.sparse import dok_matrix
 
-from pao.lbp import LinearBilevelProblem
+from pao.lbp import LinearMultilevelProblem, QuadraticMultilevelProblem
 from .components import SubModel
 
 
@@ -18,6 +19,13 @@ def _bound_equals(exp, num):
     return False                        # pragma: no cover
                                         # WEH - will we ever reach this point?  What if the LB is a mutable parameter?
 
+def offset(t,L):
+    if t==0:
+        return 0
+    elif t==1:
+        return L.nxR
+    else:
+        return L.nxR+L.nxZ
 
 class Node(object):
 
@@ -35,6 +43,7 @@ class Node(object):
         self.xR = {}
         self.xZ = {}
         self.xB = {}
+        self.linear = True
         #
         # Collect vardata that are declared fixed.  If a variable component
         # is specified, then collect all of its vardata objects.
@@ -46,6 +55,14 @@ class Node(object):
             else:
                 self.fixedvars.add(id(v))
 
+    def is_linear(self):
+        if not self.linear:
+            return False
+        for child in self.children:
+            if not child.linear:
+                return False
+        return True 
+
     def categorize_variable(self, vid, v, vidmap):
         if v.is_binary():
             vidmap[vid] = (2, self.nid, len(self.xB))
@@ -56,7 +73,7 @@ class Node(object):
             # The _bounds_equals function only returns True if the 
             # bound is a fixed value and its value equals the 2nd argument.
             # If the bound value is specified with Pyomo Parameters and their
-            # value equals, then we are assuming the LinearBilevelProblem will
+            # value equals, then we are assuming the multilevel problem will
             # be re-generated if those parameter values change.
             #
             if _bound_equals(v.lb, 0) and _bound_equals(v.ub, 1):
@@ -114,44 +131,70 @@ class Node(object):
 
     def initialize_level(self, level, inequalities, var, vidmap, levelmap):
         #
-        # c
+        # Objective
         #
-        assert (len(self.orepn) <= 1), "PAO model has %d objectives specified, but a LinearBilevelProblem can have no more than one" % len(self.orepn)
+        assert (len(self.orepn) <= 1), "PAO model has %d objectives specified, but a MultilevelProblem can have no more than one" % len(self.orepn)
         if len(self.orepn) == 1:
             repn = self.orepn[0][0]
+            #
+            # minimize
+            #
             if self.orepn[0][1] == pe.maximize:
                 level.minimize = False
+            #
+            # d
+            #
             level.d = pe.value(repn.constant)
-
+            #
+            # c
+            #
             c = {}
             for j in levelmap:
                 node = levelmap[j]
                 c[j] = [0]*node.x.num
 
-            for i,val  in enumerate(repn.linear_coefs):
+            for i,val in enumerate(repn.linear_coefs):
                 vid = id(repn.linear_vars[i])
                 t, nid, j = vidmap[vid]
                 L = levelmap[nid]
-                if t == 0:
-                    c[nid][j] = pe.value(val)
-                elif t == 1:
-                    c[nid][j+L.x.nxR] = pe.value(val)
-                elif t == 2:
-                    c[nid][j+L.x.nxR+L.x.nxZ] = pe.value(val)
+                c[nid][j+offset(t,L.x)] = pe.value(val)
 
+            # Add a non-null objective vector
             for j in levelmap:
                 for v in c[j]:
                     if v != 0:
                         level.c[j] = c[j]
                         break
+            #
+            # P
+            #
+            P = {}
+            for i,val in enumerate(repn.quadratic_coefs):
+                v1,v2 = repn.quadratic_vars[i]
+                t1, nid1, j1 = vidmap[id(v1)]
+                t2, nid2, j2 = vidmap[id(v2)]
+                L1 = levelmap[nid1]
+                L2 = levelmap[nid2]
+                if nid1 <= nid2:
+                    if P.get((nid1,nid2),None) is None:
+                        P[nid1,nid2] = {}
+                    P[nid1,nid2][j1+offset(t1,L1.x), j2+offset(t2,L2.x)] = pe.value(val)
+                else:
+                    if P.get((nid2,nid1),None) is None:
+                        P[nid2,nid1] = {}
+                    P[nid2,nid1][j2+offset(t2,L2.x), j1+offset(t1,L1.x)] = pe.value(val)
+            for n1,n2 in P:
+                level.P[n1,n2] = (len(levelmap[n1].x),len(levelmap[n2].x)), P[n1,n2]
         #
-        # A
+        # Constraints
         #
         if len(self.crepn) > 0:
+            #
+            # A
+            #
             A = {}
             for i in levelmap:
                 A[i] = {}
-            b = []
             nrows = len(self.crepn)
 
             for k in range(len(self.crepn)):
@@ -162,30 +205,54 @@ class Node(object):
                     L = levelmap[nid]
                     c_ = pe.value(c)
                     if c_ != 0:
-                        if t == 0:
-                            A[nid][k,j] = c_
-                        elif t == 1:
-                            A[nid][k,j+L.x.nxR] = c_
-                        elif t == 2:
-                            A[nid][k,j+L.x.nxR+L.x.nxZ] = c_
-                b.append(self.crepn[k][1] - repn.constant)
-
-            level.b = b
+                        A[nid][k,j+offset(t,L.x)] = c_
 
             for j in levelmap:
-                L = levelmap[j]
                 if len(A[j]) > 0:
+                    L = levelmap[j]
                     mat = dok_matrix((nrows, L.x.num))
                     for key, val in A[j].items():
                         mat[key] = val
                     level.A[L.id] = mat
-            
+            #
+            # Q
+            #
+            Q = {}
+            for k in range(len(self.crepn)):
+                repn = self.crepn[k][0]
+                for i,val in enumerate(repn.quadratic_coefs):
+                    v1,v2 = repn.quadratic_vars[i]
+                    t1, nid1, j1 = vidmap[id(v1)]
+                    t2, nid2, j2 = vidmap[id(v2)]
+                    L1 = levelmap[nid1]
+                    L2 = levelmap[nid2]
+                    if nid1 <= nid2:
+                        if Q.get((nid1,nid2),None) is None:
+                            Q[nid1,nid2] = {}
+                        Q[nid1,nid2][k, j1+offset(t1,L1.x), j2+offset(t2,L2.x)] = pe.value(val)
+                    else:
+                        if Q.get((nid2,nid1),None) is None:
+                            Q[nid2,nid1] = {}
+                        Q[nid2,nid1][k, j2+offset(t2,L2.x), j1+offset(t1,L1.x)] = pe.value(val)
+            for n1,n2 in Q:
+                level.Q[n1,n2] = (len(self.crepn), len(levelmap[n1].x),len(levelmap[n2].x)), Q[n1,n2]
+            #
+            # b
+            #
+            b = []
+            for k in range(len(self.crepn)):
+                repn = self.crepn[k][0]
+                b.append(self.crepn[k][1] - repn.constant)
+            level.b = b
+
 
 def negate_repn(repn):
     trepn = copy.copy(repn)
     trepn.constant *= -1
     trepn.linear_coefs = list(-1*repn.linear_coefs[i] for i in range(len(repn.linear_coefs)))
     trepn.linear_vars = list(repn.linear_vars)
+    trepn.quadratic_coefs = list(-1*repn.quadratic_coefs[i] for i in range(len(repn.quadratic_coefs)))
+    trepn.quadratic_vars = list(repn.quadratic_vars)
     return trepn
 
 
@@ -212,14 +279,20 @@ def collect_multilevel_tree(block, var, vidmap={}, sortOrder=SortComponents.unso
     #
     for odata in block.component_data_objects(pe.Objective, active=True, sort=sortOrder, descend_into=True):
         repn = generate_standard_repn(odata.expr)
-        assert (repn.is_linear()), "Objective '%s' has a body with nonlinear terms" % odata.name
         degree = repn.polynomial_degree()
+        assert (degree is not None), "Objective '%s' has a body that is not linear or quadratic" % odata.name
         if degree == 0:
             continue # trivial, so skip
         curr.orepn.append( (repn, odata.sense) )
+        if degree == 2:
+            curr.linear = False
     #
     # Constraints
     #
+    # If we call conversion twice, then we delete the variables from the previous conversion
+    #
+    block.del_component('zzz_PAO_SlackVariables')
+    block.del_component('zzz_PAO_SlackVariables_index')
     block.zzz_PAO_SlackVariables = pe.VarList(domain=pe.NonNegativeReals)
     for cdata in block.component_data_objects(pe.Constraint, active=True, sort=sortOrder, descend_into=True):
         if (not cdata.has_lb()) and (not cdata.has_ub()):
@@ -227,8 +300,8 @@ def collect_multilevel_tree(block, var, vidmap={}, sortOrder=SortComponents.unso
             # non-binding, so skip
             continue                            # pragma: no cover
         repn = generate_standard_repn(cdata.body)
-        assert (repn.is_linear()), "Constraint '%s' has a body with nonlinear terms" % cdata.name
         degree = repn.polynomial_degree()
+        assert (degree is not None), "Constraint '%s' has a body that is not linear or quadratic " % cdata.name
         if degree == 0:
             if cdata.equality:
                 assert pe.value(cdata.body) == pe.value(cdata.lower), "Constraint '%s' is constant but it is not satisfied (equality)" % cdata.name
@@ -240,6 +313,8 @@ def collect_multilevel_tree(block, var, vidmap={}, sortOrder=SortComponents.unso
             # trivial, so skip
             continue                            # pragma: no cover
         else:
+            if degree == 2:
+                curr.linear = False
             if inequalities:
                 if cdata.equality:
                     val = pe.value(cdata.lower)
@@ -291,7 +366,7 @@ def collect_multilevel_tree(block, var, vidmap={}, sortOrder=SortComponents.unso
                 var[i] = v
                 newvars.append(i)
                 knownvars.add(i)
-        if False:                                   # pragma: no cover
+        if True:                                   # pragma: no cover
             for v,w in repn[0].quadratic_vars:
                 i = id(v)
                 if i not in knownvars:
@@ -302,7 +377,7 @@ def collect_multilevel_tree(block, var, vidmap={}, sortOrder=SortComponents.unso
                 i = id(w)
                 if i not in knownvars:
                     curr.unfixedvars.add(i)
-                    var[i] = v
+                    var[i] = w
                     newvars.append(i)
                     knownvars.add(i)
     #
@@ -322,38 +397,28 @@ def collect_multilevel_tree(block, var, vidmap={}, sortOrder=SortComponents.unso
 
 class PyomoSubmodel_SolutionManager_LBP(object):
 
-    def __init__(self, var, vidmap):
+    def __init__(self, var, vidmap, pyomo_id):
         self.var = var
         self.vidmap = vidmap
+        self.pyomo_id = pyomo_id
 
-    def copy_from_to(self, *, lbp, pyomo):
+    def copy(self, *, From, To):
+        assert (id(To) == self.pyomo_id), "Attempting to copy data into a different model than was used to create the multilevel problem"
         for vid in self.vidmap:
             v = self.var[vid]
             t, nid, j = self.vidmap[vid]
             if nid == 0:
-                U = lbp.U
-                if t == 0:
-                    v.value = lbp.U.x.values[j]
-                elif t == 1:
-                    v.value = lbp.U.x.values[j+U.x.nxR]
-                elif t == 2:
-                    v.value = lbp.U.x.values[j+U.x.nxR+U.x.nxZ]
+                U = From.U
+                v.value = From.U.x.values[j+offset(t,U.x)]
             else:
-                L = lbp.U.LL[nid-1]
-                if t == 0:
-                    v.value = lbp.U.LL[nid-1].x.values[j]
-                elif t == 1:
-                    v.value = lbp.U.LL[nid-1].x.values[j+L.x.nxR]
-                elif t == 2:
-                    v.value = lbp.U.LL[nid-1].x.values[j+L.x.nxR+L.x.nxZ]
+                L = From.U.LL[nid-1]
+                v.value = From.U.LL[nid-1].x.values[j+offset(t,L.x)]
 
 
-def convert_pyomo2LinearBilevelProblem1(model, *, determinism=1, inequalities=True):
+def convert_pyomo2LinearMultilevelProblem(model, *, determinism=1, inequalities=True):
     """
-    Generate a LinearBilevelProblem from a Pyomo model.
-
-    This function generates a variety of exceptions if the Pyomo model
-    cannot be represented in this form.
+    Traverse the model an generate a LinearMultilevelProblem.  Generate errors
+    if this problem cannot be represented in this form.
 
     Args
     ---- 
@@ -368,13 +433,74 @@ def convert_pyomo2LinearBilevelProblem1(model, *, determinism=1, inequalities=Tr
                 * 2 - Ordered traversal of components by name in **model**
 
     inequalities: bool
-        If True, then the LinearBilevelProblem object represents all
+        If True, then the LinearMultilevelProblem object represents all
         constraints as less-than-or-equal inequalities.  Otherwise,
-        the LinearBilevelProblem represents all constraints as equalities.
+        the LinearMultilevelProblem represents all constraints as equalities.
 
     Returns
     -------
-    LinearBilevelProblem
+    LinearMultilevelProblem
+        This object corresponds to the problem in **model**.
+    """
+    return convert_pyomo2MultilevelProblem(model, determinism=determinism, inequalities=inequalities, linear=True)
+
+
+def convert_pyomo2QuadraticMultilevelProblem(model, *, determinism=1, inequalities=True):
+    """
+    Traverse the model an generate a QuadraticMultilevelProblem.  Generate errors
+    if this problem cannot be represented in this form.
+
+    Args
+    ---- 
+    model
+        A Pyomo model object.
+    determinism: int
+        Indicates whether the traversal of **model** is
+        ordered.  Valid values are:
+
+                * 0 - Unordered traversal of **model**
+                * 1 - Ordered traversal of component indices in **model**
+                * 2 - Ordered traversal of components by name in **model**
+
+    inequalities: bool
+        If True, then the QuadraticMultilevelProblem object represents all
+        constraints as less-than-or-equal inequalities.  Otherwise,
+        the QuadraticMultilevelProblem represents all constraints as equalities.
+
+    Returns
+    -------
+    QuadraticMultilevelProblem
+        This object corresponds to the problem in **model**.
+    """
+    return convert_pyomo2MultilevelProblem(model, determinism=determinism, inequalities=inequalities, linear=False)
+
+
+def convert_pyomo2MultilevelProblem(model, *, determinism=1, inequalities=True, linear=None):
+    """
+    Traverse the model an generate a LinearMultilevelProblem or
+    QuadraticMultilevelProblem.  Generate errors if this problem cannot
+    be represented in this form.
+
+    Args
+    ---- 
+    model
+        A Pyomo model object.
+    determinism: int
+        Indicates whether the traversal of **model** is
+        ordered.  Valid values are:
+
+                * 0 - Unordered traversal of **model**
+                * 1 - Ordered traversal of component indices in **model**
+                * 2 - Ordered traversal of components by name in **model**
+
+    inequalities: bool, (Default: True)
+        If True, then the multilevel problem object represents all
+        constraints as less-than-or-equal inequalities.  Otherwise,
+        the multilevel problem represents all constraints as equalities.
+
+    Returns
+    -------
+    LinearMultilevelProblem or QuadraticMultilevelProblem
         This object corresponds to the problem in **model**.
     """
     #
@@ -404,7 +530,12 @@ def convert_pyomo2LinearBilevelProblem1(model, *, determinism=1, inequalities=Tr
     #
     treemap = {}
     levelmap = {}
-    M = LinearBilevelProblem()
+    if linear is None:
+        linear = tree.is_linear()
+    if linear is True:
+        M = LinearMultilevelProblem()
+    else:
+        M = QuadraticMultilevelProblem()
     U = M.add_upper(id=tree.nid)
     treemap[tree.nid] = tree
 
@@ -422,10 +553,10 @@ def convert_pyomo2LinearBilevelProblem1(model, *, determinism=1, inequalities=Tr
     #
     Node.global_list = []
 
-    return M, PyomoSubmodel_SolutionManager_LBP(var, vidmap)
+    return M, PyomoSubmodel_SolutionManager_LBP(var, vidmap, id(model))
     
 
-# WEH - I suspect we'll try out multiple conversion functions, but this will be the default function
-convert_pyomo2LinearBilevelProblem = convert_pyomo2LinearBilevelProblem1
-convert_pyomo2lbp = convert_pyomo2LinearBilevelProblem1
+convert_pyomo2lmp = convert_pyomo2LinearMultilevelProblem
+convert_pyomo2qmp = convert_pyomo2QuadraticMultilevelProblem
+convert_pyomo2mp = convert_pyomo2MultilevelProblem
 

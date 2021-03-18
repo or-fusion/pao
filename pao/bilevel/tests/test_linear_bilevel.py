@@ -60,7 +60,7 @@ cartesian_solutions = [elem for elem in itertools.product(*[solvers,pao_solvers,
 cartesian_solutions2 = [elem for elem in itertools.product(*[solvers2,pao_solvers2,zip(solution_model_names2,solution_models2,solutions2)])]
 cartesian_solutions = cartesian_solutions2#cartesian_solutions + cartesian_solutions2
 
-class TestBilevelReformulate(unittest.TestCase):
+class XTestBilevelReformulate(): #unittest.TestCase):
     """
     Testing for bilevel reformulations that use the pao.bilevel.linear_mpec transformation
 
@@ -102,7 +102,7 @@ class TestBilevelReformulate(unittest.TestCase):
                                       reformulation, tolerance=1e-5)
 
 
-class TestBilevelSolve(unittest.TestCase):
+class XTestBilevelSolve(): #unittest.TestCase):
     """
     Testing for bilevel solutions that use the runtime parameters specified in cartesian_solutions list
 

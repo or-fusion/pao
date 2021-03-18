@@ -1,10 +1,10 @@
 #
 # Utilities for creating Pyomo models using data in
-# LinearBilevelProblem objects.
+# LinearMultilevelProblem objects.
 #
 import numpy as np
 import pyomo.environ as pe
-from .repn import LinearLevelRepn, LevelValues, SimplifiedList, LevelVariable
+from ..repn import LinearLevelRepn, LevelValues, SimplifiedList, LevelVariable
 
 
 def dot(A, x, num=None):
