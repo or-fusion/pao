@@ -35,6 +35,6 @@ __all__ = ('__version__')
 
 import pyomo.environ
 import pao.lbp
-import pao.duality.plugins
+#import pao.duality.plugins
 import pao.bilevel.plugins
 pao.bilevel.plugins.load()

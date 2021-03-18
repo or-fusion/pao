@@ -30,7 +30,7 @@ class PyomoSubmodelSolver_FA(PyomoSubmodelSolverBase_LBP):
         description="A dictionary that defines the solver options for the MIP solver.  (default is None)"))
     
     def __init__(self, **kwds):
-        super().__init__('pao.pyomo.FA', 'pao.lbp.FA', False)
+        super().__init__('pao.pyomo.FA', 'pao.lbp.FA')
 
     def solve(self, model, **options):
         return super().solve(model, **options)
@@ -60,7 +60,7 @@ class PyomoSubmodelSolver_REG(PyomoSubmodelSolverBase_LBP):
         description="A dictionary that defines the solver options for the NLP solver.  (default is None)"))
     
     def __init__(self, **kwds):
-        super().__init__('pao.pyomo.REG', 'pao.lbp.REG', False)
+        super().__init__('pao.pyomo.REG', 'pao.lbp.REG')
 
     def solve(self, model, **options):
         return super().solve(model, **options)
@@ -89,7 +89,7 @@ class PyomoSubmodelSolver_PCCG(PyomoSubmodelSolverBase_LBP):
         description="A dictionary that defines the solver options for the MIP solver.  (default is None)"))
     
     def __init__(self, **kwds):
-        super().__init__('pao.pyomo.PCCG', 'pao.lbp.PCCG', False)
+        super().__init__('pao.pyomo.PCCG', 'pao.lbp.PCCG')
 
     def solve(self, model, **options):
         return super().solve(model, **options)
