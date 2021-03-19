@@ -46,6 +46,6 @@ if __name__ == "__main__":          #pragma: no cover
     m = linearize_bilinear_terms(M)
     m.print()
 
-    opt = SolverFactory('pao.lbp.FA')
+    opt = Solver('pao.lbp.FA')
     opt.solve(m, tee=True)
     m.print()

@@ -1,1 +1,1 @@
-from .solver import TerminationCondition, Solver, Results, SolverFactory
+from .solver import TerminationCondition, SolverAPI, Results, SolverFactory

@@ -34,5 +34,5 @@ def create():
 if __name__ == "__main__":          #pragma: no cover
     M = create()
     M.print()
-    opt = SolverFactory('pao.lbp.FA')
+    opt = Solver('pao.lbp.FA')
     opt.solve(M)

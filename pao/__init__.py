@@ -38,3 +38,5 @@ import pao.lbp
 #import pao.duality.plugins
 import pao.bilevel.plugins
 pao.bilevel.plugins.load()
+
+from pao.common import SolverFactory as Solver

@@ -33,6 +33,6 @@ def create():
 
 if __name__ == "__main__":          #pragma: no cover
     M = create()
-    opt = SolverFactory('pao.lbp.REG')
+    opt = Solver('pao.lbp.REG')
     opt.solve(M, tee=True)
     M.print()
