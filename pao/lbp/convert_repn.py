@@ -522,7 +522,7 @@ def convert_constraints(ans, inequalities):
 def get_multipliers(lbp, changes):
     multipliers = {}
     for L in lbp.levels():
-        # 
+        #
         # If there were no changes, then the multiplier is 1
         #
         multipliers[L.id] =   [[(i,1)] for i in L.x]
@@ -532,6 +532,22 @@ def get_multipliers(lbp, changes):
             elif type(chg) is VChangeUnbounded:
                 multipliers[L.id][ chg.v ] = [(chg.v,1), (chg.w,-1)]
     return multipliers
+
+def get_offsets(lbp, changes):
+    offsets = {}
+    for L in lbp.levels():
+        #
+        # If there were no changes, then the offset is 0
+        #
+        offsets[L.id] =   [0 for i in L.x]
+        for chg in changes[L.id]:
+            if type(chg) is VChangeUpperBound:
+                offsets[L.id][ chg.v ] = chg.ub
+            elif type(chg) is VChangeLowerBound:
+                offsets[L.id][ chg.v ] = chg.lb
+            elif type(chg) is VChangeRange:
+                offsets[L.id][ chg.v ] = chg.lb
+    return offsets
 
 
 def convert_binaries_to_integers(lbp):
@@ -590,12 +606,8 @@ def convert_to_standard_form(M, inequalities=False):
             A = X.A[L]
             if A is not None:
                 A.resize( [len(X.b), len(L.x)] )
-    #
-    # Setup multipliers that are used to convert variables back to the original model
-    #
-    multipliers = get_multipliers(M, changes)
 
-    return ans, LMP_SolutionManager(multipliers)
+    return ans, LMP_SolutionManager(get_multipliers(M, changes), get_offsets(M, changes))
 
 
 def merge_matrices(M1, M2, nrows, ncols):

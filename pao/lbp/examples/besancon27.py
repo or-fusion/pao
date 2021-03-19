@@ -14,7 +14,7 @@ def create():
     L = U.add_lower(nxR=1)
 
     # Variables
-    U.x.lower_bounds = [0]
+    U.x.lower_bounds = [0.0]
 
     # Objectives
     U.c[U] = [1]
@@ -37,5 +37,5 @@ def create():
 if __name__ == "__main__":          #pragma: no cover
     M = create()
     opt = Solver('pao.lbp.FA')
-    opt.solve(M)
+    opt.solve(M, tee=True)
     M.print()
