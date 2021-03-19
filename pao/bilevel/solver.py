@@ -7,7 +7,7 @@ import pao.lbp
 SolverFactory = pao.common.SolverFactory  
 
 
-class PyomoSubmodelSolverBase(pao.common.Solver):
+class PyomoSubmodelSolverBase(pao.common.SolverAPI):
     """
     API for solvers that optimize a Pyomo model using SubModel components.
     """

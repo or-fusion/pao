@@ -136,7 +136,7 @@ class LinearMultilevelSolver_REG(LinearMultilevelSolverBase):
         #
         start_time = time.time()
 
-        self.standard_form, soln_manager = convert_to_standard_form(model)
+        self.standard_form, soln_manager = convert_to_standard_form(model, inequalities=False)
 
         M = self._create_pyomo_model(self.standard_form, self.config.rho)
         #

@@ -45,6 +45,6 @@ def create():
 
 if __name__ == "__main__":          #pragma: no cover
     M = create()
-    opt = SolverFactory('pao.lbp.PCCG')
+    opt = Solver('pao.lbp.PCCG')
     opt.solve(M)
     M.print()

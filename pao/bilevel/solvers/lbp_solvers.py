@@ -20,7 +20,7 @@ class PyomoSubmodelSolver_FA(PyomoSubmodelSolverBase_LBP):
     calls the pao.lbp.FA solver.
     """
 
-    config = pao.common.solver.Solver.config()
+    config = pao.common.solver.SolverAPI.config()
     config.declare('solver', ConfigValue(
         default='glpk',
         description="The name of the MIP solver used by FA.  (default is glpk)"
@@ -50,7 +50,7 @@ class PyomoSubmodelSolver_REG(PyomoSubmodelSolverBase_LBP):
     calls the pao.lbp.REG solver.
     """
 
-    config = pao.common.solver.Solver.config()
+    config = pao.common.solver.SolverAPI.config()
     config.declare('solver', ConfigValue(
         default='ipopt',
         description="The name of the NLP solver used by REG.  (default is ipopt)"
@@ -79,7 +79,7 @@ class PyomoSubmodelSolver_PCCG(PyomoSubmodelSolverBase_LBP):
     calls the pao.lbp.PCCG solver.
     """
 
-    config = pao.common.solver.Solver.config()
+    config = pao.common.solver.SolverAPI.config()
     config.declare('solver', ConfigValue(
         default='cbc',
         description="The name of the MIP solver used by PCCG.  (default is cbc)"

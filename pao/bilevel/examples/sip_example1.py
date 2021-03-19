@@ -179,7 +179,7 @@ def create():
 if __name__ == "__main__":
     M = create()
 
-    opt = SolverFactory('pao.pyomo.FA')
+    opt = Solver('pao.pyomo.FA')
     opt.solve(M, solver='gurobi', tee=True)
 
     print(M.x)

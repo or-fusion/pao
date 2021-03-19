@@ -15,7 +15,7 @@ class Test_pyomo_FA(unittest.TestCase):
     def test_bard511(self):
         M = examples.bard511.create()
 
-        opt = SolverFactory('pao.pyomo.FA')
+        opt = Solver('pao.pyomo.FA')
         opt.solve(M)
 
         self.assertTrue(math.isclose(M.x.value, 4))
@@ -24,7 +24,7 @@ class Test_pyomo_FA(unittest.TestCase):
     def test_besancon27(self):
         M = examples.besancon27.create()
 
-        opt = SolverFactory('pao.pyomo.FA')
+        opt = Solver('pao.pyomo.FA')
         opt.solve(M)
 
         self.assertTrue(math.isclose(M.x.value, 0))
@@ -33,7 +33,7 @@ class Test_pyomo_FA(unittest.TestCase):
     def test_barguel(self):
         M = examples.barguel.create()
 
-        opt = SolverFactory('pao.pyomo.FA')
+        opt = Solver('pao.pyomo.FA')
         try:
             opt.solve(M)
             self.fail("Expected an assertion error")
@@ -49,7 +49,7 @@ class Test_pyomo_FA(unittest.TestCase):
     def test_getachew_ex1(self):
         M = examples.getachew_ex1.create()
 
-        opt = SolverFactory('pao.pyomo.FA')
+        opt = Solver('pao.pyomo.FA')
         opt.solve(M)
 
         self.assertTrue(math.isclose(M.xR.value, 8))
@@ -58,7 +58,7 @@ class Test_pyomo_FA(unittest.TestCase):
     def test_getachew_ex2(self):
         M = examples.getachew_ex2.create()
 
-        opt = SolverFactory('pao.pyomo.FA')
+        opt = Solver('pao.pyomo.FA')
         opt.solve(M)
 
         self.assertTrue(math.isclose(M.xR.value, 6))
@@ -67,7 +67,7 @@ class Test_pyomo_FA(unittest.TestCase):
     def test_pineda(self):
         M = examples.pineda.create()
 
-        opt = SolverFactory('pao.pyomo.FA')
+        opt = Solver('pao.pyomo.FA')
         opt.solve(M)
 
         self.assertTrue(math.isclose(M.xR.value, 2))
@@ -77,7 +77,7 @@ class Test_pyomo_FA(unittest.TestCase):
     def Xtest_sip_example1(self):
         M = examples.sip_example1.create()
 
-        opt = SolverFactory('pao.pyomo.FA')
+        opt = Solver('pao.pyomo.FA')
         opt.solve(M, solver='gurobi')
 
         self.assertTrue(False)
@@ -89,7 +89,7 @@ class Test_pyomo_REG(unittest.TestCase):
     def test_bard511(self):
         M = examples.bard511.create()
 
-        opt = SolverFactory('pao.pyomo.REG')
+        opt = Solver('pao.pyomo.REG')
         opt.solve(M)
 
         self.assertTrue(math.isclose(M.x.value, 4, abs_tol=1e-4))
@@ -98,7 +98,7 @@ class Test_pyomo_REG(unittest.TestCase):
     def test_besancon27(self):
         M = examples.besancon27.create()
 
-        opt = SolverFactory('pao.pyomo.REG')
+        opt = Solver('pao.pyomo.REG')
         opt.solve(M)
 
         self.assertTrue(math.isclose(M.x.value, 0, abs_tol=1e-4))
@@ -107,7 +107,7 @@ class Test_pyomo_REG(unittest.TestCase):
     def test_getachew_ex1(self):
         M = examples.getachew_ex1.create()
 
-        opt = SolverFactory('pao.pyomo.REG')
+        opt = Solver('pao.pyomo.REG')
         opt.solve(M)
 
         self.assertTrue(math.isclose(M.xR.value, 8, abs_tol=1e-4))
@@ -116,7 +116,7 @@ class Test_pyomo_REG(unittest.TestCase):
     def test_getachew_ex2(self):
         M = examples.getachew_ex2.create()
 
-        opt = SolverFactory('pao.pyomo.REG')
+        opt = Solver('pao.pyomo.REG')
         opt.solve(M)
 
         self.assertTrue(math.isclose(M.xR.value, 6, abs_tol=1e-4))
@@ -125,7 +125,7 @@ class Test_pyomo_REG(unittest.TestCase):
     def test_pineda(self):
         M = examples.pineda.create()
 
-        opt = SolverFactory('pao.pyomo.REG')
+        opt = Solver('pao.pyomo.REG')
         opt.solve(M)
 
         self.assertTrue(math.isclose(M.xR.value, 2, abs_tol=1e-4))
@@ -138,7 +138,7 @@ class Test_pyomo_PCCG(unittest.TestCase):
     def test_bard511(self):
         M = examples.bard511.create()
 
-        opt = SolverFactory('pao.pyomo.PCCG')
+        opt = Solver('pao.pyomo.PCCG')
         opt.solve(M)
 
         self.assertTrue(math.isclose(M.x.value, 4, abs_tol=1e-4))
@@ -147,7 +147,7 @@ class Test_pyomo_PCCG(unittest.TestCase):
     def test_besancon27(self):
         M = examples.besancon27.create()
 
-        opt = SolverFactory('pao.pyomo.PCCG')
+        opt = Solver('pao.pyomo.PCCG')
         opt.solve(M)
 
         self.assertTrue(math.isclose(M.x.value, 0, abs_tol=1e-4))
@@ -156,7 +156,7 @@ class Test_pyomo_PCCG(unittest.TestCase):
     def test_barguel(self):
         M = examples.barguel.create()
 
-        opt = SolverFactory('pao.pyomo.PCCG')
+        opt = Solver('pao.pyomo.PCCG')
         try:
             opt.solve(M)
             self.fail("Expected an assertion error")
@@ -172,7 +172,7 @@ class Test_pyomo_PCCG(unittest.TestCase):
     def test_getachew_ex1(self):
         M = examples.getachew_ex1.create()
 
-        opt = SolverFactory('pao.pyomo.PCCG')
+        opt = Solver('pao.pyomo.PCCG')
         opt.solve(M)
 
         self.assertTrue(math.isclose(M.xR.value, 8, abs_tol=1e-4))
@@ -181,7 +181,7 @@ class Test_pyomo_PCCG(unittest.TestCase):
     def test_getachew_ex2(self):
         M = examples.getachew_ex2.create()
 
-        opt = SolverFactory('pao.pyomo.PCCG')
+        opt = Solver('pao.pyomo.PCCG')
         opt.solve(M)
 
         self.assertTrue(math.isclose(M.xR.value, 6, abs_tol=1e-4))
@@ -190,7 +190,7 @@ class Test_pyomo_PCCG(unittest.TestCase):
     def test_pineda(self):
         M = examples.pineda.create()
 
-        opt = SolverFactory('pao.pyomo.PCCG')
+        opt = Solver('pao.pyomo.PCCG')
         opt.solve(M)
 
         self.assertTrue(math.isclose(M.xR.value, 2, abs_tol=1e-4))
@@ -199,7 +199,7 @@ class Test_pyomo_PCCG(unittest.TestCase):
     def test_toyexample1(self):
         M = examples.toyexample1.create()
 
-        opt = SolverFactory('pao.pyomo.PCCG')
+        opt = Solver('pao.pyomo.PCCG')
         opt.solve(M)
 
         self.assertEqual(M.xZ.value, 2)
@@ -208,7 +208,7 @@ class Test_pyomo_PCCG(unittest.TestCase):
     def test_toyexample2(self):
         M = examples.toyexample2.create()
 
-        opt = SolverFactory('pao.pyomo.PCCG')
+        opt = Solver('pao.pyomo.PCCG')
         opt.solve(M)
 
         self.assertEqual(M.xZ.value, 8)
@@ -217,7 +217,7 @@ class Test_pyomo_PCCG(unittest.TestCase):
     def test_toyexample3(self):
         M = examples.toyexample3.create()
 
-        opt = SolverFactory('pao.pyomo.PCCG')
+        opt = Solver('pao.pyomo.PCCG')
         opt.solve(M)
 
         self.assertTrue(math.isclose(M.xR.value, 3, abs_tol=1e-4))

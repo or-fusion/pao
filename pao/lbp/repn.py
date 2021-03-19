@@ -106,11 +106,11 @@ class LevelVariable(object):
         self.values = [None]*self.num
         self.pyvar = [None]*self.num
         if lb is None:
-            self.lower_bounds = np.array([np.NINF]*self.num)
+            self.lower_bounds = np.array([np.NINF]*self.num, dtype=np.float64)
         else:
             self.lower_bounds = lb
         if ub is None:
-            self.upper_bounds = np.array([np.PINF]*self.num)
+            self.upper_bounds = np.array([np.PINF]*self.num, dtype=np.float64)
         else:
             self.upper_bounds = ub
         for i in range(nxB):
@@ -186,7 +186,7 @@ class LevelVariable(object):
             # Add this check in the model checks
             assert (len(value) == self.num), "The variable has length %s but specifying a upper bounds with length %s" % (str(self.num), str(len(value)))
             if type(value) is list:
-                value = np.array(value, dtype=float)
+                value = np.array(value, dtype=np.float64)
             super().__setattr__(name, value)
         else:
             super().__setattr__(name, value)
@@ -218,7 +218,7 @@ class LevelValues(object):
             elif self._matrix_list:                
                 x = [csr_matrix(m) if type(m) is list else m for m in x]
             else:
-                x = np.array(x)
+                x = np.array(x, dtype=np.float64)
         elif type(x) is tuple:
             if self._matrix:
                 nrows,ncols = x[0]
@@ -443,7 +443,7 @@ class LinearLevelRepn(object):
         self.c = LevelValueWrapper1("c") # objective coefficients at this level
         self.A = LevelValueWrapper1("A",
                         matrix=True)    # constraint matrices at this level
-        self.b = np.ndarray(0)          # RHS of the constraints
+        self.b = np.ndarray(0, dtype=np.float64)          # RHS of the constraints
         self.minimize = True            # sense of the objective at this level
         self._inequalities = True       # If True, the constraints are inequalities
         self.d = 0                      # constant in objective at this level
@@ -597,7 +597,7 @@ class LinearLevelRepn(object):
 
     def __setattr__(self, name, value):
         if name == 'b' and value is not None:
-            value = np.array(value)
+            value = np.array(value, dtype=np.float64)
             super().__setattr__(name, value)
         else:
             super().__setattr__(name, value)

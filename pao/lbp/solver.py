@@ -2,9 +2,10 @@ import pyomo.environ as pe
 import pao.common
 
 SolverFactory = pao.common.SolverFactory
+Solver = SolverFactory
 
 
-class LinearMultilevelSolverBase(pao.common.Solver):
+class LinearMultilevelSolverBase(pao.common.SolverAPI):
     """
     Define the API for solvers that optimize a LinearMultilevelProblem
     """

@@ -14,10 +14,11 @@ def create():
     L = U.add_lower(nxR=1)
 
     # Variables
-    U.x.lower_bounds = [0.0]
+    U.x.lower_bounds = [2.5]    # Shifted solution here
 
     # Objectives
     U.c[U] = [1]
+    U.c[L] = [-1]               # Adding pressure to maximize LL variable
 
     L.c[L] = [1]
     L.minimize = False

@@ -1,7 +1,7 @@
 #
 # Classes used to define a solver API
 #
-__all__ = ['TerminationCondition', 'Solver', 'Results', 'SolverFactory']
+__all__ = ['TerminationCondition', 'SolverAPI', 'Results', 'SolverFactory']
 
 import six
 import abc
@@ -52,9 +52,9 @@ class TerminationCondition(enum.Enum):
     """The solver exited due to licensing problems"""
 
 
-class Solver(abc.ABC):
+class SolverAPI(abc.ABC):
     """
-    The Solver class defines the user API for optimization solvers.
+    The SolverAPI class defines the user API for optimization solvers.
     """
 
     config = ConfigBlock()
@@ -160,7 +160,7 @@ class Solver(abc.ABC):
     @staticmethod
     def _update_solve_docstring(cfg):
         """
-        Update the docstring for Solver.solve, including the description
+        Update the docstring for SolverAPI.solve, including the description
         of the keyword arguments defined by a pyomo configuration object.
 
         Parameters
@@ -168,7 +168,7 @@ class Solver(abc.ABC):
         cfg:
             A Pyomo ConfigDict object that defines keyword arguments.
         """
-        Solver.solve.__doc__ = Solver.__solve_doc__.format( add_docstring_list("", cfg, 8) )
+        SolverAPI.solve.__doc__ = SolverAPI.__solve_doc__.format( add_docstring_list("", cfg, 8) )
 
     def is_persistent():
         """
@@ -205,7 +205,7 @@ class Solver(abc.ABC):
 
         Returns
         -------
-        Solver
+        SolverAPI
             Return a reference to **self**.
         """
         return self
@@ -423,7 +423,7 @@ class SolverFactoryClass(object):
 
         Returns
         -------
-        Solver
+        SolverAPI
             A solver class instance for the solver that is specified.
         """
         assert (name in SolverFactoryClass._registry), "Unknown solver '%s' specified" % name

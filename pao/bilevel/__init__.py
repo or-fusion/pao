@@ -21,3 +21,4 @@ from pao.bilevel.components import *
 from .convert import convert_pyomo2LinearMultilevelProblem
 from . import examples
 from .solver import SolverFactory
+Solver = SolverFactory

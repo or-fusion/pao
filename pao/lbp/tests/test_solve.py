@@ -16,7 +16,7 @@ class Test_bilevel_FA(unittest.TestCase):
         lbp = examples.bard511.create()
         lbp.check()
 
-        opt = SolverFactory('pao.lbp.FA')
+        opt = Solver('pao.lbp.FA')
         opt.solve(lbp)
 
         self.assertTrue(math.isclose(lbp.U.x.values[0], 4))
@@ -26,7 +26,7 @@ class Test_bilevel_FA(unittest.TestCase):
         lbp = examples.bard511_list.create()
         lbp.check()
 
-        opt = SolverFactory('pao.lbp.FA')
+        opt = Solver('pao.lbp.FA')
         opt.solve(lbp)
 
         self.assertTrue(math.isclose(lbp.U.x.values[0], 4))
@@ -36,7 +36,7 @@ class Test_bilevel_FA(unittest.TestCase):
         qmp = examples.barguel.create()
         qmp.check()
 
-        opt = SolverFactory('pao.lbp.FA')
+        opt = Solver('pao.lbp.FA')
         try:
             opt.solve(qmp)
             self.fail("Expected an assertion error")
@@ -56,17 +56,27 @@ class Test_bilevel_FA(unittest.TestCase):
         lbp = examples.besancon27.create()
         lbp.check()
 
-        opt = SolverFactory('pao.lbp.FA')
+        opt = Solver('pao.lbp.FA')
         opt.solve(lbp)
 
         self.assertTrue(math.isclose(lbp.U.x.values[0], 0))
         self.assertTrue(math.isclose(lbp.U.LL.x.values[0], 1))
 
+    def test_besancon27_shifted(self):
+        lbp = examples.besancon27_shifted.create()
+        lbp.check()
+
+        opt = Solver('pao.lbp.FA')
+        opt.solve(lbp)
+
+        self.assertTrue(math.isclose(lbp.U.x.values[0], 2.5))
+        self.assertTrue(math.isclose(lbp.U.LL.x.values[0], 1.25))
+
     def test_getachew_ex1(self):
         lbp = examples.getachew_ex1.create()
         lbp.check()
 
-        opt = SolverFactory('pao.lbp.FA')
+        opt = Solver('pao.lbp.FA')
         opt.solve(lbp)
 
         self.assertTrue(math.isclose(lbp.U.x.values[0], 8))
@@ -76,7 +86,7 @@ class Test_bilevel_FA(unittest.TestCase):
         lbp = examples.getachew_ex2.create()
         lbp.check()
 
-        opt = SolverFactory('pao.lbp.FA')
+        opt = Solver('pao.lbp.FA')
         opt.solve(lbp)
 
         self.assertTrue(math.isclose(lbp.U.x.values[0], 6))
@@ -86,7 +96,7 @@ class Test_bilevel_FA(unittest.TestCase):
         lbp = examples.pineda.create()
         lbp.check()
 
-        opt = SolverFactory('pao.lbp.FA')
+        opt = Solver('pao.lbp.FA')
         opt.solve(lbp)
 
         self.assertTrue(math.isclose(lbp.U.x.values[0], 2))
@@ -100,7 +110,7 @@ class Test_bilevel_REG(unittest.TestCase):
         lbp = examples.bard511.create()
         lbp.check()
 
-        opt = SolverFactory('pao.lbp.REG')
+        opt = Solver('pao.lbp.REG')
         opt.solve(lbp)
 
         self.assertTrue(math.isclose(lbp.U.x.values[0], 4, abs_tol=1e-4))
@@ -110,7 +120,7 @@ class Test_bilevel_REG(unittest.TestCase):
         lbp = examples.bard511_list.create()
         lbp.check()
 
-        opt = SolverFactory('pao.lbp.REG')
+        opt = Solver('pao.lbp.REG')
         opt.solve(lbp)
 
         self.assertTrue(math.isclose(lbp.U.x.values[0], 4, abs_tol=1e-4))
@@ -120,7 +130,7 @@ class Test_bilevel_REG(unittest.TestCase):
         qmp = examples.barguel.create()
         qmp.check()
 
-        opt = SolverFactory('pao.lbp.REG')
+        opt = Solver('pao.lbp.REG')
         try:
             opt.solve(qmp)
             self.fail("Expected an assertion error")
@@ -132,17 +142,27 @@ class Test_bilevel_REG(unittest.TestCase):
         lbp = examples.besancon27.create()
         lbp.check()
 
-        opt = SolverFactory('pao.lbp.REG')
+        opt = Solver('pao.lbp.REG')
         opt.solve(lbp)
 
         self.assertTrue(math.isclose(lbp.U.x.values[0], 0, abs_tol=1e-4))
         self.assertTrue(math.isclose(lbp.U.LL.x.values[0], 1, abs_tol=1e-4))
 
+    def test_besancon27_shifted(self):
+        lbp = examples.besancon27_shifted.create()
+        lbp.check()
+
+        opt = Solver('pao.lbp.REG')
+        opt.solve(lbp)
+
+        self.assertTrue(math.isclose(lbp.U.x.values[0], 2.5, abs_tol=1e-4))
+        self.assertTrue(math.isclose(lbp.U.LL.x.values[0], 1.25, abs_tol=1e-4))
+
     def test_getachew_ex1(self):
         lbp = examples.getachew_ex1.create()
         lbp.check()
 
-        opt = SolverFactory('pao.lbp.REG')
+        opt = Solver('pao.lbp.REG')
         opt.solve(lbp)
 
         self.assertTrue(math.isclose(lbp.U.x.values[0], 8, abs_tol=1e-4))
@@ -152,7 +172,7 @@ class Test_bilevel_REG(unittest.TestCase):
         lbp = examples.getachew_ex2.create()
         lbp.check()
 
-        opt = SolverFactory('pao.lbp.REG')
+        opt = Solver('pao.lbp.REG')
         opt.solve(lbp)
 
         self.assertTrue(math.isclose(lbp.U.x.values[0], 6, abs_tol=1e-4))
@@ -162,7 +182,7 @@ class Test_bilevel_REG(unittest.TestCase):
         lbp = examples.pineda.create()
         lbp.check()
 
-        opt = SolverFactory('pao.lbp.REG')
+        opt = Solver('pao.lbp.REG')
         opt.solve(lbp)
 
         self.assertTrue(math.isclose(lbp.U.x.values[0], 2, abs_tol=1e-4))
@@ -178,7 +198,7 @@ class Test_bilevel_PCCG(unittest.TestCase):
         lbp = examples.bard511.create()
         lbp.check()
 
-        opt = SolverFactory('pao.lbp.PCCG')
+        opt = Solver('pao.lbp.PCCG')
         opt.solve(lbp, solver=self.solver)
 
         self.assertTrue(math.isclose(lbp.U.x.values[0], 4, abs_tol=1e-4))
@@ -188,7 +208,7 @@ class Test_bilevel_PCCG(unittest.TestCase):
         lbp = examples.bard511_list.create()
         lbp.check()
 
-        opt = SolverFactory('pao.lbp.PCCG')
+        opt = Solver('pao.lbp.PCCG')
         opt.solve(lbp, solver=self.solver)
 
         self.assertTrue(math.isclose(lbp.U.x.values[0], 4, abs_tol=1e-4))
@@ -198,7 +218,7 @@ class Test_bilevel_PCCG(unittest.TestCase):
         qmp = examples.barguel.create()
         qmp.check()
 
-        opt = SolverFactory('pao.lbp.PCCG')
+        opt = Solver('pao.lbp.PCCG')
         try:
             opt.solve(qmp)
             self.fail("Expected an assertion error")
@@ -218,17 +238,27 @@ class Test_bilevel_PCCG(unittest.TestCase):
         lbp = examples.besancon27.create()
         lbp.check()
 
-        opt = SolverFactory('pao.lbp.PCCG')
+        opt = Solver('pao.lbp.PCCG')
         opt.solve(lbp, solver=self.solver)
 
         self.assertTrue(math.isclose(lbp.U.x.values[0], 0, abs_tol=1e-4))
         self.assertTrue(math.isclose(lbp.U.LL.x.values[0], 1, abs_tol=1e-4))
 
+    def test_besancon27_shifted(self):
+        lbp = examples.besancon27_shifted.create()
+        lbp.check()
+
+        opt = Solver('pao.lbp.PCCG')
+        opt.solve(lbp, solver=self.solver)
+
+        self.assertTrue(math.isclose(lbp.U.x.values[0], 2.5, abs_tol=1e-4))
+        self.assertTrue(math.isclose(lbp.U.LL.x.values[0], 1.25, abs_tol=1e-4))
+
     def test_getachew_ex1(self):
         lbp = examples.getachew_ex1.create()
         lbp.check()
 
-        opt = SolverFactory('pao.lbp.PCCG')
+        opt = Solver('pao.lbp.PCCG')
         opt.solve(lbp, solver=self.solver)
 
         self.assertTrue(math.isclose(lbp.U.x.values[0], 8, abs_tol=1e-4))
@@ -238,7 +268,7 @@ class Test_bilevel_PCCG(unittest.TestCase):
         lbp = examples.getachew_ex2.create()
         lbp.check()
 
-        opt = SolverFactory('pao.lbp.PCCG')
+        opt = Solver('pao.lbp.PCCG')
         opt.solve(lbp, solver=self.solver)
 
         self.assertTrue(math.isclose(lbp.U.x.values[0], 6, abs_tol=1e-4))
@@ -248,7 +278,7 @@ class Test_bilevel_PCCG(unittest.TestCase):
         lbp = examples.pineda.create()
         lbp.check()
 
-        opt = SolverFactory('pao.lbp.PCCG')
+        opt = Solver('pao.lbp.PCCG')
         opt.solve(lbp, solver=self.solver)
 
         self.assertTrue(math.isclose(lbp.U.x.values[0], 2, abs_tol=1e-4))
@@ -258,7 +288,7 @@ class Test_bilevel_PCCG(unittest.TestCase):
         lbp = examples.toyexample1.create()
         lbp.check()
 
-        opt = SolverFactory('pao.lbp.PCCG')
+        opt = Solver('pao.lbp.PCCG')
         opt.solve(lbp, solver=self.solver)
 
         self.assertEqual(lbp.U.x.values[0], 2)
@@ -268,7 +298,7 @@ class Test_bilevel_PCCG(unittest.TestCase):
         lbp = examples.toyexample2.create()
         lbp.check()
 
-        opt = SolverFactory('pao.lbp.PCCG')
+        opt = Solver('pao.lbp.PCCG')
         opt.solve(lbp, solver=self.solver)
 
         self.assertEqual(lbp.U.x.values[0], 8)
@@ -278,7 +308,7 @@ class Test_bilevel_PCCG(unittest.TestCase):
         lbp = examples.toyexample3.create()
         lbp.check()
 
-        opt = SolverFactory('pao.lbp.PCCG')
+        opt = Solver('pao.lbp.PCCG')
         opt.solve(lbp, solver=self.solver)
 
         self.assertTrue(math.isclose(lbp.U.x.values[0], 3, abs_tol=1e-4))
@@ -295,7 +325,7 @@ class XTest_bilevel_ld(object):
         lbp.check()
         lbp.print()
 
-        opt = SolverFactory('pao.bilevel.ld')
+        opt = Solver('pao.bilevel.ld')
         opt.solve(lbp)
 
         self.assertTrue(math.isclose(lbp.U.x.values[0], 0))

@@ -5,8 +5,9 @@ from .repn import LinearMultilevelProblem, QuadraticMultilevelProblem
 
 class LMP_SolutionManager(object):
 
-    def __init__(self, multipliers):
+    def __init__(self, multipliers, offsets):
         self.multipliers = multipliers
+        self.offsets = offsets
 
     def copy(self, From=None, To=None):
         if type(From) is pe.ConcreteModel and type(To) in [LinearMultilevelProblem,QuadraticMultilevelProblem]:
@@ -28,11 +29,12 @@ class LMP_SolutionManager(object):
         elif type(From) is Munch and type(To) in [LinearMultilevelProblem,QuadraticMultilevelProblem]:
             for L in To.levels():
                 multipliers = self.multipliers[L.id]
+                offsets = self.offsets[L.id]
                 for j in range(L.x.nxR):
-                    L.x.values[j] = sum(pe.value(From.LxR[L.id][v]) * c for v,c in multipliers[j])
+                    L.x.values[j] = sum(pe.value(From.LxR[L.id][v]) * c for v,c in multipliers[j]) + offsets[j]
                 for j in range(L.x.nxZ):
                     jj = j+L.x.nxR
-                    L.x.values[jj] = round(sum(pe.value(From.LxZ[L.id][v-L.x.nxR]) * c for v,c in multipliers[jj]))
+                    L.x.values[jj] = round(sum(pe.value(From.LxZ[L.id][v-L.x.nxR]) * c for v,c in multipliers[jj])) + offsets[jj]
                 if From.get('LxB',None) is None:
                     # Binaries are at the end of the integers
                     for j in range(L.x.nxB):
