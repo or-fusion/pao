@@ -28,4 +28,8 @@ def create():
 
 if __name__ == "__main__":          #pragma: no cover
     M = create()
-    M.pprint()
+    #M.pprint()
+    opt = Solver("pao.pyomo.FA")
+    opt.solve(M)
+    print(pe.value(M.x))
+    print(pe.value(M.v))
