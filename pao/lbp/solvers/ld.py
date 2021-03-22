@@ -1,5 +1,5 @@
 #
-# A solver for linear bilevel programs that
+# A solver for linear bilevel problems that
 # represent interdiction problems where the upper-
 # and lower-objectives are opposite.
 #
@@ -18,7 +18,7 @@ nan = float('nan')
 
 @SolverFactory.register(
         name="pao.lbp.interdiction",
-        doc="A solver for linear bilevel programs that represent interdiction problems where the upper- and lower-objectives are opposite.")
+        doc='PAO solver for Multilevel Problem Representations that define linear interdiction problems, where the upper- and lower-objectives are opposite.')
 class LinearMultilevelSolver_interdiction(LinearMultilevelSolverBase):
 
     def __init__(self, **kwds):

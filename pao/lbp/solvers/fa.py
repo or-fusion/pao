@@ -18,7 +18,8 @@ from .reg import create_model_replacing_LL_with_kkt
 
 @SolverFactory.register(
         name='pao.lbp.FA',
-        doc='A solver for linear bilevel programs using big-M relaxations discussed by Fortuny-Amat and McCarl, 1981.')
+        doc='PAO solver for Multilevel Problem Representations that define linear bilevel problems.  Solver uses big-M relaxations discussed by Fortuny-Amat and McCarl (1981).')
+
 class LinearMultilevelSolver_FA(LinearMultilevelSolverBase):
 
     config = LinearMultilevelSolverBase.config()
@@ -116,13 +117,13 @@ class LinearMultilevelSolver_FA(LinearMultilevelSolverBase):
         #
         prob = results.problem
         prob.name = M.name
-        prob.number_of_objectives = pyomo_results.problem.Number_of_objectives
-        prob.number_of_constraints = pyomo_results.problem.Number_of_constraints
-        prob.number_of_variables = pyomo_results.problem.Number_of_variables
-        prob.number_of_nonzeros = pyomo_results.problem.Number_of_nonzeros
-        prob.lower_bound = pyomo_results.problem.Lower_bound
-        prob.upper_bound = pyomo_results.problem.Upper_bound
-        prob.sense = 'minimize'
+        #prob.number_of_objectives = pyomo_results.problem.Number_of_objectives
+        #prob.number_of_constraints = pyomo_results.problem.Number_of_constraints
+        #prob.number_of_variables = pyomo_results.problem.Number_of_variables
+        #prob.number_of_nonzeros = pyomo_results.problem.Number_of_nonzeros
+        #prob.lower_bound = pyomo_results.problem.Lower_bound
+        #prob.upper_bound = pyomo_results.problem.Upper_bound
+        #prob.sense = 'minimize'
         return results
 
     def _create_pyomo_model(self, repn, bigM):

@@ -23,7 +23,7 @@ pao directly:
 
 Instead, users should import symbols directly from pao sub-packages:
 
-    $ from pao.bilevel import *
+    $ from pao.pyomo import *
 
 Version: %s
 """
@@ -35,9 +35,9 @@ __all__ = ('__version__')
 
 import pyomo.environ
 import pao.lbp
-import pao.bilevel
+import pao.pyomo
 #import pao.duality.plugins
-import pao.bilevel.plugins
-pao.bilevel.plugins.load()
+import pao.pyomo.plugins
+pao.pyomo.plugins.load()
 
 from pao.common import SolverFactory as Solver

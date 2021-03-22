@@ -79,7 +79,7 @@ def create_model_replacing_LL_with_kkt(repn):
 
 @SolverFactory.register(
         name="pao.lbp.REG",
-        doc="A solver for linear bilevel programs using regularization discussed by Scheel and Scholtes (2000) and Ralph and Wright (2004).")
+        doc="PAO solver for Multilevel Problem Representations that define linear bilevel problems.  Solver uses regularization discussed by Scheel and Scholtes (2000) and Ralph and Wright (2004).")
 class LinearMultilevelSolver_REG(LinearMultilevelSolverBase):
 
     config = LinearMultilevelSolverBase.config()

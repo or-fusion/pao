@@ -29,7 +29,7 @@ from .pccg_solver import execute_PCCG_solver
 
 @SolverFactory.register(
         name='pao.lbp.PCCG',
-        doc='A solver for linear bilevel programs using using projected column constraint generation')
+        doc='PAO solver for Multilevel Problem Representations that define linear bilevel problems. Solver uses projected column constraint generation algorithm described by Yue et al. (2017).')
 class LinearMultilevelSolver_PCCG(LinearMultilevelSolverBase):
 
     config = LinearMultilevelSolverBase.config()
