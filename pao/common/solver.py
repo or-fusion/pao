@@ -6,6 +6,7 @@ __all__ = ['TerminationCondition', 'SolverAPI', 'Results', 'SolverFactory']
 import six
 import abc
 import enum
+import textwrap
 from pyutilib.misc import Options
 from pyomo.common.config import ConfigValue, ConfigBlock, add_docstring_list
 
@@ -393,7 +394,16 @@ class SolverFactoryClass(object):
         for name in sorted(SolverFactoryClass._doc.keys()):
             yield name
 
-    def doc(self, name):
+    def summary(self):
+        """
+        Print a summary of all solvers.
+        """
+        for name in self:
+            print(name)
+            print(textwrap.indent("\n".join(textwrap.wrap(self.description(name))), "    "))
+            print("")
+
+    def description(self, name):
         """
         Returns the description of a solver.
 
