@@ -11,7 +11,7 @@ from pyomo.common.config import ConfigBlock, ConfigValue
 from pyomo.mpec import ComplementarityList, complements
 
 import pao.common
-from ..solver import SolverFactory, LinearMultilevelSolverBase, LinearMultilevelResults
+from ..solver import Solver, LinearMultilevelSolverBase, LinearMultilevelResults
 from ..repn import LinearMultilevelProblem
 from ..convert_repn import convert_to_standard_form
 from . import pyomo_util
@@ -77,7 +77,7 @@ def create_model_replacing_LL_with_kkt(repn):
     return M
 
 
-@SolverFactory.register(
+@Solver.register(
         name="pao.mpr.REG",
         doc="PAO solver for Multilevel Problem Representations that define linear bilevel problems.  Solver uses regularization discussed by Scheel and Scholtes (2000) and Ralph and Wright (2004).")
 class LinearMultilevelSolver_REG(LinearMultilevelSolverBase):

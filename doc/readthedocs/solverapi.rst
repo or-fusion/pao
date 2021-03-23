@@ -3,9 +3,9 @@ Solver API
 
 .. currentmodule:: pao.common.solver
 
-.. autoclass:: SolverFactory
+.. autoclass:: SolverAPI
 
-.. autoclass:: SolverFactoryClass
+.. autoclass:: SolverFactory
     :members:
     :special-members: __iter__, __call__
 

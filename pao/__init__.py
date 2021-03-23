@@ -40,4 +40,4 @@ import pao.pyomo
 import pao.pyomo.plugins
 pao.pyomo.plugins.load()
 
-from pao.common import SolverFactory as Solver
+from pao.common import Solver

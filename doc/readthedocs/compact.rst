@@ -1,34 +1,34 @@
 Compact Models
 ==============
 
-LinearBilevelProblem Representation
------------------------------------
+LinearMultilevelProblem Representation
+--------------------------------------
 
 .. todo::
-    Describe the LinearBilevelProblem, QuadraticBilevelProblem and other functionality use to 
+    Describe the LinearMultilevelProblem, QuadraticMultilevelProblem and other functionality use to 
     support compact problem representations.
 
-.. currentmodule:: pao.lbp.repn
+.. currentmodule:: pao.mpr.repn
 
-.. autoclass:: LinearBilevelProblem
+.. autoclass:: LinearMultilevelProblem
    :members:
 
-.. currentmodule:: pao.lbp.convert_repn
+.. currentmodule:: pao.mpr.convert_repn
 
-.. autofunction:: convert_LinearBilevelProblem_to_standard_form
+.. autofunction:: convert_to_standard_form
 
 PAO Solvers
 -----------
 
-.. autoclass:: pao.lbp.solvers.fa.LinearBilevelSolver_FA
+.. autoclass:: pao.mpr.solvers.fa.LinearMultilevelSolver_FA
     :members:
     :inherited-members:
 
-.. autoclass:: pao.lbp.solvers.reg.LinearBilevelSolver_REG
+.. autoclass:: pao.mpr.solvers.reg.LinearMultilevelSolver_REG
     :members:
     :inherited-members:
 
-.. autoclass:: pao.lbp.solvers.pccg.LinearBilevelSolver_PCCG
+.. autoclass:: pao.mpr.solvers.pccg.LinearMultilevelSolver_PCCG
     :members:
     :inherited-members:
 

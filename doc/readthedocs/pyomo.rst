@@ -7,15 +7,15 @@ Pyomo Representation
 Describe the SubModel component and other functionality use to 
 support the Pyomo problem representation.
 
-.. autoclass:: pao.bilevel.components.SubModel
+.. autoclass:: pao.pyomo.components.SubModel
     :special-members: __init__
 
-.. autofunction:: pao.bilevel.convert.convert_pyomo2LinearBilevelProblem
+.. autofunction:: pao.pyomo.convert.convert_pyomo2MultilevelProblem
 
 PAO Solvers
 -----------
 
-.. currentmodule:: pao.bilevel.solvers.lbp_solvers
+.. currentmodule:: pao.pyomo.solvers.mpr_solvers
 
 .. autoclass:: PyomoSubmodelSolver_FA
     :members:

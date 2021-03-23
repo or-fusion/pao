@@ -9,14 +9,14 @@ import pyomo.environ as pe
 import pyomo.opt
 from pyomo.common.config import ConfigBlock, ConfigValue
 from pyomo.mpec import ComplementarityList, complements
-from ..solver import SolverFactory, LinearMultilevelSolverBase, LinearMultilevelResults
+from ..solver import Solver, LinearMultilevelSolverBase, LinearMultilevelResults
 from ..repn import LinearMultilevelProblem
 from ..convert_repn import convert_to_standard_form
 from . import pyomo_util
 from .reg import create_model_replacing_LL_with_kkt
 
 
-@SolverFactory.register(
+@Solver.register(
         name='pao.mpr.FA',
         doc='PAO solver for Multilevel Problem Representations that define linear bilevel problems.  Solver uses big-M relaxations discussed by Fortuny-Amat and McCarl (1981).')
 

@@ -3,8 +3,7 @@ from .convert import convert_pyomo2MultilevelProblem
 import pao.common
 import pao.mpr
 
-
-SolverFactory = pao.common.SolverFactory  
+Solver = pao.common.Solver
 
 
 class PyomoSubmodelSolverBase(pao.common.SolverAPI):
@@ -55,7 +54,7 @@ class PyomoSubmodelSolverBase_LBP(PyomoSubmodelSolverBase):
             lmp = mp
         #
         results = PyomoSubmodelResults(solution_manager=soln_manager)
-        with SolverFactory(self.lmp_solver) as opt:
+        with pao.common.Solver(self.lmp_solver) as opt:
             lmp_results = opt.solve(lmp, **solver_options)
 
             self._initialize_results(results, lmp_results, model, lmp, options)

@@ -1,7 +1,7 @@
 #
 # Classes used to define a solver API
 #
-__all__ = ['TerminationCondition', 'SolverAPI', 'Results', 'SolverFactory']
+__all__ = ['TerminationCondition', 'SolverAPI', 'Results', 'Solver']
 
 import six
 import abc
@@ -233,7 +233,7 @@ class SolverAPI(abc.ABC):
 
 
 """
->>> opt = SolverFactory('my_solver')
+>>> opt = Solver('my_solver')
 >>> results = opt.solve(my_model, load_solutions=False)
 >>> if results.solver.termination_condition == TerminationCondition.optimal:
 >>>     print('optimal solution found: ', results.solver.best_feasible_objective)
@@ -344,7 +344,7 @@ class Results(ResultsBase):
             "\nSolver:\n-" + solver[1:]
 
 
-class SolverFactoryClass(object):
+class SolverFactory(object):
     """
     A class that manages a registry of solvers.
 
@@ -376,9 +376,9 @@ class SolverFactoryClass(object):
         """
         def decorator(cls):
             assert (name is not None), "Must register a solver with a name"
-            #assert (name in SolverFactoryClass._registry), "Name '%s' is already registered!" % name
-            SolverFactoryClass._registry[name] = cls
-            SolverFactoryClass._doc[name] = doc
+            #assert (name in SolverFactory._registry), "Name '%s' is already registered!" % name
+            SolverFactory._registry[name] = cls
+            SolverFactory._doc[name] = doc
             return cls
         if cls is None:
             return decorator
@@ -391,7 +391,7 @@ class SolverFactoryClass(object):
         generator
             Returns an iterator that generates the solver names.
         """
-        for name in sorted(SolverFactoryClass._doc.keys()):
+        for name in sorted(SolverFactory._doc.keys()):
             yield name
 
     def summary(self):
@@ -417,8 +417,8 @@ class SolverFactoryClass(object):
         str
             A short description of the specified solver
         """
-        assert (name in SolverFactoryClass._registry), "Unknown solver '%s' specified" % name
-        return SolverFactoryClass._doc[name]
+        assert (name in SolverFactory._registry), "Unknown solver '%s' specified" % name
+        return SolverFactory._doc[name]
 
     def __call__(self, name):
         """
@@ -436,12 +436,12 @@ class SolverFactoryClass(object):
         SolverAPI
             A solver class instance for the solver that is specified.
         """
-        assert (name in SolverFactoryClass._registry), "Unknown solver '%s' specified" % name
-        return SolverFactoryClass._registry[name]()
+        assert (name in SolverFactory._registry), "Unknown solver '%s' specified" % name
+        return SolverFactory._registry[name]()
 
 
-SolverFactory = SolverFactoryClass()
+Solver = SolverFactory()
 """
-SolverFactory is a global instance of the SolverFactoryClass.
+Solver is a global instance of the SolverFactory.
 This object provides a global registry of optimization solvers.
 """

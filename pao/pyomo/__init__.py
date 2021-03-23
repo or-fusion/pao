@@ -20,5 +20,4 @@ from pao.pyomo.components import SubModel
 #from pao.pyomo.util import *
 from .convert import convert_pyomo2LinearMultilevelProblem
 from . import examples
-from .solver import SolverFactory
-Solver = SolverFactory
+from pao.common.solver import Solver

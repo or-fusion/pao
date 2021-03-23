@@ -25,22 +25,22 @@ algebraic models to compact representations to apply solvers developed
 for compact representations.
 
 For example, PAO includes a compact representation for linear bilevel
-problems, ``LinearBilevelProblem``.  Several solvers have been developed
-for problems expressed as a LinearBilevelProblem, including the big-M
+problems, ``LinearMultilevelProblem``.  Several solvers have been developed
+for problems expressed as a LinearMultilevelProblem, including the big-M
 method proposed by Fortuny-Amat and McCarl [FortunyMcCarl]_.  PAO can
 similarly express linear bilevel problems in Pyomo using a ``Submodel``
 component, which was previously introduced in the **pyomo.bilevel**
 package [PyomoBookII]_.  Further, these Pyomo models can be automatically converted
-to the compact ``LinearBilevelProblem`` representation and solved with
+to the compact ``LinearMultilevelProblem`` representation and solved with
 solvers tailored for that representation.
 
 .. todo::
-    TODO - Figure illustrating the use of Pyomo and LinearBilevelProblem representations.
+    TODO - Figure illustrating the use of Pyomo and LinearMultilevelProblem representations.
 
 The use of independent problem representations in this manner has several
 implications for PAO.  First, this design facilitates the development of
 solvers for algebraic modeling languages like Pyomo that are intrinsically
-more robust.  Compact representations like ``LinearBilevelProblem`` enable
+more robust.  Compact representations like ``LinearMultilevelProblem`` enable
 the development of solvers using natural operations (e.g. matrix-vector
 multiplication).  Thus, we expect these solvers to be more robust and
 easier to maintain when compared to solvers developed using Pyomo data

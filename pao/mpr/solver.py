@@ -1,8 +1,7 @@
 import pyomo.environ as pe
 import pao.common
 
-SolverFactory = pao.common.SolverFactory
-Solver = SolverFactory
+Solver = pao.common.Solver
 
 
 class LinearMultilevelSolverBase(pao.common.SolverAPI):

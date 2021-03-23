@@ -20,14 +20,14 @@ import pyomo.opt
 from pyomo.common.config import ConfigBlock, ConfigValue
 from pyomo.mpec import ComplementarityList, complements
 
-from ..solver import SolverFactory, LinearMultilevelSolverBase, LinearMultilevelResults
+from ..solver import Solver, LinearMultilevelSolverBase, LinearMultilevelResults
 from ..repn import LinearMultilevelProblem
 from ..convert_repn import convert_to_standard_form, convert_sense, convert_binaries_to_integers
 from . import pyomo_util
 from .pccg_solver import execute_PCCG_solver
 
 
-@SolverFactory.register(
+@Solver.register(
         name='pao.mpr.PCCG',
         doc='PAO solver for Multilevel Problem Representations that define linear bilevel problems. Solver uses projected column constraint generation algorithm described by Yue et al. (2017).')
 class LinearMultilevelSolver_PCCG(LinearMultilevelSolverBase):

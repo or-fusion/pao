@@ -5,11 +5,11 @@
 import time
 import pao.mpr
 import pao.common
-from pao.pyomo.solver import SolverFactory, PyomoSubmodelSolverBase_LBP
+from pao.pyomo.solver import Solver, PyomoSubmodelSolverBase_LBP
 from pyomo.common.config import ConfigBlock, ConfigValue
 
 
-@SolverFactory.register(
+@Solver.register(
         name='pao.pyomo.FA',
         doc="PAO solver for Pyomo models that define linear and bilinear bilevel problems.  Solver uses big-M relaxations discussed by Fortuny-Amat and McCarl (1981).")
 class PyomoSubmodelSolver_FA(PyomoSubmodelSolverBase_LBP):
@@ -39,7 +39,7 @@ PyomoSubmodelSolver_FA._update_solve_docstring(PyomoSubmodelSolver_FA.config)
 
 
 
-@SolverFactory.register(
+@Solver.register(
         name='pao.pyomo.REG',
         doc="PAO solver for Pyomo models that define linear and bilinear bilevel problems.  Solver uses regularization discussed by Scheel and Scholtes (2000) and Ralph and Wright (2004).")
 class PyomoSubmodelSolver_REG(PyomoSubmodelSolverBase_LBP):
@@ -68,7 +68,7 @@ class PyomoSubmodelSolver_REG(PyomoSubmodelSolverBase_LBP):
 PyomoSubmodelSolver_REG._update_solve_docstring(PyomoSubmodelSolver_REG.config)
 
 
-@SolverFactory.register(
+@Solver.register(
         name='pao.pyomo.PCCG',
         doc="PAO solver for Pyomo models that define linear and bilinear bilevel problems.  Solver uses projected column constraint generation algorithm described by Yue et al. (2017)")
 class PyomoSubmodelSolver_PCCG(PyomoSubmodelSolverBase_LBP):
