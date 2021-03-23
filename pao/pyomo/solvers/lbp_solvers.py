@@ -3,7 +3,7 @@
 # solve using a LBP-specific solver.
 #
 import time
-import pao.lbp
+import pao.mpr
 import pao.common
 from pao.pyomo.solver import SolverFactory, PyomoSubmodelSolverBase_LBP
 from pyomo.common.config import ConfigBlock, ConfigValue
@@ -17,7 +17,7 @@ class PyomoSubmodelSolver_FA(PyomoSubmodelSolverBase_LBP):
     PAO FA solver for Pyomo models: pao.pyomo.FA.
 
     This solver converts the Pyomo model to a LinearBilevelProblem and
-    calls the pao.lbp.FA solver.
+    calls the pao.mpr.FA solver.
     """
 
     config = pao.common.solver.SolverAPI.config()
@@ -30,7 +30,7 @@ class PyomoSubmodelSolver_FA(PyomoSubmodelSolverBase_LBP):
         description="A dictionary that defines the solver options for the MIP solver.  (default is None)"))
     
     def __init__(self, **kwds):
-        super().__init__('pao.pyomo.FA', 'pao.lbp.FA')
+        super().__init__('pao.pyomo.FA', 'pao.mpr.FA')
 
     def solve(self, model, **options):
         return super().solve(model, **options)
@@ -47,7 +47,7 @@ class PyomoSubmodelSolver_REG(PyomoSubmodelSolverBase_LBP):
     PAO REG solver for Pyomo models: pao.pyomo.REG.
 
     This solver converts the Pyomo model to a LinearBilevelProblem and
-    calls the pao.lbp.REG solver.
+    calls the pao.mpr.REG solver.
     """
 
     config = pao.common.solver.SolverAPI.config()
@@ -60,7 +60,7 @@ class PyomoSubmodelSolver_REG(PyomoSubmodelSolverBase_LBP):
         description="A dictionary that defines the solver options for the NLP solver.  (default is None)"))
     
     def __init__(self, **kwds):
-        super().__init__('pao.pyomo.REG', 'pao.lbp.REG')
+        super().__init__('pao.pyomo.REG', 'pao.mpr.REG')
 
     def solve(self, model, **options):
         return super().solve(model, **options)
@@ -76,7 +76,7 @@ class PyomoSubmodelSolver_PCCG(PyomoSubmodelSolverBase_LBP):
     PAO PCCG solver for Pyomo models: pao.pyomo.PCCG.
 
     This solver converts the Pyomo model to a LinearBilevelProblem and
-    calls the pao.lbp.PCCG solver.
+    calls the pao.mpr.PCCG solver.
     """
 
     config = pao.common.solver.SolverAPI.config()
@@ -89,7 +89,7 @@ class PyomoSubmodelSolver_PCCG(PyomoSubmodelSolverBase_LBP):
         description="A dictionary that defines the solver options for the MIP solver.  (default is None)"))
     
     def __init__(self, **kwds):
-        super().__init__('pao.pyomo.PCCG', 'pao.lbp.PCCG')
+        super().__init__('pao.pyomo.PCCG', 'pao.mpr.PCCG')
 
     def solve(self, model, **options):
         return super().solve(model, **options)
