@@ -1,4 +1,4 @@
-# pao.lbp.examples
+# pao.pyomo.examples
 
 from . import bard511
 from . import barguel

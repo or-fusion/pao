@@ -3,7 +3,7 @@ import pyutilib.th as unittest
 import pyomo.environ as pe
 from pao.pyomo.convert import collect_multilevel_tree, convert_pyomo2LinearMultilevelProblem, convert_pyomo2MultilevelProblem
 from pao.pyomo import SubModel
-from pao.lbp import LinearMultilevelProblem, QuadraticMultilevelProblem
+from pao.mpr import LinearMultilevelProblem, QuadraticMultilevelProblem
 
 
 class TestMultilevelTree(unittest.TestCase):
@@ -215,10 +215,10 @@ class TestMultilevelTree(unittest.TestCase):
         M.s = SubModel(fixed=M.x)
         M.s.o = pe.Objective(expr=5+6*M.x+7*sum(M.y[i] for i in M.y)+8*sum(M.z[i] for i in M.z))
 
-        lbp,_ = convert_pyomo2LinearMultilevelProblem(M, inequalities=True)
+        lmpr,_ = convert_pyomo2LinearMultilevelProblem(M, inequalities=True)
         
-        U = lbp.U
-        L = lbp.U.LL
+        U = lmpr.U
+        L = lmpr.U.LL
 
         self.assertEqual(len(U.x), len(M.x))
         self.assertEqual(len(L.x), len(M.z)+len(M.y))
@@ -252,10 +252,10 @@ class TestMultilevelTree(unittest.TestCase):
         
         M.s = SubModel(fixed=M.x)
 
-        lbp,_ = convert_pyomo2LinearMultilevelProblem(M, inequalities=True)
+        lmpr,_ = convert_pyomo2LinearMultilevelProblem(M, inequalities=True)
         
-        U = lbp.U
-        L = lbp.U.LL
+        U = lmpr.U
+        L = lmpr.U.LL
 
         self.assertEqual(len(U.x), len(M.x)+len(M.z)+len(M.y))
         self.assertEqual(U.d, 0)
@@ -292,10 +292,10 @@ class TestMultilevelTree(unittest.TestCase):
         M.s.c2 = pe.Constraint(expr=M.x[0] <= np.PINF)
         M.s.c3 = pe.Constraint(expr=M.p <= 2)
 
-        lbp,_ = convert_pyomo2LinearMultilevelProblem(M, inequalities=True)
+        lmpr,_ = convert_pyomo2LinearMultilevelProblem(M, inequalities=True)
         
-        U = lbp.U
-        L = lbp.U.LL
+        U = lmpr.U
+        L = lmpr.U.LL
 
         self.assertEqual(len(U.x), len(M.x)+len(M.z)+len(M.y))
         self.assertEqual(len(L.x), len(M.X)+len(M.Z)+len(M.Y))
@@ -325,16 +325,16 @@ class TestMultilevelTree(unittest.TestCase):
         M.s = SubModel(fixed=M.x)
         #M.s.c = pe.Constraint(expr=M.x[0]+sum(M.y[i] for i in M.y)+sum(M.z[i] for i in M.z) == 0)
 
-        lbp,_ = convert_pyomo2LinearMultilevelProblem(M, inequalities=True)
+        lmpr,_ = convert_pyomo2LinearMultilevelProblem(M, inequalities=True)
         
-        U = lbp.U
-        L = lbp.U.LL
+        U = lmpr.U
+        L = lmpr.U.LL
 
         self.assertEqual(len(U.x), len(M.x)+len(M.z)+len(M.y))
 
         self.assertEqual(U.c[U], None)
 
-        # 2 rows because the lbp is an inequality, so the equality is split in two
+        # 2 rows because the lmpr is an inequality, so the equality is split in two
         self.assertEqual(U.A[U].shape, (2,6))
         self.assertEqual([list(U.A[U].toarray()[i]) for i in range(2)], [[1,3,3,3,2,2], [-1,-3,-3,-3,-2,-2]])
 
@@ -355,16 +355,16 @@ class TestMultilevelTree(unittest.TestCase):
         M.s = SubModel(fixed=M.x)
         #M.s.c = pe.Constraint(expr=M.x[0]+sum(M.y[i] for i in M.y)+sum(M.z[i] for i in M.z) == 0)
 
-        lbp,_ = convert_pyomo2LinearMultilevelProblem(M, inequalities=False)
+        lmpr,_ = convert_pyomo2LinearMultilevelProblem(M, inequalities=False)
         
-        U = lbp.U
-        L = lbp.U.LL
+        U = lmpr.U
+        L = lmpr.U.LL
 
-        self.assertEqual(len(lbp.U.x), len(M.x)+len(M.z)+len(M.y))
+        self.assertEqual(len(lmpr.U.x), len(M.x)+len(M.z)+len(M.y))
 
         self.assertEqual(U.c[U], None)
 
-        # 2 rows because the lbp is an inequality, so the equality is split in two
+        # 2 rows because the lmpr is an inequality, so the equality is split in two
         self.assertEqual(U.A[U].shape, (1,6))
         self.assertEqual([list(U.A[U].toarray()[i]) for i in range(1)], [[1,3,3,3,2,2]])
 
@@ -391,9 +391,9 @@ class TestMultilevelTree(unittest.TestCase):
         M.s = SubModel(fixed=M.x)
         M.s.c = pe.Constraint(expr=M.X[0]+sum(M.Y[i] for i in M.Y)+sum(M.Z[i] for i in M.Z) == 0)
 
-        lbp,_ = convert_pyomo2LinearMultilevelProblem(M, inequalities=True)
+        lmpr,_ = convert_pyomo2LinearMultilevelProblem(M, inequalities=True)
         
-        U = lbp.U
+        U = lmpr.U
         L = U.LL
 
         self.assertEqual(len(U.x), len(M.x)+len(M.z)+len(M.y))
@@ -401,12 +401,12 @@ class TestMultilevelTree(unittest.TestCase):
 
         self.assertEqual(U.c[U], None)
 
-        # 2 rows because the lbp is an inequality, so the equality is split in two
+        # 2 rows because the lmpr is an inequality, so the equality is split in two
         self.assertEqual(U.A[U].shape, (6,6))
         self.assertEqual([list(U.A[U].toarray()[i]) for i in range(6)],
 [[1.0,3,3,3,2,2], [-1.0,-3,-3,-3,-2,-2], [-1.0,0,0,0,0,0], [1.0,0,0,0,0,0], [-1.0,0,0,0,0,0], [1.0,0,0,0,0,0]])
 
-        # 2 rows because the lbp is an inequality, so the equality is split in two
+        # 2 rows because the lmpr is an inequality, so the equality is split in two
         self.assertEqual(L.A[L].shape, (2,6))
         self.assertEqual([list(L.A[L].toarray()[i]) for i in range(2)], [[1,1,1,1,1,1],[-1,-1,-1,-1,-1,-1]])
 
@@ -433,9 +433,9 @@ class TestMultilevelTree(unittest.TestCase):
         M.s = SubModel(fixed=M.x)
         M.s.c = pe.Constraint(expr=M.X[0]+sum(M.Y[i] for i in M.Y)+sum(M.Z[i] for i in M.Z) == 0)
 
-        lbp,_ = convert_pyomo2LinearMultilevelProblem(M, inequalities=False)
+        lmpr,_ = convert_pyomo2LinearMultilevelProblem(M, inequalities=False)
         
-        U = lbp.U
+        U = lmpr.U
         L = U.LL
 
         self.assertEqual(len(U.x), len(M.x)+4+len(M.z)+len(M.y))
@@ -443,7 +443,7 @@ class TestMultilevelTree(unittest.TestCase):
 
         self.assertEqual(U.c[U], None)
 
-        # 2 rows because the lbp is an inequality, so the equality is split in two
+        # 2 rows because the lmpr is an inequality, so the equality is split in two
         self.assertEqual(U.A[U].shape, (5,10))
         self.assertEqual([list(U.A[U].toarray()[i]) for i in range(5)],
 [[ 1.0, 0.0, 0.0, 0.0, 0.0, 3, 3, 3, 2, 2],
@@ -452,7 +452,7 @@ class TestMultilevelTree(unittest.TestCase):
  [-1.0, 0.0, 0.0, 1.0, 0.0, 0, 0, 0, 0, 0],
  [ 1.0, 0.0, 0.0, 0.0, 1.0, 0, 0, 0, 0, 0]])
 
-        # 2 rows because the lbp is an inequality, so the equality is split in two
+        # 2 rows because the lmpr is an inequality, so the equality is split in two
         self.assertEqual(L.A[L].shape, (1,6))
         self.assertEqual([list(L.A[L].toarray()[i]) for i in range(1)], [[1,1,1,1,1,1]])
 

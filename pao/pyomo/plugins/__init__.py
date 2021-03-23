@@ -30,5 +30,5 @@ def load():
     #import pao.pyomo.solvers.solver5
     #import pao.pyomo.solvers.solver6
     #import pao.pyomo.solvers.solver7
-    import pao.pyomo.solvers.lbp_solvers
+    import pao.pyomo.solvers.mpr_solvers
 
