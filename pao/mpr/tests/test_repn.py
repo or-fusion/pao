@@ -1,8 +1,8 @@
 import numpy as np
 import scipy.sparse
 import pyutilib.th as unittest
-from pao.lbp import *
-from pao.lbp.repn import SimplifiedList, LinearLevelRepn, LevelVariable, LevelValues, LevelValueWrapper1, LevelValueWrapper2
+from pao.mpr import *
+from pao.mpr.repn import SimplifiedList, LinearLevelRepn, LevelVariable, LevelValues, LevelValueWrapper1, LevelValueWrapper2
 
 
 class A(object):

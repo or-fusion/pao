@@ -5,7 +5,7 @@
 #
 import numpy as np
 from scipy.sparse import coo_matrix
-from pao.lbp import *
+from pao.mpr import *
 
 
 def create():
@@ -34,7 +34,7 @@ def create():
 
 if __name__ == "__main__":          #pragma: no cover
     M = create()
-    opt = Solver('pao.lbp.REG')
+    opt = Solver('pao.mpr.REG')
     res = opt.solve(M, tee=False)
     #M.print()
     print("PAO")

@@ -3,7 +3,7 @@
 # Using implicit index of lower level
 # Using Python list data
 #
-from pao.lbp import *
+from pao.mpr import *
 
 
 def create():
@@ -29,6 +29,6 @@ def create():
 
 if __name__ == "__main__":          #pragma: no cover
     M = create()
-    opt = Solver('pao.lbp.FA')
+    opt = Solver('pao.mpr.FA')
     opt.solve(M)
     M.print()

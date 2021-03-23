@@ -35,7 +35,7 @@ def array2dict(m, start=0, stop=None):
     return {i+offset-start:float(m[i]) for i in range(len(m)) if i>=start and i<stop}
 
 
-def create_pyomo_model(lbp, M):
+def create_pyomo_model(mpr, M):
     '''
     Parameter Import
 
@@ -48,8 +48,8 @@ def create_pyomo_model(lbp, M):
     coefficient vectors and matrices should be dictionaries (with tuples for matrices)
     variable size should be floats
     '''
-    U = lbp.U
-    L = lbp.U.LL[0]
+    U = mpr.U
+    L = mpr.U.LL[0]
 
     mU = len(U.b)
     mR = U.x.nxR
@@ -444,7 +444,7 @@ def check_termination(LB, UB, atol, rtol, quiet):
     return 0
 
 
-def execute_PCCG_solver(lbp, config, results):
+def execute_PCCG_solver(mpr, config, results):
     t = time.time()
 
     #These parameters can be changed for your specific problem
@@ -462,7 +462,7 @@ def execute_PCCG_solver(lbp, config, results):
      
     flag=0
 
-    Parent = create_pyomo_model(lbp, M)
+    Parent = create_pyomo_model(mpr, M)
 
     bigm_xfrm = TransformationFactory('gdp.bigm')
 

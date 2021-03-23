@@ -1,8 +1,8 @@
 import pprint
 import numpy as np
 import pyutilib.th as unittest
-from pao.lbp import *
-from pao.lbp.convert_repn import linearize_bilinear_terms
+from pao.mpr import *
+from pao.mpr.convert_repn import linearize_bilinear_terms
 
 
 class Test_Trivial(unittest.TestCase):
@@ -11,8 +11,8 @@ class Test_Trivial(unittest.TestCase):
         return QuadraticMultilevelProblem()
 
     def test_trivial1(self):
-        lbp = self._create()
-        U = lbp.add_upper(nxR=1, nxZ=2, nxB=3)
+        mpr = self._create()
+        U = mpr.add_upper(nxR=1, nxZ=2, nxB=3)
         L = U.add_lower(nxR=1, nxZ=2, nxB=4)
         U.minimize = False
         U.c[U] = [1, 1, 1, 1, 1, 1]
@@ -22,19 +22,19 @@ class Test_Trivial(unittest.TestCase):
         L.c[U] = [3, 3, 3, 3, 3, 3]
         L.c[L] = [4, 4, 4, 4, 4, 4, 4]
         L.P[U,L] = (6,7), {(3,0):11, (4,1):13, (5,3):17}
-        lbp.check()
+        mpr.check()
 
-        ans, soln = linearize_bilinear_terms(lbp)
+        ans, soln = linearize_bilinear_terms(mpr)
         ans.check()
         self.assertEqual(type(ans), LinearMultilevelProblem)
 
-        self.assertEqual(len(ans.U.c[U]), len(lbp.U.c[U]))
-        self.assertEqual(len(ans.U.c[L]), len(lbp.U.c[L])+3)
+        self.assertEqual(len(ans.U.c[U]), len(mpr.U.c[U]))
+        self.assertEqual(len(ans.U.c[L]), len(mpr.U.c[L])+3)
         self.assertEqual(list(ans.U.c[U]), [1,1,1,1,1,1])
         self.assertEqual(list(ans.U.c[L]), [2,11,13,17,2,2,2,2,2,2])
 
-        self.assertEqual(len(ans.U.LL.c[U]), len(lbp.U.LL.c[U]))
-        self.assertEqual(len(ans.U.LL.c[L]), len(lbp.U.LL.c[L])+3)
+        self.assertEqual(len(ans.U.LL.c[U]), len(mpr.U.LL.c[U]))
+        self.assertEqual(len(ans.U.LL.c[L]), len(mpr.U.LL.c[L])+3)
         self.assertEqual(list(ans.U.LL.c[U]), [3,3,3,3,3,3])
         self.assertEqual(list(ans.U.LL.c[L]), [4,11,13,17,4,4,4,4,4,4])
 
@@ -73,9 +73,9 @@ class Test_Trivial(unittest.TestCase):
  [0.0, 0.0, 0.0, 1.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0],
  [0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]])
 
-        self.assertEqual(len(ans.U.b), len(lbp.U.b))
+        self.assertEqual(len(ans.U.b), len(mpr.U.b))
         self.assertEqual(list(ans.U.b), [])
-        self.assertEqual(len(ans.U.LL.b), len(lbp.U.LL.b)+12)
+        self.assertEqual(len(ans.U.LL.b), len(mpr.U.LL.b)+12)
         self.assertEqual(list(ans.U.LL.b),
  [0.0,
   1000000.0,
@@ -93,8 +93,8 @@ class Test_Trivial(unittest.TestCase):
 
     def test_trivial2(self):
         # Adding more bilinear terms
-        lbp = self._create()
-        U = lbp.add_upper(nxR=1, nxZ=2, nxB=3)
+        mpr = self._create()
+        U = mpr.add_upper(nxR=1, nxZ=2, nxB=3)
         L = U.add_lower(nxR=1, nxZ=2, nxB=4)
         U.minimize = False
         U.c[U] = [1, 1, 1, 1, 1, 1]
@@ -104,19 +104,19 @@ class Test_Trivial(unittest.TestCase):
         L.c[U] = [3, 3, 3, 3, 3, 3]
         L.c[L] = [4, 4, 4, 4, 4, 4, 4]
         L.P[U,L] = (6,7), {(3,1):19, (4,2):23, (5,4):31}
-        lbp.check()
+        mpr.check()
 
-        ans, soln = linearize_bilinear_terms(lbp)
+        ans, soln = linearize_bilinear_terms(mpr)
         ans.check()
         self.assertEqual(type(ans), LinearMultilevelProblem)
 
-        self.assertEqual(len(ans.U.c[U]), len(lbp.U.c[U]))
-        self.assertEqual(len(ans.U.c[L]), len(lbp.U.c[L])+6)
+        self.assertEqual(len(ans.U.c[U]), len(mpr.U.c[U]))
+        self.assertEqual(len(ans.U.c[L]), len(mpr.U.c[L])+6)
         self.assertEqual(list(ans.U.c[U]), [1,1,1,1,1,1])
         self.assertEqual(list(ans.U.c[L]), [2,11,13,17,0,0,0,2,2,2,2,2,2])
 
-        self.assertEqual(len(ans.U.LL.c[U]), len(lbp.U.LL.c[U]))
-        self.assertEqual(len(ans.U.LL.c[L]), len(lbp.U.LL.c[L])+6)
+        self.assertEqual(len(ans.U.LL.c[U]), len(mpr.U.LL.c[U]))
+        self.assertEqual(len(ans.U.LL.c[L]), len(mpr.U.LL.c[L])+6)
         self.assertEqual(list(ans.U.LL.c[U]), [3,3,3,3,3,3])
         self.assertEqual(list(ans.U.LL.c[L]), [4,0,0,0,19,23,31,4,4,4,4,4,4])
 
@@ -180,7 +180,7 @@ class Test_Trivial(unittest.TestCase):
  [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]])
 
 
-        self.assertEqual(len(ans.U.LL.b), len(lbp.U.LL.b)+24)
+        self.assertEqual(len(ans.U.LL.b), len(mpr.U.LL.b)+24)
         #pprint.pprint(list(ans.U.LL.b))
         self.assertEqual(list(ans.U.LL.b), 
 [0.0,
@@ -210,8 +210,8 @@ class Test_Trivial(unittest.TestCase):
 
     def test_trivial3(self):
         # Adding more bilinear terms
-        lbp = self._create()
-        U = lbp.add_upper(nxR=1, nxZ=2, nxB=3)
+        mpr = self._create()
+        U = mpr.add_upper(nxR=1, nxZ=2, nxB=3)
         L = U.add_lower(nxR=1, nxZ=2, nxB=4)
         U.x.lower_bounds = [11,11,11,0,0,0]
         U.x.upper_bounds = [13,13,13,1,1,1]
@@ -225,19 +225,19 @@ class Test_Trivial(unittest.TestCase):
         L.c[U] = [3, 3, 3, 3, 3, 3]
         L.c[L] = [4, 4, 4, 4, 4, 4, 4]
         L.P[U,L] = (6,7), {(3,1):11, (4,2):13, (5,4):17}
-        lbp.check()
+        mpr.check()
 
-        ans, soln = linearize_bilinear_terms(lbp)
+        ans, soln = linearize_bilinear_terms(mpr)
         ans.check()
         self.assertEqual(type(ans), LinearMultilevelProblem)
 
-        self.assertEqual(len(ans.U.c[U]), len(lbp.U.c[U]))
-        self.assertEqual(len(ans.U.c[L]), len(lbp.U.c[L])+6)
+        self.assertEqual(len(ans.U.c[U]), len(mpr.U.c[U]))
+        self.assertEqual(len(ans.U.c[L]), len(mpr.U.c[L])+6)
         self.assertEqual(list(ans.U.c[U]), [1,1,1,1,1,1])
         self.assertEqual(list(ans.U.c[L]), [2,11,13,17,0,0,0,2,2,2,2,2,2])
 
-        self.assertEqual(len(ans.U.LL.c[U]), len(lbp.U.LL.c[U]))
-        self.assertEqual(len(ans.U.LL.c[L]), len(lbp.U.LL.c[L])+6)
+        self.assertEqual(len(ans.U.LL.c[U]), len(mpr.U.LL.c[U]))
+        self.assertEqual(len(ans.U.LL.c[L]), len(mpr.U.LL.c[L])+6)
         self.assertEqual(list(ans.U.LL.c[U]), [3,3,3,3,3,3])
         self.assertEqual(list(ans.U.LL.c[L]), [4,0,0,0,11,13,17,4,4,4,4,4,4])
 
@@ -300,7 +300,7 @@ class Test_Trivial(unittest.TestCase):
  [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0],
  [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]])
 
-        self.assertEqual(len(ans.U.LL.b), len(lbp.U.LL.b)+24)
+        self.assertEqual(len(ans.U.LL.b), len(mpr.U.LL.b)+24)
         self.assertEqual(list(ans.U.LL.b), 
 [0.0,
 17.0,
@@ -329,8 +329,8 @@ class Test_Trivial(unittest.TestCase):
 
     def test_trivial4(self):
         # Adding more bilinear terms
-        lbp = self._create()
-        U = lbp.add_upper(nxR=1, nxZ=2, nxB=3)
+        mpr = self._create()
+        U = mpr.add_upper(nxR=1, nxZ=2, nxB=3)
         L = U.add_lower(nxR=1, nxZ=2, nxB=4)
         U.x.lower_bounds = [11,11,11,0,0,0]
         U.x.upper_bounds = [13,13,13,1,1,1]
@@ -350,19 +350,19 @@ class Test_Trivial(unittest.TestCase):
         L.A[U] = (1,6),{(0,5):-2}
         L.A[L] = (1,7),{(0,6):-2}
         L.b = [-2]
-        lbp.check()
+        mpr.check()
 
-        ans, soln = linearize_bilinear_terms(lbp)
+        ans, soln = linearize_bilinear_terms(mpr)
         ans.check()
         self.assertEqual(type(ans), LinearMultilevelProblem)
 
-        self.assertEqual(len(ans.U.c[U]), len(lbp.U.c[U]))
-        self.assertEqual(len(ans.U.c[L]), len(lbp.U.c[L])+6)
+        self.assertEqual(len(ans.U.c[U]), len(mpr.U.c[U]))
+        self.assertEqual(len(ans.U.c[L]), len(mpr.U.c[L])+6)
         self.assertEqual(list(ans.U.c[U]), [1,1,1,1,1,1])
         self.assertEqual(list(ans.U.c[L]), [2,11,13,17,0,0,0,2,2,2,2,2,2])
 
-        self.assertEqual(len(ans.U.LL.c[U]), len(lbp.U.LL.c[U]))
-        self.assertEqual(len(ans.U.LL.c[L]), len(lbp.U.LL.c[L])+6)
+        self.assertEqual(len(ans.U.LL.c[U]), len(mpr.U.LL.c[U]))
+        self.assertEqual(len(ans.U.LL.c[L]), len(mpr.U.LL.c[L])+6)
         self.assertEqual(list(ans.U.LL.c[U]), [3,3,3,3,3,3])
         self.assertEqual(list(ans.U.LL.c[L]), [4,0,0,0,11,13,17,4,4,4,4,4,4])
 
@@ -433,10 +433,10 @@ class Test_Trivial(unittest.TestCase):
  [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0],
  [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]])
 
-        self.assertEqual(len(ans.U.b), len(lbp.U.b))
+        self.assertEqual(len(ans.U.b), len(mpr.U.b))
         self.assertEqual(list(ans.U.b), [2])
 
-        self.assertEqual(len(ans.U.LL.b), len(lbp.U.LL.b)+24)
+        self.assertEqual(len(ans.U.LL.b), len(mpr.U.LL.b)+24)
         self.assertEqual(list(ans.U.LL.b), 
 [-2.0,
 0.0,
@@ -466,8 +466,8 @@ class Test_Trivial(unittest.TestCase):
 
     def test_trivial5(self):
         # Adding more bilinear terms
-        lbp = self._create()
-        U = lbp.add_upper(nxR=1, nxZ=2, nxB=3)
+        mpr = self._create()
+        U = mpr.add_upper(nxR=1, nxZ=2, nxB=3)
         L = U.add_lower(nxR=1, nxZ=2, nxB=4)
         U.x.lower_bounds = [11,11,11,0,0,0]
         U.x.upper_bounds = [13,13,13,1,1,1]
@@ -487,19 +487,19 @@ class Test_Trivial(unittest.TestCase):
         L.A[L] = (1,7),{(0,6):-2}
         L.Q[U,L] = (1,6,7), {(0,3,1):11, (0,4,2):13, (0,5,4):17}
         L.b = [-2]
-        lbp.check()
+        mpr.check()
 
-        ans, soln = linearize_bilinear_terms(lbp)
+        ans, soln = linearize_bilinear_terms(mpr)
         ans.check()
         self.assertEqual(type(ans), LinearMultilevelProblem)
 
-        self.assertEqual(len(ans.U.c[U]), len(lbp.U.c[U]))
-        self.assertEqual(len(ans.U.c[L]), len(lbp.U.c[L])+6)
+        self.assertEqual(len(ans.U.c[U]), len(mpr.U.c[U]))
+        self.assertEqual(len(ans.U.c[L]), len(mpr.U.c[L])+6)
         self.assertEqual(list(ans.U.c[U]), [1,1,1,1,1,1])
         self.assertEqual(list(ans.U.c[L]), [2,11,13,17,0,0,0,2,2,2,2,2,2])
 
-        self.assertEqual(len(ans.U.LL.c[U]), len(lbp.U.LL.c[U]))
-        self.assertEqual(len(ans.U.LL.c[L]), len(lbp.U.LL.c[L])+6)
+        self.assertEqual(len(ans.U.LL.c[U]), len(mpr.U.LL.c[U]))
+        self.assertEqual(len(ans.U.LL.c[L]), len(mpr.U.LL.c[L])+6)
         self.assertEqual(list(ans.U.LL.c[U]), [3,3,3,3,3,3])
         self.assertEqual(list(ans.U.LL.c[L]), [4,0,0,0,0,0,0,4,4,4,4,4,4])
 
@@ -568,10 +568,10 @@ class Test_Trivial(unittest.TestCase):
  [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0],
  [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]])
 
-        self.assertEqual(len(ans.U.b), len(lbp.U.b))
+        self.assertEqual(len(ans.U.b), len(mpr.U.b))
         self.assertEqual(list(ans.U.b), [2])
 
-        self.assertEqual(len(ans.U.LL.b), len(lbp.U.LL.b)+24)
+        self.assertEqual(len(ans.U.LL.b), len(mpr.U.LL.b)+24)
         self.assertEqual(list(ans.U.LL.b), 
 [-2.0,
 0.0,

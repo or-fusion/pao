@@ -2,7 +2,7 @@
 # Example from Pineda and Morales (2018), showing how
 # bad estimates of bigMs give the wrong answer.
 #
-from pao.lbp import *
+from pao.mpr import *
 
 
 def create():
@@ -29,6 +29,6 @@ def create():
 
 if __name__ == "__main__":          #pragma: no cover
     M = create()
-    opt = Solver('pao.lbp.FA')
+    opt = Solver('pao.mpr.FA')
     opt.solve(M)
     M.print()

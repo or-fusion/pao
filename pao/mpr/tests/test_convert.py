@@ -1,7 +1,7 @@
 import numpy as np
 import pyutilib.th as unittest
-from pao.lbp import *
-from pao.lbp.convert_repn import convert_to_standard_form, convert_binaries_to_integers
+from pao.mpr import *
+from pao.mpr.convert_repn import convert_to_standard_form, convert_binaries_to_integers
 
 
 class Test_Trivial(unittest.TestCase):
@@ -12,65 +12,65 @@ class Test_Trivial(unittest.TestCase):
     def test_trivial1(self):
         # No changes are expected with a trivial problem
         #   with upper-level variables
-        lbp = self._create()
-        U = lbp.add_upper(nxR=1, nxZ=2, nxB=3)
-        lbp.check()
+        mpr = self._create()
+        U = mpr.add_upper(nxR=1, nxZ=2, nxB=3)
+        mpr.check()
 
-        ans, soln_manager = convert_to_standard_form(lbp)
+        ans, soln_manager = convert_to_standard_form(mpr)
         ans.check()
 
         self.assertEqual(ans.U.d, 0)
         self.assertEqual(ans.U.c[U], None)
-        self.assertEqual(lbp.U.c[U], None)
+        self.assertEqual(mpr.U.c[U], None)
         self.assertEqual(ans.U.A[U], None)
-        self.assertEqual(lbp.U.A[U], None)
-        self.assertEqual(len(ans.U.b), len(lbp.U.b))
+        self.assertEqual(mpr.U.A[U], None)
+        self.assertEqual(len(ans.U.b), len(mpr.U.b))
 
     def test_trivial1L(self):
         # No changes are expected with a trivial problem
         #   with upper-level variables
-        lbp = self._create()
-        U = lbp.add_upper(nxR=1, nxZ=2, nxB=3)
+        mpr = self._create()
+        U = mpr.add_upper(nxR=1, nxZ=2, nxB=3)
         L = U.add_lower(nxR=1, nxZ=2, nxB=3)
         L.x.lower_bounds = [0]*6
-        lbp.check()
+        mpr.check()
 
-        ans, soln_manager = convert_to_standard_form(lbp)
+        ans, soln_manager = convert_to_standard_form(mpr)
         ans.check()
 
         self.assertEqual(ans.U.c[U], None)
-        self.assertEqual(lbp.U.c[U], None)
+        self.assertEqual(mpr.U.c[U], None)
 
         self.assertEqual(ans.U.d, 0)
 
         self.assertEqual(ans.U.A[U], None)
-        self.assertEqual(lbp.U.A[U], None)
-        self.assertEqual(len(ans.U.b), len(lbp.U.b))
+        self.assertEqual(mpr.U.A[U], None)
+        self.assertEqual(len(ans.U.b), len(mpr.U.b))
 
     def test_trivial2(self):
         # No changes are expected with a trivial problem
         #   with upper-level variables
         #   with upper-level objective
-        lbp = self._create()
-        U = lbp.add_upper(nxR=1, nxZ=2, nxB=3)
+        mpr = self._create()
+        U = mpr.add_upper(nxR=1, nxZ=2, nxB=3)
         U.c[U] = [1, 1, 1, 1, 1, 1]
-        lbp.check()
+        mpr.check()
 
-        ans, soln_manager = convert_to_standard_form(lbp)
+        ans, soln_manager = convert_to_standard_form(mpr)
         ans.check()
 
         self.assertEqual(ans.U.d, 0)
-        self.assertEqual(len(ans.U.c[U]), len(lbp.U.c[U])+3)
+        self.assertEqual(len(ans.U.c[U]), len(mpr.U.c[U])+3)
         self.assertEqual(ans.U.A[U], None)
-        self.assertEqual(lbp.U.A[U], None)
-        self.assertEqual(len(ans.U.b), len(lbp.U.b))
+        self.assertEqual(mpr.U.A[U], None)
+        self.assertEqual(len(ans.U.b), len(mpr.U.b))
 
     def test_trivial2_max(self):
         # No changes are expected with a trivial problem
         #   with upper-level variables
         #   with upper-level objective
-        lbp = self._create()
-        U = lbp.add_upper(nxR=1, nxZ=2, nxB=3)
+        mpr = self._create()
+        U = mpr.add_upper(nxR=1, nxZ=2, nxB=3)
         L = U.add_lower(nxR=1, nxZ=2, nxB=4)
         U.minimize = False
         U.c[U] = [1, 1, 1, 1, 1, 1]
@@ -80,16 +80,16 @@ class Test_Trivial(unittest.TestCase):
         L.c[U] = [3, 3, 3, 3, 3, 3]
         L.c[L] = [4, 4, 4, 4, 4, 4, 4]
         #L.P[U,L] = (6,7), {(i,i):5 for i in range(6)}
-        lbp.check()
+        mpr.check()
 
-        ans, soln_manager = convert_to_standard_form(lbp)
+        ans, soln_manager = convert_to_standard_form(mpr)
         ans.check()
 
-        self.assertEqual(len(ans.U.c[U]), len(lbp.U.c[U])+3)
+        self.assertEqual(len(ans.U.c[U]), len(mpr.U.c[U])+3)
         self.assertEqual(list(ans.U.c[U]), [-1,1,-1,-1,1,1,-1,-1,-1])
         self.assertEqual(list(ans.U.c[L]), [-2,2,-2,-2,2,2,-2,-2,-2,-2])
 
-        self.assertEqual(len(ans.U.LL.c[L]), len(lbp.U.LL.c[L])+3)
+        self.assertEqual(len(ans.U.LL.c[L]), len(mpr.U.LL.c[L])+3)
         self.assertEqual(list(ans.U.LL.c[U]), [-3,3,-3,-3,3,3,-3,-3,-3])
         self.assertEqual(list(ans.U.LL.c[L]), [-4,4,-4,-4,4,4,-4,-4,-4,-4])
 
@@ -101,26 +101,26 @@ class Test_Trivial(unittest.TestCase):
         self.assertEqual(ans.U.d, 0)
 
         self.assertEqual(ans.U.A[U], None)
-        self.assertEqual(lbp.U.A[U], None)
+        self.assertEqual(mpr.U.A[U], None)
 
-        self.assertEqual(len(ans.U.b), len(lbp.U.b))
+        self.assertEqual(len(ans.U.b), len(mpr.U.b))
 
     def test_trivial3(self):
         # No changes are expected with a trivial problem
         #   with upper-level variables
         #   with upper-level objective
         #   with lower-level variables
-        lbp = self._create()
-        U = lbp.add_upper(nxR=1, nxZ=2, nxB=3)
+        mpr = self._create()
+        U = mpr.add_upper(nxR=1, nxZ=2, nxB=3)
         L = U.add_lower(nxR=1, nxZ=2, nxB=3)
         U.c[U] = [1]*6
         #U.P[U,L] = (6,6), {(i,i):1 for i in range(6)}
-        lbp.check()
+        mpr.check()
 
-        ans, soln_manager = convert_to_standard_form(lbp)
+        ans, soln_manager = convert_to_standard_form(mpr)
         ans.check()
 
-        self.assertEqual(len(ans.U.c[U]), len(lbp.U.c[U])+3)
+        self.assertEqual(len(ans.U.c[U]), len(mpr.U.c[U])+3)
         #self.assertEqual( dict(ans.U.P[U,L].todok()), {(0, 0): 1.0, (0, 1): -1.0, (1, 0): -1.0, (1, 1): 1.0, (2, 2): 1.0, (2, 4): -1.0, (3, 3): 1.0, (3, 5): -1.0, (4, 2): -1.0, (4, 4): 1.0, (5, 3): -1.0, (5, 5): 1.0, (6, 6): 1.0, (7, 7): 1.0, (8, 8): 1.0})
         self.assertEqual(ans.U.d, 0)
 
@@ -130,11 +130,11 @@ class Test_Trivial(unittest.TestCase):
 
         self.assertEqual(ans.U.A[U], None)
 
-        self.assertEqual(len(ans.U.b), len(lbp.U.b))
+        self.assertEqual(len(ans.U.b), len(mpr.U.b))
 
         self.assertEqual(ans.U.LL.A[L], None)
 
-        self.assertEqual(len(ans.U.LL.b), len(lbp.U.LL.b))
+        self.assertEqual(len(ans.U.LL.b), len(mpr.U.LL.b))
 
     def test_trivial4(self):
         # No changes are expected with a trivial problem
@@ -142,8 +142,8 @@ class Test_Trivial(unittest.TestCase):
         #   with upper-level objective
         #   with lower-level variables
         #   with lower-level objective
-        lbp = self._create()
-        U = lbp.add_upper(nxR=1, nxZ=2, nxB=3)
+        mpr = self._create()
+        U = mpr.add_upper(nxR=1, nxZ=2, nxB=3)
         L = U.add_lower(nxR=2, nxZ=3, nxB=4)
         U.c[U] = [1]*6
         U.c[L] = [1]*9
@@ -151,24 +151,24 @@ class Test_Trivial(unittest.TestCase):
         L.c[L] = [1]*9
         #U.P[U,L] = (6,9), {(i,i):1 for i in range(6)}
         #L.P[U,L] = (6,9), {(i,i):2 for i in range(6)}
-        lbp.check()
+        mpr.check()
 
-        ans, soln_manager = convert_to_standard_form(lbp)
+        ans, soln_manager = convert_to_standard_form(mpr)
         ans.check()
 
-        self.assertEqual(len(ans.U.c[U]), len(lbp.U.c[U])+3)
+        self.assertEqual(len(ans.U.c[U]), len(mpr.U.c[U])+3)
         #self.assertEqual( ans.U.P[U,L].shape, (9,14))
         #self.assertEqual( dict(ans.U.P[U,L].todok()), {(0, 0): 1.0, (0, 2): -1.0, (1, 0): -1.0, (1, 2): 1.0, (2, 1): 1.0, (2, 3): -1.0, (3, 4): 1.0, (3, 7): -1.0, (4, 1): -1.0, (4, 3): 1.0, (5, 4): -1.0, (5, 7): 1.0, (6, 5): 1.0, (6, 8): -1.0, (7, 6): 1.0, (7, 9): -1.0, (8, 10): 1.0})
         self.assertEqual(ans.U.d, 0)
-        self.assertEqual(len(ans.U.LL.c[U]), len(lbp.U.LL.c[U])+3)
+        self.assertEqual(len(ans.U.LL.c[U]), len(mpr.U.LL.c[U])+3)
         #self.assertEqual( ans.U.LL.P[U,L].shape, (9,14))
         #self.assertEqual( dict(ans.U.LL.P[U,L].todok()), {(0, 0): 2.0, (0, 2): -2.0, (1, 0): -2.0, (1, 2): 2.0, (2, 1): 2.0, (2, 3): -2.0, (3, 4): 2.0, (3, 7): -2.0, (4, 1): -2.0, (4, 3): 2.0, (5, 4): -2.0, (5, 7): 2.0, (6, 5): 2.0, (6, 8): -2.0, (7, 6): 2.0, (7, 9): -2.0, (8, 10): 2.0})
         self.assertEqual(ans.U.LL.d, 0)
 
         self.assertEqual(ans.U.A[U], None)
-        self.assertEqual(len(ans.U.b), len(lbp.U.b))
+        self.assertEqual(len(ans.U.b), len(mpr.U.b))
         self.assertEqual(ans.U.LL.A[U], None)
-        self.assertEqual(len(ans.U.LL.b), len(lbp.U.LL.b))
+        self.assertEqual(len(ans.U.LL.b), len(mpr.U.LL.b))
 
 
 class Test_Upper(unittest.TestCase):
@@ -179,73 +179,73 @@ class Test_Upper(unittest.TestCase):
     def test_test3(self):
         # Expect Changes - Nontrivial problem
         #   upper-level inequality constraints, so slack variables should be added
-        lbp = self._create()
-        U = lbp.add_upper(nxR=1, nxZ=2, nxB=3)
+        mpr = self._create()
+        U = mpr.add_upper(nxR=1, nxZ=2, nxB=3)
         U.x.lower_bounds[0] = 0
         U.A[U] = [[1,0,0,0,0,0]]
         U.b = [2]
-        lbp.check()
+        mpr.check()
 
-        ans, soln_manager = convert_to_standard_form(lbp)
+        ans, soln_manager = convert_to_standard_form(mpr)
         ans.check()
 
         self.assertEqual(ans.U.d, 0)
         self.assertEqual(ans.U.c[U], None)
-        self.assertEqual(lbp.U.c[U], None)
-        self.assertEqual(ans.U.A[U].shape[0], lbp.U.A[U].shape[0])
-        self.assertEqual(ans.U.A[U].shape[1], lbp.U.A[U].shape[1]+3)
-        self.assertEqual(len(ans.U.b), len(lbp.U.b))
-        self.assertEqual(len(ans.U.x), len(lbp.U.x)+3)
+        self.assertEqual(mpr.U.c[U], None)
+        self.assertEqual(ans.U.A[U].shape[0], mpr.U.A[U].shape[0])
+        self.assertEqual(ans.U.A[U].shape[1], mpr.U.A[U].shape[1]+3)
+        self.assertEqual(len(ans.U.b), len(mpr.U.b))
+        self.assertEqual(len(ans.U.x), len(mpr.U.x)+3)
 
     def test_test3_inequality(self):
         # Expect Changes - Nontrivial problem
         #   upper-level equality constraints, so unconstrained variables are duplicated
-        lbp = self._create()
-        U = lbp.add_upper(nxR=1, nxZ=2, nxB=3)
+        mpr = self._create()
+        U = mpr.add_upper(nxR=1, nxZ=2, nxB=3)
         U.equalities = True
         U.x.lower_bounds[0] = 0
         U.A[U] = [[1,0,0,0,0,0]]
         U.b = [2]
-        lbp.check()
+        mpr.check()
 
-        ans, soln_manager = convert_to_standard_form(lbp, inequalities=True)
+        ans, soln_manager = convert_to_standard_form(mpr, inequalities=True)
         ans.check()
 
         self.assertEqual(ans.U.d, 0)
         self.assertEqual(ans.U.c[U], None)
-        self.assertEqual(lbp.U.c[U], None)
-        self.assertEqual(ans.U.A[U].shape[0], 2*lbp.U.A[U].shape[0])
-        self.assertEqual(ans.U.A[U].shape[1], lbp.U.A[U].shape[1]+2)
-        self.assertEqual(len(ans.U.b), 2*len(lbp.U.b))
-        self.assertEqual(len(ans.U.x), len(lbp.U.x)+2)
+        self.assertEqual(mpr.U.c[U], None)
+        self.assertEqual(ans.U.A[U].shape[0], 2*mpr.U.A[U].shape[0])
+        self.assertEqual(ans.U.A[U].shape[1], mpr.U.A[U].shape[1]+2)
+        self.assertEqual(len(ans.U.b), 2*len(mpr.U.b))
+        self.assertEqual(len(ans.U.x), len(mpr.U.x)+2)
 
     def test_test3L(self):
         # Expect Changes - Nontrivial problem
         #   upper-level inequality constraints, so slack variables should be added
-        lbp = self._create()
-        U = lbp.add_upper(nxR=1, nxZ=2, nxB=3)
+        mpr = self._create()
+        U = mpr.add_upper(nxR=1, nxZ=2, nxB=3)
         L = U.add_lower(nxZ=2, nxB=3)
         U.x.lower_bounds[0] = 0
         U.A[U] = [[1,0,0,0,0,0]]
         U.b = [2]
-        lbp.check()
+        mpr.check()
 
-        ans, soln_manager = convert_to_standard_form(lbp)
+        ans, soln_manager = convert_to_standard_form(mpr)
         ans.check()
 
         self.assertEqual(ans.U.d, 0)
         self.assertEqual(ans.U.c[U], None)
-        self.assertEqual(lbp.U.c[U], None)
-        self.assertEqual(ans.U.A[U].shape[0], lbp.U.A[U].shape[0])
-        self.assertEqual(ans.U.A[U].shape[1], lbp.U.A[U].shape[1]+3)
-        self.assertEqual(len(ans.U.b), len(lbp.U.b))
-        self.assertEqual(len(ans.U.x), len(lbp.U.x)+3)
+        self.assertEqual(mpr.U.c[U], None)
+        self.assertEqual(ans.U.A[U].shape[0], mpr.U.A[U].shape[0])
+        self.assertEqual(ans.U.A[U].shape[1], mpr.U.A[U].shape[1]+3)
+        self.assertEqual(len(ans.U.b), len(mpr.U.b))
+        self.assertEqual(len(ans.U.x), len(mpr.U.x)+3)
 
     def test_test4(self):
         # Expect Changes - Nontrivial problem
         #   upper-level lower bounds, so the const objective and RHS are changed
-        lbp = self._create()
-        U = lbp.add_upper(nxR=1, nxZ=2, nxB=3)
+        mpr = self._create()
+        U = mpr.add_upper(nxR=1, nxZ=2, nxB=3)
         U.equalities = True
         U.x.lower_bounds[0] = 3
         U.x.lower_bounds[1] = 0
@@ -253,26 +253,26 @@ class Test_Upper(unittest.TestCase):
         U.c[U] = [2,0,0,0,0,0]
         U.A[U] = [[5,0,0,0,0,0]]
         U.b = [7]
-        lbp.check()
+        mpr.check()
 
-        ans, soln_manager = convert_to_standard_form(lbp)
+        ans, soln_manager = convert_to_standard_form(mpr)
         ans.check()
 
         self.assertEqual(ans.U.d, 6)
-        self.assertEqual(len(ans.U.c[U]), len(lbp.U.c[U]))
+        self.assertEqual(len(ans.U.c[U]), len(mpr.U.c[U]))
         self.assertEqual(ans.U.c[U][0], 2)
-        self.assertEqual(ans.U.A[U].shape[0], lbp.U.A[U].shape[0])
-        self.assertEqual(ans.U.A[U].shape[1], lbp.U.A[U].shape[1])
+        self.assertEqual(ans.U.A[U].shape[0], mpr.U.A[U].shape[0])
+        self.assertEqual(ans.U.A[U].shape[1], mpr.U.A[U].shape[1])
         self.assertEqual(ans.U.A[U].todok()[0,0], 5)
-        self.assertEqual(len(ans.U.b), len(lbp.U.b))
+        self.assertEqual(len(ans.U.b), len(mpr.U.b))
         self.assertEqual(ans.U.b[0], -8)
-        self.assertEqual(len(ans.U.x), len(lbp.U.x))
+        self.assertEqual(len(ans.U.x), len(mpr.U.x))
 
     def test_test4L(self):
         # Expect Changes - Nontrivial problem
         #   upper-level lower bounds, so the const objective and RHS are changed
-        lbp = self._create()
-        U = lbp.add_upper(nxR=1, nxZ=2, nxB=3)
+        mpr = self._create()
+        U = mpr.add_upper(nxR=1, nxZ=2, nxB=3)
         L = U.add_lower(nxZ=2, nxB=3)
         U.equalities = True
         U.x.lower_bounds[0] = 3
@@ -282,29 +282,29 @@ class Test_Upper(unittest.TestCase):
         U.A[U] = [[5,0,0,0,0,0]]
         U.b = [7]
         L.c[U] = [9,0,0,0,0,0]
-        lbp.check()
+        mpr.check()
 
-        ans, soln_manager = convert_to_standard_form(lbp)
+        ans, soln_manager = convert_to_standard_form(mpr)
         ans.check()
 
         self.assertEqual(ans.U.d, 6)
-        self.assertEqual(len(ans.U.c[U]), len(lbp.U.c[U]))
+        self.assertEqual(len(ans.U.c[U]), len(mpr.U.c[U]))
         self.assertEqual(ans.U.c[U][0], 2)
         self.assertEqual(ans.U.LL.d, 27)
         self.assertEqual(ans.U.LL.c[L], None)
-        self.assertEqual(lbp.U.LL.c[L], None)
+        self.assertEqual(mpr.U.LL.c[L], None)
         self.assertEqual(ans.U.LL.c[U][0], 9)
-        self.assertEqual(ans.U.A[U].shape, lbp.U.A[U].shape)
+        self.assertEqual(ans.U.A[U].shape, mpr.U.A[U].shape)
         self.assertEqual(ans.U.A[U].todok()[0,0], 5)
-        self.assertEqual(len(ans.U.b), len(lbp.U.b))
+        self.assertEqual(len(ans.U.b), len(mpr.U.b))
         self.assertEqual(ans.U.b[0], -8)
-        self.assertEqual(len(ans.U.x), len(lbp.U.x))
+        self.assertEqual(len(ans.U.x), len(mpr.U.x))
 
     def test_test4_inequality(self):
         # Expect Changes - Nontrivial problem
         #   upper-level lower bounds, so the const objective and RHS are changed
-        lbp = self._create()
-        U = lbp.add_upper(nxR=1, nxZ=2, nxB=3)
+        mpr = self._create()
+        U = mpr.add_upper(nxR=1, nxZ=2, nxB=3)
         U.inequalities = True
         U.x.lower_bounds[0] = 3
         U.x.lower_bounds[1] = 0
@@ -312,50 +312,50 @@ class Test_Upper(unittest.TestCase):
         U.c[U] = [2,0,0,0,0,0]
         U.A[U] = [[5,0,0,0,0,0]]
         U.b = [7]
-        lbp.check()
+        mpr.check()
 
-        ans, soln_manager = convert_to_standard_form(lbp, inequalities=True)
+        ans, soln_manager = convert_to_standard_form(mpr, inequalities=True)
         ans.check()
 
         self.assertEqual(ans.U.d, 6)
-        self.assertEqual(len(ans.U.c[U]), len(lbp.U.c[U]))
+        self.assertEqual(len(ans.U.c[U]), len(mpr.U.c[U]))
         self.assertEqual(ans.U.c[U][0], 2)
-        self.assertEqual(ans.U.A[U].shape, lbp.U.A[U].shape)
+        self.assertEqual(ans.U.A[U].shape, mpr.U.A[U].shape)
         self.assertEqual(ans.U.A[U].todok()[0,0], 5)
-        self.assertEqual(len(ans.U.b), len(lbp.U.b))
+        self.assertEqual(len(ans.U.b), len(mpr.U.b))
         self.assertEqual(ans.U.b[0], -8)
-        self.assertEqual(len(ans.U.x), len(lbp.U.x))
+        self.assertEqual(len(ans.U.x), len(mpr.U.x))
 
     def test_test5(self):
         # Expect Changes - Nontrivial problem
         #   upper-level upper bounds, so the const objective and RHS are changed
-        lbp = self._create()
-        U = lbp.add_upper(nxR=1, nxZ=2, nxB=3)
+        mpr = self._create()
+        U = mpr.add_upper(nxR=1, nxZ=2, nxB=3)
         U.equalities = True
         U.x.upper_bounds = [3, np.PINF, np.PINF, 1, 1, 1]
         U.c[U] = [2,0,0,0,0,0]
         U.A[U] = [[5,0,0,0,0,0]]
         U.b = [7]
-        lbp.check()
+        mpr.check()
 
-        ans, soln_manager = convert_to_standard_form(lbp)
+        ans, soln_manager = convert_to_standard_form(mpr)
         ans.check()
 
         self.assertEqual(ans.U.d, 6)
-        self.assertEqual(len(ans.U.c[U]), len(lbp.U.c[U])+2)
+        self.assertEqual(len(ans.U.c[U]), len(mpr.U.c[U])+2)
         self.assertEqual(ans.U.c[U][0], -2)
-        self.assertEqual(ans.U.A[U].shape[0], lbp.U.A[U].shape[0])
-        self.assertEqual(ans.U.A[U].shape[1], lbp.U.A[U].shape[1]+2)
+        self.assertEqual(ans.U.A[U].shape[0], mpr.U.A[U].shape[0])
+        self.assertEqual(ans.U.A[U].shape[1], mpr.U.A[U].shape[1]+2)
         self.assertEqual(ans.U.A[U].todok()[0,0], -5)
-        self.assertEqual(len(ans.U.b), len(lbp.U.b))
+        self.assertEqual(len(ans.U.b), len(mpr.U.b))
         self.assertEqual(ans.U.b[0], -8)
-        self.assertEqual(len(ans.U.x), len(lbp.U.x)+2)
+        self.assertEqual(len(ans.U.x), len(mpr.U.x)+2)
 
     def test_test5L(self):
         # Expect Changes - Nontrivial problem
         #   upper-level upper bounds, so the const objective and RHS are changed
-        lbp = self._create()
-        U = lbp.add_upper(nxR=1, nxZ=2, nxB=3)
+        mpr = self._create()
+        U = mpr.add_upper(nxR=1, nxZ=2, nxB=3)
         L = U.add_lower(nxZ=2, nxB=3)
         U.equalities = True
         U.x.upper_bounds[0] = 3
@@ -363,85 +363,85 @@ class Test_Upper(unittest.TestCase):
         U.A[U] = [[5,0,0,0,0,0]]
         U.b = [7]
         L.c[U] = [9,0,0,0,0,0]
-        lbp.check()
+        mpr.check()
 
-        ans, soln_manager = convert_to_standard_form(lbp)
+        ans, soln_manager = convert_to_standard_form(mpr)
         ans.check()
 
         self.assertEqual(ans.U.d, 6)
-        self.assertEqual(len(ans.U.c[U]), len(lbp.U.c[U])+2)
+        self.assertEqual(len(ans.U.c[U]), len(mpr.U.c[U])+2)
         self.assertEqual(ans.U.c[U][0], -2)
         self.assertEqual(ans.U.LL.d, 27)
         self.assertEqual(ans.U.LL.c[L], None)
-        self.assertEqual(lbp.U.LL.c[L], None)
+        self.assertEqual(mpr.U.LL.c[L], None)
         self.assertEqual(ans.U.LL.c[U][0], -9)
-        self.assertEqual(ans.U.A[U].shape[0], lbp.U.A[U].shape[0])
-        self.assertEqual(ans.U.A[U].shape[1], lbp.U.A[U].shape[1]+2)
+        self.assertEqual(ans.U.A[U].shape[0], mpr.U.A[U].shape[0])
+        self.assertEqual(ans.U.A[U].shape[1], mpr.U.A[U].shape[1]+2)
         self.assertEqual(ans.U.A[U].todok()[0,0], -5)
-        self.assertEqual(len(ans.U.b), len(lbp.U.b))
+        self.assertEqual(len(ans.U.b), len(mpr.U.b))
         self.assertEqual(ans.U.b[0], -8)
-        self.assertEqual(len(ans.U.x), len(lbp.U.x)+2)
+        self.assertEqual(len(ans.U.x), len(mpr.U.x)+2)
 
     def test_test5_inequality(self):
         # Expect Changes - Nontrivial problem
         #   upper-level upper bounds, so the const objective and RHS are changed
-        lbp = self._create()
-        U = lbp.add_upper(nxR=1, nxZ=2, nxB=3)
+        mpr = self._create()
+        U = mpr.add_upper(nxR=1, nxZ=2, nxB=3)
         U.inequalities = True
         U.x.upper_bounds[0] = 3
         U.c[U] = [2,0,0,0,0,0]
         U.A[U] = [[5,0,0,0,0,0]]
         U.b = [7]
-        lbp.check()
+        mpr.check()
 
-        ans, soln_manager = convert_to_standard_form(lbp, inequalities=True)
+        ans, soln_manager = convert_to_standard_form(mpr, inequalities=True)
         ans.check()
 
         self.assertEqual(ans.U.d, 6)
-        self.assertEqual(len(ans.U.c[U]), len(lbp.U.c[U])+2)
+        self.assertEqual(len(ans.U.c[U]), len(mpr.U.c[U])+2)
         self.assertEqual(ans.U.c[U][0], -2)
-        self.assertEqual(ans.U.A[U].shape[0], lbp.U.A[U].shape[0])
-        self.assertEqual(ans.U.A[U].shape[1], lbp.U.A[U].shape[1]+2)
+        self.assertEqual(ans.U.A[U].shape[0], mpr.U.A[U].shape[0])
+        self.assertEqual(ans.U.A[U].shape[1], mpr.U.A[U].shape[1]+2)
         self.assertEqual(ans.U.A[U].todok()[0,0], -5)
-        self.assertEqual(len(ans.U.b), len(lbp.U.b))
+        self.assertEqual(len(ans.U.b), len(mpr.U.b))
         self.assertEqual(ans.U.b[0], -8)
-        self.assertEqual(len(ans.U.x), len(lbp.U.x)+2)
+        self.assertEqual(len(ans.U.x), len(mpr.U.x)+2)
 
     def test_test6(self):
         # Expect Changes - Nontrivial problem
         #   upper-level range bounds, so the const objective and RHS are changed
-        lbp = self._create()
-        U = lbp.add_upper(nxR=1, nxZ=2, nxB=3)
+        mpr = self._create()
+        U = mpr.add_upper(nxR=1, nxZ=2, nxB=3)
         U.equalities = True
         U.x.lower_bounds = [3,0,0,0,0,0]
         U.x.upper_bounds = [9,np.PINF,np.PINF,1,1,1]
         U.c[U] = [2,0,0,0,0,0]
         U.A[U] = [[5,0,0,0,0,0]]
         U.b = [7]
-        lbp.check()
-        #lbp.print()
+        mpr.check()
+        #mpr.print()
 
-        ans, soln_manager = convert_to_standard_form(lbp)
+        ans, soln_manager = convert_to_standard_form(mpr)
         #ans.print()
         ans.check()
 
         self.assertEqual(ans.U.d, 6)
-        self.assertEqual(len(ans.U.c[U]), len(lbp.U.c[U])+1)
+        self.assertEqual(len(ans.U.c[U]), len(mpr.U.c[U])+1)
         self.assertEqual(ans.U.c[U][0], 2)
-        self.assertEqual(ans.U.A[U].shape[0], lbp.U.A[U].shape[0]+1)
-        self.assertEqual(ans.U.A[U].shape[1], lbp.U.A[U].shape[1]+1)
+        self.assertEqual(ans.U.A[U].shape[0], mpr.U.A[U].shape[0]+1)
+        self.assertEqual(ans.U.A[U].shape[1], mpr.U.A[U].shape[1]+1)
         self.assertEqual(ans.U.A[U].todok()[0,0], 5)
         self.assertEqual(ans.U.A[U].todok()[1,0], 1)
-        self.assertEqual(len(ans.U.b), len(lbp.U.b)+1)
+        self.assertEqual(len(ans.U.b), len(mpr.U.b)+1)
         self.assertEqual(ans.U.b[0], -8)
         self.assertEqual(ans.U.b[1], 6)
-        self.assertEqual(len(ans.U.x), len(lbp.U.x)+1)
+        self.assertEqual(len(ans.U.x), len(mpr.U.x)+1)
 
     def test_test6L(self):
         # Expect Changes - Nontrivial problem
         #   upper-level range bounds, so the const objective and RHS are changed
-        lbp = self._create()
-        U = lbp.add_upper(nxR=1, nxZ=2, nxB=3)
+        mpr = self._create()
+        U = mpr.add_upper(nxR=1, nxZ=2, nxB=3)
         L = U.add_lower(nxZ=2, nxB=3)
         U.equalities = True
         U.x.lower_bounds = [3,0,0,0,0,0]
@@ -450,91 +450,91 @@ class Test_Upper(unittest.TestCase):
         U.A[U] = [[5,0,0,0,0,0]]
         U.b = [7]
         L.c[U] = [9,0,0,0,0,0]
-        lbp.check()
-        #lbp.print()
+        mpr.check()
+        #mpr.print()
 
-        ans, soln_manager = convert_to_standard_form(lbp)
+        ans, soln_manager = convert_to_standard_form(mpr)
         #ans.print()
         ans.check()
 
         self.assertEqual(ans.U.d, 6)
-        self.assertEqual(len(ans.U.c[U]), len(lbp.U.c[U])+1)
+        self.assertEqual(len(ans.U.c[U]), len(mpr.U.c[U])+1)
         self.assertEqual(ans.U.c[U][0], 2)
         self.assertEqual(ans.U.c[U][1], 0)
-        self.assertEqual(ans.U.A[U].shape[0], lbp.U.A[U].shape[0]+1)
-        self.assertEqual(ans.U.A[U].shape[1], lbp.U.A[U].shape[1]+1)
+        self.assertEqual(ans.U.A[U].shape[0], mpr.U.A[U].shape[0]+1)
+        self.assertEqual(ans.U.A[U].shape[1], mpr.U.A[U].shape[1]+1)
         self.assertEqual(ans.U.A[U].todok()[0,0], 5)
         self.assertEqual(ans.U.A[U].todok()[1,0], 1)
-        self.assertEqual(len(ans.U.b), len(lbp.U.b)+1)
+        self.assertEqual(len(ans.U.b), len(mpr.U.b)+1)
         self.assertEqual(ans.U.b[0], -8)
         self.assertEqual(ans.U.b[1], 6)
-        self.assertEqual(len(ans.U.x), len(lbp.U.x)+1)
+        self.assertEqual(len(ans.U.x), len(mpr.U.x)+1)
 
         self.assertEqual(ans.U.LL.d, 27)
-        self.assertEqual(len(ans.U.LL.c[U]), len(lbp.U.LL.c[U])+1)
+        self.assertEqual(len(ans.U.LL.c[U]), len(mpr.U.LL.c[U])+1)
         self.assertEqual(ans.U.LL.c[U][0], 9)
         self.assertEqual(ans.U.LL.c[U][1], 0)
 
     def test_test7(self):
         # Expect Changes - Nontrivial problem
         #   upper-level unbounded variables, so variables are added
-        lbp = self._create()
-        U = lbp.add_upper(nxR=1, nxZ=2, nxB=3)
+        mpr = self._create()
+        U = mpr.add_upper(nxR=1, nxZ=2, nxB=3)
         U.equalities = True
         U.c[U] = [2,0,0,0,0,0]
         U.A[U] = [[5,0,0,0,0,0]]
         U.b = [7]
-        lbp.check()
-        #lbp.print()
+        mpr.check()
+        #mpr.print()
 
-        ans, soln_manager = convert_to_standard_form(lbp)
+        ans, soln_manager = convert_to_standard_form(mpr)
         #ans.print()
         ans.check()
 
         self.assertEqual(ans.U.d, 0)
-        self.assertEqual(len(ans.U.c[U]), len(lbp.U.c[U])+3)
+        self.assertEqual(len(ans.U.c[U]), len(mpr.U.c[U])+3)
         self.assertEqual(ans.U.c[U][0], 2)
         self.assertEqual(ans.U.c[U][1], -2)
-        self.assertEqual(ans.U.A[U].shape[0], lbp.U.A[U].shape[0])
-        self.assertEqual(ans.U.A[U].shape[1], lbp.U.A[U].shape[1]+3)
+        self.assertEqual(ans.U.A[U].shape[0], mpr.U.A[U].shape[0])
+        self.assertEqual(ans.U.A[U].shape[1], mpr.U.A[U].shape[1]+3)
         self.assertEqual(ans.U.A[U].todok()[0,0], 5)
         self.assertEqual(ans.U.A[U].todok()[0,1], -5)
-        self.assertEqual(len(ans.U.b), len(lbp.U.b))
+        self.assertEqual(len(ans.U.b), len(mpr.U.b))
         self.assertEqual(ans.U.b[0], 7)
-        self.assertEqual(len(ans.U.x), len(lbp.U.x)+3)
+        self.assertEqual(len(ans.U.x), len(mpr.U.x)+3)
 
     def test_test7L(self):
         # Expect Changes - Nontrivial problem
         #   upper-level unbounded variables, so variables are added
-        lbp = self._create()
-        U = lbp.add_upper(nxR=1, nxZ=2, nxB=3)
+        mpr = self._create()
+        U = mpr.add_upper(nxR=1, nxZ=2, nxB=3)
         L = U.add_lower(nxZ=2, nxB=3)
         U.equalities = True
         U.c[U] = [2,0,0,0,0,0]
         U.A[U] = [[5,0,0,0,0,0]]
         U.b = [7]
         L.c[U] = [9,0,0,0,0,0]
-        lbp.check()
-        #lbp.print()
+        mpr.check()
+        #mpr.print()
 
-        ans, soln_manager = convert_to_standard_form(lbp)
+        ans, soln_manager = convert_to_standard_form(mpr)
         #ans.print()
         ans.check()
 
         self.assertEqual(ans.U.d, 0)
-        self.assertEqual(len(ans.U.c[U]), len(lbp.U.c[U])+3)
+        self.assertEqual(len(ans.U.c[U]), len(mpr.U.c[U])+3)
         self.assertEqual(ans.U.c[U][0], 2)
         self.assertEqual(ans.U.c[U][1], -2)
-        self.assertEqual(ans.U.A[U].shape[0], lbp.U.A[U].shape[0])
-        self.assertEqual(ans.U.A[U].shape[1], lbp.U.A[U].shape[1]+3)
+        self.assertEqual(ans.U.A[U].shape[0], mpr.U.A[U].shape[0])
+        self.assertEqual(ans.U.A[U].shape[1], mpr.U.A[U].shape[1]+3)
         self.assertEqual(ans.U.A[U].todok()[0,0], 5)
         self.assertEqual(ans.U.A[U].todok()[0,1], -5)
-        self.assertEqual(len(ans.U.b), len(lbp.U.b))
+        self.assertEqual(len(ans.U.b), len(mpr.U.b))
         self.assertEqual(ans.U.b[0], 7)
-        self.assertEqual(len(ans.U.x), len(lbp.U.x)+3)
+        self.assertEqual(len(ans.U.x), len(mpr.U.x)+3)
 
         self.assertEqual(ans.U.LL.d, 0)
-        self.assertEqual(len(ans.U.LL.c[U]), len(lbp.U.LL.c[U])+3)
+        self.assertEqual(len(ans.U.LL.c[U]), len(mpr.U.LL.c[U])+3)
         self.assertEqual(ans.U.LL.c[U][0], 9)
         self.assertEqual(ans.U.LL.c[U][1], -9)
 
@@ -544,24 +544,24 @@ class Test_Upper(unittest.TestCase):
         #   upper-level upper bounds, so the const objective and RHS are changed
         #   upper-level range bounds, so the const objective and RHS are changed
         #   upper-level unbounded variables, so variables are added
-        lbp = self._create()
-        U = lbp.add_upper(nxR=5, nxZ=2, nxB=3)
+        mpr = self._create()
+        U = mpr.add_upper(nxR=5, nxZ=2, nxB=3)
         U.equalities = True
         U.x.lower_bounds = [3,       np.NINF, 11, np.NINF, 0      , np.NINF, np.NINF, 0, 0, 0]
         U.x.upper_bounds = [np.PINF, 9,       13, np.PINF, np.PINF, np.PINF, np.PINF, 1, 1, 1]
         U.c[U] = [2, 3, 4, 5, 6, 0, 0, 0, 0, 0]
         U.A[U] = [[5, 17, 19, 23, 29, 0, 0, 0, 0, 0]]
         U.b = [7]
-        lbp.check()
+        mpr.check()
 
-        ans, soln_manager = convert_to_standard_form(lbp)
+        ans, soln_manager = convert_to_standard_form(mpr)
         ans.check()
 
         self.assertEqual(ans.U.d, 77)
-        self.assertEqual(len(ans.U.c[U]), len(lbp.U.c[U])+4)
+        self.assertEqual(len(ans.U.c[U]), len(mpr.U.c[U])+4)
         self.assertEqual(list(ans.U.c[U]), [2,-3,4,5,6,0,-5, 0,0,0,0,0,0,0])
-        self.assertEqual(ans.U.A[U].shape[0], lbp.U.A[U].shape[0]+1)
-        self.assertEqual(ans.U.A[U].shape[1], lbp.U.A[U].shape[1]+4)
+        self.assertEqual(ans.U.A[U].shape[0], mpr.U.A[U].shape[0]+1)
+        self.assertEqual(ans.U.A[U].shape[1], mpr.U.A[U].shape[1]+4)
         self.assertEqual(ans.U.A[U].todok()[0,0], 5)
         self.assertEqual(ans.U.A[U].todok()[0,1], -17)
         self.assertEqual(ans.U.A[U].todok()[0,2], 19)
@@ -569,10 +569,10 @@ class Test_Upper(unittest.TestCase):
         self.assertEqual(ans.U.A[U].todok()[0,4], 29)
         self.assertEqual(ans.U.A[U].todok()[0,6], -23)
         self.assertEqual(ans.U.A[U].todok()[1,5], 1)
-        self.assertEqual(len(ans.U.b), len(lbp.U.b)+1)
+        self.assertEqual(len(ans.U.b), len(mpr.U.b)+1)
         self.assertEqual(ans.U.b[0], -370)
         self.assertEqual(ans.U.b[1], 2)
-        self.assertEqual(len(ans.U.x), len(lbp.U.x)+4)
+        self.assertEqual(len(ans.U.x), len(mpr.U.x)+4)
 
     def test_test8L(self):
         # Expect Changes - Nontrivial problem
@@ -580,8 +580,8 @@ class Test_Upper(unittest.TestCase):
         #   upper-level upper bounds, so the const objective and RHS are changed
         #   upper-level range bounds, so the const objective and RHS are changed
         #   upper-level unbounded variables, so variables are added
-        lbp = self._create()
-        U = lbp.add_upper(nxR=5, nxZ=2, nxB=3)
+        mpr = self._create()
+        U = mpr.add_upper(nxR=5, nxZ=2, nxB=3)
         L = U.add_lower(nxZ=2, nxB=3)
         U.equalities = True
         U.x.lower_bounds = [3,       np.NINF, 11, np.NINF, 0      , np.NINF, np.NINF, 0, 0, 0]
@@ -590,16 +590,16 @@ class Test_Upper(unittest.TestCase):
         U.A[U] = [[5, 17, 19, 23, 29, 0, 0, 0, 0, 0]]
         U.b = [7]
         L.c[U] = [9,10,11,12,13,0,0,0,0,0]
-        lbp.check()
+        mpr.check()
 
-        ans, soln_manager = convert_to_standard_form(lbp)
+        ans, soln_manager = convert_to_standard_form(mpr)
         ans.check()
 
         self.assertEqual(ans.U.d, 77)
-        self.assertEqual(len(ans.U.c[U]), len(lbp.U.c[U])+4)
+        self.assertEqual(len(ans.U.c[U]), len(mpr.U.c[U])+4)
         self.assertEqual(list(ans.U.c[U]), [2,-3,4,5,6,0,-5,0,0,0,0,0,0,0])
-        self.assertEqual(ans.U.A[U].shape[0], lbp.U.A[U].shape[0]+1)
-        self.assertEqual(ans.U.A[U].shape[1], lbp.U.A[U].shape[1]+4)
+        self.assertEqual(ans.U.A[U].shape[0], mpr.U.A[U].shape[0]+1)
+        self.assertEqual(ans.U.A[U].shape[1], mpr.U.A[U].shape[1]+4)
         self.assertEqual(ans.U.A[U].todok()[0,0], 5)
         self.assertEqual(ans.U.A[U].todok()[0,1], -17)
         self.assertEqual(ans.U.A[U].todok()[0,2], 19)
@@ -607,13 +607,13 @@ class Test_Upper(unittest.TestCase):
         self.assertEqual(ans.U.A[U].todok()[0,4], 29)
         self.assertEqual(ans.U.A[U].todok()[0,6], -23)
         self.assertEqual(ans.U.A[U].todok()[1,5], 1)
-        self.assertEqual(len(ans.U.b), len(lbp.U.b)+1)
+        self.assertEqual(len(ans.U.b), len(mpr.U.b)+1)
         self.assertEqual(ans.U.b[0], -370)
         self.assertEqual(ans.U.b[1], 2)
-        self.assertEqual(len(ans.U.x), len(lbp.U.x)+4)
+        self.assertEqual(len(ans.U.x), len(mpr.U.x)+4)
 
         self.assertEqual(ans.U.LL.d, 238)
-        self.assertEqual(len(ans.U.LL.c[U]), len(lbp.U.LL.c[U])+4)
+        self.assertEqual(len(ans.U.LL.c[U]), len(mpr.U.LL.c[U])+4)
         self.assertEqual(list(ans.U.LL.c[U]), [9,-10,11,12,13,0,-12,0,0,0,0,0,0,0])
 
     def test_test9(self):
@@ -622,8 +622,8 @@ class Test_Upper(unittest.TestCase):
         #   upper-level upper bounds, so the const objective and RHS are changed
         #   upper-level range bounds, so the const objective and RHS are changed
         #   upper-level unbounded variables, so variables are added
-        lbp = self._create()
-        U = lbp.add_upper(nxR=3, nxZ=2, nxB=3)
+        mpr = self._create()
+        U = mpr.add_upper(nxR=3, nxZ=2, nxB=3)
         U.inequalities = True
         U.x.lower_bounds = [0, 0, 0, 0, 0, 0, 0, 0]
         U.c[U] = [2, 3, 4, 0, 0, 0, 0, 0]
@@ -631,27 +631,27 @@ class Test_Upper(unittest.TestCase):
                   [0, 17,  0, 0, 0, 0, 0, 0],
                   [0,  0, 19, 0, 0, 0, 0, 0]]
         U.b = [7,8,9]
-        lbp.check()
+        mpr.check()
 
-        ans, soln_manager = convert_to_standard_form(lbp)
+        ans, soln_manager = convert_to_standard_form(mpr)
         ans.check()
 
         self.assertEqual(ans.U.d, 0)
-        self.assertEqual(len(ans.U.c[U]), len(lbp.U.c[U])+3)
+        self.assertEqual(len(ans.U.c[U]), len(mpr.U.c[U])+3)
         self.assertEqual(list(ans.U.c[U]), [2,3,4,0,0,0,0,0,0,0,0])
-        self.assertEqual(ans.U.A[U].shape[0], lbp.U.A[U].shape[0])
-        self.assertEqual(ans.U.A[U].shape[1], lbp.U.A[U].shape[1]+3)
+        self.assertEqual(ans.U.A[U].shape[0], mpr.U.A[U].shape[0])
+        self.assertEqual(ans.U.A[U].shape[1], mpr.U.A[U].shape[1]+3)
         self.assertEqual(ans.U.A[U].todok()[0,0], 5)
         self.assertEqual(ans.U.A[U].todok()[1,1], 17)
         self.assertEqual(ans.U.A[U].todok()[2,2], 19)
         self.assertEqual(ans.U.A[U].todok()[0,3], 1)
         self.assertEqual(ans.U.A[U].todok()[1,4], 1)
         self.assertEqual(ans.U.A[U].todok()[2,5], 1)
-        self.assertEqual(len(ans.U.b), len(lbp.U.b))
+        self.assertEqual(len(ans.U.b), len(mpr.U.b))
         self.assertEqual(ans.U.b[0], 7)
         self.assertEqual(ans.U.b[1], 8)
         self.assertEqual(ans.U.b[2], 9)
-        self.assertEqual(len(ans.U.x), len(lbp.U.x)+3)
+        self.assertEqual(len(ans.U.x), len(mpr.U.x)+3)
 
     def test_test9L(self):
         # Expect Changes - Nontrivial problem
@@ -659,8 +659,8 @@ class Test_Upper(unittest.TestCase):
         #   upper-level upper bounds, so the const objective and RHS are changed
         #   upper-level range bounds, so the const objective and RHS are changed
         #   upper-level unbounded variables, so variables are added
-        lbp = self._create()
-        U = lbp.add_upper(nxR=3, nxZ=2, nxB=3)
+        mpr = self._create()
+        U = mpr.add_upper(nxR=3, nxZ=2, nxB=3)
         L = U.add_lower(nxZ=2, nxB=3)
         U.inequalities = True
         U.x.lower_bounds = [0, 0, 0, 0, 0, 0, 0, 0]
@@ -670,30 +670,30 @@ class Test_Upper(unittest.TestCase):
                   [0,  0, 19, 0, 0, 0, 0, 0]]
         U.b = [7,8,9]
         L.c[U] = [9, 10, 11, 0, 0, 0, 0, 0]
-        lbp.check()
+        mpr.check()
 
-        ans, soln_manager = convert_to_standard_form(lbp)
+        ans, soln_manager = convert_to_standard_form(mpr)
         ans.check()
 
         self.assertEqual(ans.U.d, 0)
-        self.assertEqual(len(ans.U.c[U]), len(lbp.U.c[U])+3)
+        self.assertEqual(len(ans.U.c[U]), len(mpr.U.c[U])+3)
         self.assertEqual(list(ans.U.c[U]), [2,3,4,0,0,0,0,0,0,0,0])
-        self.assertEqual(ans.U.A[U].shape[0], lbp.U.A[U].shape[0])
-        self.assertEqual(ans.U.A[U].shape[1], lbp.U.A[U].shape[1]+3)
+        self.assertEqual(ans.U.A[U].shape[0], mpr.U.A[U].shape[0])
+        self.assertEqual(ans.U.A[U].shape[1], mpr.U.A[U].shape[1]+3)
         self.assertEqual(ans.U.A[U].todok()[0,0], 5)
         self.assertEqual(ans.U.A[U].todok()[1,1], 17)
         self.assertEqual(ans.U.A[U].todok()[2,2], 19)
         self.assertEqual(ans.U.A[U].todok()[0,3], 1)
         self.assertEqual(ans.U.A[U].todok()[1,4], 1)
         self.assertEqual(ans.U.A[U].todok()[2,5], 1)
-        self.assertEqual(len(ans.U.b), len(lbp.U.b))
+        self.assertEqual(len(ans.U.b), len(mpr.U.b))
         self.assertEqual(ans.U.b[0], 7)
         self.assertEqual(ans.U.b[1], 8)
         self.assertEqual(ans.U.b[2], 9)
-        self.assertEqual(len(ans.U.x), len(lbp.U.x)+3)
+        self.assertEqual(len(ans.U.x), len(mpr.U.x)+3)
 
         self.assertEqual(ans.U.LL.d, 0)
-        self.assertEqual(len(ans.U.LL.c[U]), len(lbp.U.LL.c[U])+3)
+        self.assertEqual(len(ans.U.LL.c[U]), len(mpr.U.LL.c[U])+3)
         self.assertEqual(list(ans.U.LL.c[U]), [9,10,11,0,0,0,0,0,0,0,0])
 
     def test_test9_inequality(self):
@@ -702,8 +702,8 @@ class Test_Upper(unittest.TestCase):
         #   upper-level upper bounds, so the const objective and RHS are changed
         #   upper-level range bounds, so the const objective and RHS are changed
         #   upper-level unbounded variables, so variables are added
-        lbp = self._create()
-        U = lbp.add_upper(nxR=3, nxZ=2, nxB=3)
+        mpr = self._create()
+        U = mpr.add_upper(nxR=3, nxZ=2, nxB=3)
         U.equalities = True
         U.x.lower_bounds = [0, 0, 0, 0, 0, 0, 0, 0]
         U.c[U] = [2, 3, 4, 0, 0, 0, 0, 0]
@@ -711,66 +711,66 @@ class Test_Upper(unittest.TestCase):
                   [0, 17,  0, 0, 0, 0, 0, 0],
                   [0,  0, 19, 0, 0, 0, 0, 0]]
         U.b = [7,8,9]
-        lbp.check()
+        mpr.check()
 
-        ans, soln_manager = convert_to_standard_form(lbp, inequalities=True)
+        ans, soln_manager = convert_to_standard_form(mpr, inequalities=True)
         ans.check()
 
         self.assertEqual(ans.U.d, 0)
-        self.assertEqual(len(ans.U.c[U]), len(lbp.U.c[U]))
+        self.assertEqual(len(ans.U.c[U]), len(mpr.U.c[U]))
         self.assertEqual(list(ans.U.c[U]), [2,3,4,0,0,0,0,0])
-        self.assertEqual(ans.U.A[U].shape[0], 2*lbp.U.A[U].shape[0])
-        self.assertEqual(ans.U.A[U].shape[1], lbp.U.A[U].shape[1])
+        self.assertEqual(ans.U.A[U].shape[0], 2*mpr.U.A[U].shape[0])
+        self.assertEqual(ans.U.A[U].shape[1], mpr.U.A[U].shape[1])
         self.assertEqual(ans.U.A[U].todok()[0,0], 5)
         self.assertEqual(ans.U.A[U].todok()[1,1], 17)
         self.assertEqual(ans.U.A[U].todok()[2,2], 19)
         self.assertEqual(ans.U.A[U].todok()[3,0], -5)
         self.assertEqual(ans.U.A[U].todok()[4,1], -17)
         self.assertEqual(ans.U.A[U].todok()[5,2], -19)
-        self.assertEqual(len(ans.U.b), 2*len(lbp.U.b))
+        self.assertEqual(len(ans.U.b), 2*len(mpr.U.b))
         self.assertEqual(ans.U.b[0], 7)
         self.assertEqual(ans.U.b[1], 8)
         self.assertEqual(ans.U.b[2], 9)
         self.assertEqual(ans.U.b[3], -7)
         self.assertEqual(ans.U.b[4], -8)
         self.assertEqual(ans.U.b[5], -9)
-        self.assertEqual(len(ans.U.x), len(lbp.U.x))
+        self.assertEqual(len(ans.U.x), len(mpr.U.x))
 
     def test_test10(self):
         # Expect Changes - Nontrivial problem
         #   upper-level lower bounds, so the const objective and RHS are changed
         #   upper-level unbounded variables, so variables are added
-        lbp = self._create()
-        U = lbp.add_upper(nxR=3, nxZ=2, nxB=3)
+        mpr = self._create()
+        U = mpr.add_upper(nxR=3, nxZ=2, nxB=3)
         U.equalities = True
         U.x.lower_bounds = [3, np.NINF, 0, 0, 0, 0, 0, 0]
         U.c[U] = [2, 3, 4, 0, 0, 0, 0, 0]
         U.A[U] = [[5,17,19, 0, 0, 0, 0, 0]]
         U.b = [7]
-        lbp.check()
+        mpr.check()
 
-        ans, soln_manager = convert_to_standard_form(lbp)
+        ans, soln_manager = convert_to_standard_form(mpr)
         ans.check()
 
         self.assertEqual(ans.U.d, 6)
-        self.assertEqual(len(ans.U.c[U]), len(lbp.U.c[U])+1)
+        self.assertEqual(len(ans.U.c[U]), len(mpr.U.c[U])+1)
         self.assertEqual(list(ans.U.c[U]), [2,3,4,-3,0,0,0,0,0])
-        self.assertEqual(ans.U.A[U].shape[0], lbp.U.A[U].shape[0])
-        self.assertEqual(ans.U.A[U].shape[1], lbp.U.A[U].shape[1]+1)
+        self.assertEqual(ans.U.A[U].shape[0], mpr.U.A[U].shape[0])
+        self.assertEqual(ans.U.A[U].shape[1], mpr.U.A[U].shape[1]+1)
         self.assertEqual(ans.U.A[U].todok()[0,0], 5)
         self.assertEqual(ans.U.A[U].todok()[0,1], 17)
         self.assertEqual(ans.U.A[U].todok()[0,2], 19)
         self.assertEqual(ans.U.A[U].todok()[0,3], -17)
-        self.assertEqual(len(ans.U.b), len(lbp.U.b))
+        self.assertEqual(len(ans.U.b), len(mpr.U.b))
         self.assertEqual(ans.U.b[0], -8)
-        self.assertEqual(len(ans.U.x), len(lbp.U.x)+1)
+        self.assertEqual(len(ans.U.x), len(mpr.U.x)+1)
 
     def test_test10L(self):
         # Expect Changes - Nontrivial problem
         #   upper-level lower bounds, so the const objective and RHS are changed
         #   upper-level unbounded variables, so variables are added
-        lbp = self._create()
-        U = lbp.add_upper(nxR=3, nxZ=2, nxB=3)
+        mpr = self._create()
+        U = mpr.add_upper(nxR=3, nxZ=2, nxB=3)
         L = U.add_lower(nxZ=2, nxB=3)
         U.equalities = True
         U.x.lower_bounds = [3, np.NINF, 0, 0, 0, 0, 0, 0]
@@ -778,62 +778,62 @@ class Test_Upper(unittest.TestCase):
         U.A[U] = [[5,17,19, 0, 0, 0, 0, 0]]
         U.b = [7]
         L.c[U] = [9,10,11, 0, 0, 0, 0, 0]
-        lbp.check()
+        mpr.check()
 
-        ans, soln_manager = convert_to_standard_form(lbp)
+        ans, soln_manager = convert_to_standard_form(mpr)
         ans.check()
 
         self.assertEqual(ans.U.d, 6)
-        self.assertEqual(len(ans.U.c[U]), len(lbp.U.c[U])+1)
+        self.assertEqual(len(ans.U.c[U]), len(mpr.U.c[U])+1)
         self.assertEqual(list(ans.U.c[U]), [2,3,4,-3,0,0,0,0,0])
-        self.assertEqual(ans.U.A[U].shape[0], lbp.U.A[U].shape[0])
-        self.assertEqual(ans.U.A[U].shape[1], lbp.U.A[U].shape[1]+1)
+        self.assertEqual(ans.U.A[U].shape[0], mpr.U.A[U].shape[0])
+        self.assertEqual(ans.U.A[U].shape[1], mpr.U.A[U].shape[1]+1)
         self.assertEqual(ans.U.A[U].todok()[0,0], 5)
         self.assertEqual(ans.U.A[U].todok()[0,1], 17)
         self.assertEqual(ans.U.A[U].todok()[0,2], 19)
         self.assertEqual(ans.U.A[U].todok()[0,3], -17)
-        self.assertEqual(len(ans.U.b), len(lbp.U.b))
+        self.assertEqual(len(ans.U.b), len(mpr.U.b))
         self.assertEqual(ans.U.b[0], -8)
-        self.assertEqual(len(ans.U.x), len(lbp.U.x)+1)
+        self.assertEqual(len(ans.U.x), len(mpr.U.x)+1)
 
         self.assertEqual(ans.U.LL.d, 27)
-        self.assertEqual(len(ans.U.LL.c[U]), len(lbp.U.LL.c[U])+1)
+        self.assertEqual(len(ans.U.LL.c[U]), len(mpr.U.LL.c[U])+1)
         self.assertEqual(list(ans.U.LL.c[U]), [9,10,11,-10,0,0,0,0,0])
 
     def test_test11(self):
         # Expect Changes - Nontrivial problem
         #   upper-level upper bounds, so the const objective and RHS are changed
         #   upper-level unbounded variables, so variables are added
-        lbp = self._create()
-        U = lbp.add_upper(nxR=2, nxZ=2, nxB=3)
+        mpr = self._create()
+        U = mpr.add_upper(nxR=2, nxZ=2, nxB=3)
         U.equalities = True
         U.x.upper_bounds = [3, np.PINF, np.PINF, np.PINF, 1, 1, 1]
         U.c[U] = [2, 3, 0, 0, 0, 0, 0]
         U.A[U] = [[5,17, 0, 0, 0, 0, 0]]
         U.b = [7]
-        lbp.check()
+        mpr.check()
 
-        ans, soln_manager = convert_to_standard_form(lbp)
+        ans, soln_manager = convert_to_standard_form(mpr)
         ans.check()
 
         self.assertEqual(ans.U.d, 6)
-        self.assertEqual(len(ans.U.c[U]), len(lbp.U.c[U])+3)
+        self.assertEqual(len(ans.U.c[U]), len(mpr.U.c[U])+3)
         self.assertEqual(list(ans.U.c[U]), [-2,3,-3,0,0,0,0,0,0,0])
-        self.assertEqual(ans.U.A[U].shape[0], lbp.U.A[U].shape[0])
-        self.assertEqual(ans.U.A[U].shape[1], lbp.U.A[U].shape[1]+3)
+        self.assertEqual(ans.U.A[U].shape[0], mpr.U.A[U].shape[0])
+        self.assertEqual(ans.U.A[U].shape[1], mpr.U.A[U].shape[1]+3)
         self.assertEqual(ans.U.A[U].todok()[0,0], -5)
         self.assertEqual(ans.U.A[U].todok()[0,1], 17)
         self.assertEqual(ans.U.A[U].todok()[0,2], -17)
-        self.assertEqual(len(ans.U.b), len(lbp.U.b))
+        self.assertEqual(len(ans.U.b), len(mpr.U.b))
         self.assertEqual(ans.U.b[0], -8)
-        self.assertEqual(len(ans.U.x), len(lbp.U.x)+3)
+        self.assertEqual(len(ans.U.x), len(mpr.U.x)+3)
 
     def test_test11L(self):
         # Expect Changes - Nontrivial problem
         #   upper-level upper bounds, so the const objective and RHS are changed
         #   upper-level unbounded variables, so variables are added
-        lbp = self._create()
-        U = lbp.add_upper(nxR=2, nxZ=2, nxB=3)
+        mpr = self._create()
+        U = mpr.add_upper(nxR=2, nxZ=2, nxB=3)
         L = U.add_lower(nxZ=2, nxB=3)
         U.equalities = True
         U.x.upper_bounds = [3, np.PINF, np.PINF, np.PINF, 1, 1, 1]
@@ -841,25 +841,25 @@ class Test_Upper(unittest.TestCase):
         U.A[U] = [[5,17, 0, 0, 0, 0, 0]]
         U.b = [7]
         L.c[U] = [9,10, 0, 0, 0, 0, 0]
-        lbp.check()
+        mpr.check()
 
-        ans, soln_manager = convert_to_standard_form(lbp)
+        ans, soln_manager = convert_to_standard_form(mpr)
         ans.check()
 
         self.assertEqual(ans.U.d, 6)
-        self.assertEqual(len(ans.U.c[U]), len(lbp.U.c[U])+3)
+        self.assertEqual(len(ans.U.c[U]), len(mpr.U.c[U])+3)
         self.assertEqual(list(ans.U.c[U]), [-2,3,-3,0,0,0,0,0,0,0])
-        self.assertEqual(ans.U.A[U].shape[0], lbp.U.A[U].shape[0])
-        self.assertEqual(ans.U.A[U].shape[1], lbp.U.A[U].shape[1]+3)
+        self.assertEqual(ans.U.A[U].shape[0], mpr.U.A[U].shape[0])
+        self.assertEqual(ans.U.A[U].shape[1], mpr.U.A[U].shape[1]+3)
         self.assertEqual(ans.U.A[U].todok()[0,0], -5)
         self.assertEqual(ans.U.A[U].todok()[0,1], 17)
         self.assertEqual(ans.U.A[U].todok()[0,2], -17)
-        self.assertEqual(len(ans.U.b), len(lbp.U.b))
+        self.assertEqual(len(ans.U.b), len(mpr.U.b))
         self.assertEqual(ans.U.b[0], -8)
-        self.assertEqual(len(ans.U.x), len(lbp.U.x)+3)
+        self.assertEqual(len(ans.U.x), len(mpr.U.x)+3)
 
         self.assertEqual(ans.U.LL.d, 27)
-        self.assertEqual(len(ans.U.LL.c[U]), len(lbp.U.LL.c[U])+3)
+        self.assertEqual(len(ans.U.LL.c[U]), len(mpr.U.LL.c[U])+3)
         self.assertEqual(list(ans.U.LL.c[U]), [-9,10,-10,0,0,0,0,0,0,0])
 
     def test_test12(self):
@@ -868,24 +868,24 @@ class Test_Upper(unittest.TestCase):
         #   upper-level upper bounds, so the const objective and RHS are changed
         #   upper-level range bounds, so the const objective and RHS are changed
         #   upper-level unbounded variables, so variables are added
-        lbp = self._create()
-        U = lbp.add_upper(nxR=5, nxZ=2, nxB=3)
+        mpr = self._create()
+        U = mpr.add_upper(nxR=5, nxZ=2, nxB=3)
         U.inequalities = True
         U.x.lower_bounds = [3,       np.NINF, 11, np.NINF, 0      , 0,       0,       0, 0, 0]
         U.x.upper_bounds = [np.PINF, 9,       13, np.PINF, np.PINF, np.PINF, np.PINF, 1, 1, 1]
         U.c[U] = [2, 3, 4, 5, 6, 0, 0, 0, 0, 0]
         U.A[U] = [[5,17,19,23,29, 0, 0, 0, 0, 0]]
         U.b = [7]
-        lbp.check()
+        mpr.check()
 
-        ans, soln_manager = convert_to_standard_form(lbp)
+        ans, soln_manager = convert_to_standard_form(mpr)
         ans.check()
 
         self.assertEqual(ans.U.d, 77)
-        self.assertEqual(len(ans.U.c[U]), len(lbp.U.c[U])+3)
+        self.assertEqual(len(ans.U.c[U]), len(mpr.U.c[U])+3)
         self.assertEqual(list(ans.U.c[U]), [2,-3,4,5,6,0,0,-5,0,0,0,0,0])
-        self.assertEqual(ans.U.A[U].shape[0], lbp.U.A[U].shape[0]+1)
-        self.assertEqual(ans.U.A[U].shape[1], lbp.U.A[U].shape[1]+3)
+        self.assertEqual(ans.U.A[U].shape[0], mpr.U.A[U].shape[0]+1)
+        self.assertEqual(ans.U.A[U].shape[1], mpr.U.A[U].shape[1]+3)
         self.assertEqual(ans.U.A[U].todok()[0,0], 5)
         self.assertEqual(ans.U.A[U].todok()[0,1], -17)
         self.assertEqual(ans.U.A[U].todok()[0,2], 19)
@@ -895,10 +895,10 @@ class Test_Upper(unittest.TestCase):
         self.assertEqual(ans.U.A[U].todok()[1,2], 1)
         self.assertEqual(ans.U.A[U].todok()[1,6], 1)
         self.assertEqual(ans.U.A[U].todok()[0,7], -23)
-        self.assertEqual(len(ans.U.b), len(lbp.U.b)+1)
+        self.assertEqual(len(ans.U.b), len(mpr.U.b)+1)
         self.assertEqual(ans.U.b[0], -370)
         self.assertEqual(ans.U.b[1], 2)
-        self.assertEqual(len(ans.U.x), len(lbp.U.x)+3)
+        self.assertEqual(len(ans.U.x), len(mpr.U.x)+3)
 
     def test_test12L(self):
         # Expect Changes - Nontrivial problem
@@ -906,8 +906,8 @@ class Test_Upper(unittest.TestCase):
         #   upper-level upper bounds, so the const objective and RHS are changed
         #   upper-level range bounds, so the const objective and RHS are changed
         #   upper-level unbounded variables, so variables are added
-        lbp = self._create()
-        U = lbp.add_upper(nxR=5, nxZ=2, nxB=3)
+        mpr = self._create()
+        U = mpr.add_upper(nxR=5, nxZ=2, nxB=3)
         L = U.add_lower(nxZ=2, nxB=3)
         U.inequalities = True
         U.x.lower_bounds = [3,       np.NINF, 11, np.NINF, 0      , 0,       0,       0, 0, 0]
@@ -916,16 +916,16 @@ class Test_Upper(unittest.TestCase):
         U.A[U] = [[5,17,19,23,29, 0, 0, 0, 0, 0]]
         U.b = [7]
         L.c[U] = [9,10,11,12,13, 0, 0, 0, 0, 0]
-        lbp.check()
+        mpr.check()
 
-        ans, soln_manager = convert_to_standard_form(lbp)
+        ans, soln_manager = convert_to_standard_form(mpr)
         ans.check()
 
         self.assertEqual(ans.U.d, 77)
-        self.assertEqual(len(ans.U.c[U]), len(lbp.U.c[U])+3)
+        self.assertEqual(len(ans.U.c[U]), len(mpr.U.c[U])+3)
         self.assertEqual(list(ans.U.c[U]), [2,-3,4,5,6,0,0,-5,0,0,0,0,0])
-        self.assertEqual(ans.U.A[U].shape[0], lbp.U.A[U].shape[0]+1)
-        self.assertEqual(ans.U.A[U].shape[1], lbp.U.A[U].shape[1]+3)
+        self.assertEqual(ans.U.A[U].shape[0], mpr.U.A[U].shape[0]+1)
+        self.assertEqual(ans.U.A[U].shape[1], mpr.U.A[U].shape[1]+3)
         self.assertEqual(ans.U.A[U].todok()[0,0], 5)
         self.assertEqual(ans.U.A[U].todok()[0,1], -17)
         self.assertEqual(ans.U.A[U].todok()[0,2], 19)
@@ -935,13 +935,13 @@ class Test_Upper(unittest.TestCase):
         self.assertEqual(ans.U.A[U].todok()[1,2], 1)
         self.assertEqual(ans.U.A[U].todok()[1,6], 1)
         self.assertEqual(ans.U.A[U].todok()[0,7], -23)
-        self.assertEqual(len(ans.U.b), len(lbp.U.b)+1)
+        self.assertEqual(len(ans.U.b), len(mpr.U.b)+1)
         self.assertEqual(ans.U.b[0], -370)
         self.assertEqual(ans.U.b[1], 2)
-        self.assertEqual(len(ans.U.x), len(lbp.U.x)+3)
+        self.assertEqual(len(ans.U.x), len(mpr.U.x)+3)
 
         self.assertEqual(ans.U.LL.d, 238)
-        self.assertEqual(len(ans.U.LL.c[U]), len(lbp.U.LL.c[U])+3)
+        self.assertEqual(len(ans.U.LL.c[U]), len(mpr.U.LL.c[U])+3)
         self.assertEqual(list(ans.U.LL.c[U]), [9,-10,11,12,13,0,0,-12,0,0,0,0,0])
 
 
@@ -953,89 +953,89 @@ class Test_Lower(unittest.TestCase):
     def test_test3(self):
         # Expect Changes - Nontrivial problem
         #   lower-level inequality constraints, so slack variables should be added
-        lbp = self._create()
-        U = lbp.add_upper(nxZ=2, nxB=3)
+        mpr = self._create()
+        U = mpr.add_upper(nxZ=2, nxB=3)
         L = U.add_lower(nxR=1, nxZ=2, nxB=3)
         L.x.lower_bounds = [0, 0, 0, 0, 0, 0]
         L.A[L] = [[1, 0, 0, 0, 0, 0]]
         L.b = [2]
-        lbp.check()
+        mpr.check()
 
-        ans, soln_manager = convert_to_standard_form(lbp)
+        ans, soln_manager = convert_to_standard_form(mpr)
         ans.check()
 
         self.assertEqual(ans.U.d, 0)
-        self.assertEqual(len(ans.U.x), len(lbp.U.x)+2)
+        self.assertEqual(len(ans.U.x), len(mpr.U.x)+2)
 
         self.assertEqual(ans.U.LL.d, 0)
         self.assertEqual(ans.U.LL.c[L], None)
-        self.assertEqual(lbp.U.LL.c[L], None)
-        self.assertEqual(ans.U.LL.A[L].shape[0], lbp.U.LL.A[L].shape[0])
-        self.assertEqual(ans.U.LL.A[L].shape[1], lbp.U.LL.A[L].shape[1]+1)
-        self.assertEqual(len(ans.U.LL.b), len(lbp.U.LL.b))
-        self.assertEqual(len(ans.U.LL.x), len(lbp.U.LL.x)+1)
+        self.assertEqual(mpr.U.LL.c[L], None)
+        self.assertEqual(ans.U.LL.A[L].shape[0], mpr.U.LL.A[L].shape[0])
+        self.assertEqual(ans.U.LL.A[L].shape[1], mpr.U.LL.A[L].shape[1]+1)
+        self.assertEqual(len(ans.U.LL.b), len(mpr.U.LL.b))
+        self.assertEqual(len(ans.U.LL.x), len(mpr.U.LL.x)+1)
 
     def test_test4(self):
         # Expect Changes - Nontrivial problem
         #   upper-level lower bounds, so the const objective and RHS are changed
-        lbp = self._create()
-        U = lbp.add_upper(nxZ=2, nxB=3)
+        mpr = self._create()
+        U = mpr.add_upper(nxZ=2, nxB=3)
         L = U.add_lower(nxR=1, nxZ=2, nxB=3)
         L.equalities = True
         L.x.lower_bounds = [3,0,0,0,0,0]
         L.c[L] = [2,0,0,0,0,0]
         L.A[L] = [[5,0,0,0,0,0]]
         L.b = [7]
-        lbp.check()
+        mpr.check()
 
-        ans, soln_manager = convert_to_standard_form(lbp)
+        ans, soln_manager = convert_to_standard_form(mpr)
         ans.check()
 
         self.assertEqual(ans.U.d, 0)
-        self.assertEqual(len(ans.U.x), len(lbp.U.x)+2)
+        self.assertEqual(len(ans.U.x), len(mpr.U.x)+2)
 
         self.assertEqual(ans.U.LL.d, 6)
-        self.assertEqual(len(ans.U.LL.c[L]), len(lbp.U.LL.c[L]))
+        self.assertEqual(len(ans.U.LL.c[L]), len(mpr.U.LL.c[L]))
         self.assertEqual(ans.U.LL.c[L][0], 2)
-        self.assertEqual(ans.U.LL.A[L].shape, lbp.U.LL.A[L].shape)
+        self.assertEqual(ans.U.LL.A[L].shape, mpr.U.LL.A[L].shape)
         self.assertEqual(ans.U.LL.A[L].todok()[0,0], 5)
-        self.assertEqual(len(ans.U.LL.b), len(lbp.U.LL.b))
+        self.assertEqual(len(ans.U.LL.b), len(mpr.U.LL.b))
         self.assertEqual(ans.U.LL.b[0], -8)
-        self.assertEqual(len(ans.U.LL.x), len(lbp.U.LL.x))
+        self.assertEqual(len(ans.U.LL.x), len(mpr.U.LL.x))
 
     def test_test5(self):
         # Expect Changes - Nontrivial problem
         #   upper-level upper bounds, so the const objective and RHS are changed
-        lbp = self._create()
-        U = lbp.add_upper(nxZ=2, nxB=3)
+        mpr = self._create()
+        U = mpr.add_upper(nxZ=2, nxB=3)
         L = U.add_lower(nxR=1, nxZ=2, nxB=3)
         L.equalities = True
         L.x.upper_bounds = [3,0,0,0,0,0]
         L.c[L] = [2,0,0,0,0,0]
         L.A[L] = [[5,0,0,0,0,0]]
         L.b = [7]
-        lbp.check()
+        mpr.check()
 
-        ans, soln_manager = convert_to_standard_form(lbp)
+        ans, soln_manager = convert_to_standard_form(mpr)
         ans.check()
 
         self.assertEqual(ans.U.d, 0)
-        self.assertEqual(len(ans.U.x), len(lbp.U.x)+2)
+        self.assertEqual(len(ans.U.x), len(mpr.U.x)+2)
 
         self.assertEqual(ans.U.LL.d, 6)
-        self.assertEqual(len(ans.U.LL.c[L]), len(lbp.U.LL.c[L]))
+        self.assertEqual(len(ans.U.LL.c[L]), len(mpr.U.LL.c[L]))
         self.assertEqual(ans.U.LL.c[L][0], -2)
-        self.assertEqual(ans.U.LL.A[L].shape, lbp.U.LL.A[L].shape)
+        self.assertEqual(ans.U.LL.A[L].shape, mpr.U.LL.A[L].shape)
         self.assertEqual(ans.U.LL.A[L].todok()[0,0], -5)
-        self.assertEqual(len(ans.U.LL.b), len(lbp.U.LL.b))
+        self.assertEqual(len(ans.U.LL.b), len(mpr.U.LL.b))
         self.assertEqual(ans.U.LL.b[0], -8)
-        self.assertEqual(len(ans.U.LL.x), len(lbp.U.LL.x))
+        self.assertEqual(len(ans.U.LL.x), len(mpr.U.LL.x))
 
     def test_test6(self):
         # Expect Changes - Nontrivial problem
         #   upper-level range bounds, so the const objective and RHS are changed
-        lbp = self._create()
-        U = lbp.add_upper(nxZ=2, nxB=3)
+        mpr = self._create()
+        U = mpr.add_upper(nxZ=2, nxB=3)
         L = U.add_lower(nxR=1, nxZ=2, nxB=3)
         L.equalities = True
         L.x.lower_bounds = [3,0,0,0,0,0]
@@ -1043,59 +1043,59 @@ class Test_Lower(unittest.TestCase):
         L.c[L] = [2,0,0,0,0,0]
         L.A[L] = [[5,0,0,0,0,0]]
         L.b = [7]
-        lbp.check()
-        #lbp.print()
+        mpr.check()
+        #mpr.print()
 
-        ans, soln_manager = convert_to_standard_form(lbp)
+        ans, soln_manager = convert_to_standard_form(mpr)
         #ans.print()
         ans.check()
 
         self.assertEqual(ans.U.d, 0)
-        self.assertEqual(len(ans.U.x), len(lbp.U.x)+2)
+        self.assertEqual(len(ans.U.x), len(mpr.U.x)+2)
 
         self.assertEqual(ans.U.LL.d, 6)
-        self.assertEqual(len(ans.U.LL.c[L]), len(lbp.U.LL.c[L])+1)
+        self.assertEqual(len(ans.U.LL.c[L]), len(mpr.U.LL.c[L])+1)
         self.assertEqual(ans.U.LL.c[L][0], 2)
-        self.assertEqual(ans.U.LL.A[L].shape[0], lbp.U.LL.A[L].shape[0]+1)
-        self.assertEqual(ans.U.LL.A[L].shape[1], lbp.U.LL.A[L].shape[1]+1)
+        self.assertEqual(ans.U.LL.A[L].shape[0], mpr.U.LL.A[L].shape[0]+1)
+        self.assertEqual(ans.U.LL.A[L].shape[1], mpr.U.LL.A[L].shape[1]+1)
         self.assertEqual(ans.U.LL.A[L].todok()[0,0], 5)
         self.assertEqual(ans.U.LL.A[L].todok()[1,0], 1)
-        self.assertEqual(len(ans.U.LL.b), len(lbp.U.LL.b)+1)
+        self.assertEqual(len(ans.U.LL.b), len(mpr.U.LL.b)+1)
         self.assertEqual(ans.U.LL.b[0], -8)
         self.assertEqual(ans.U.LL.b[1], 6)
-        self.assertEqual(len(ans.U.LL.x), len(lbp.U.LL.x)+1)
+        self.assertEqual(len(ans.U.LL.x), len(mpr.U.LL.x)+1)
 
     def test_test7(self):
         # Expect Changes - Nontrivial problem
         #   upper-level unbounded variables, so variables are added
-        lbp = self._create()
-        U = lbp.add_upper(nxZ=2, nxB=3)
+        mpr = self._create()
+        U = mpr.add_upper(nxZ=2, nxB=3)
         L = U.add_lower(nxR=1, nxZ=2, nxB=3)
         L.equalities = True
         L.c[L] = [2,0,0,0,0,0]
         L.A[L] = [[5,0,0,0,0,0]]
         L.b = [7]
-        lbp.check()
-        #lbp.print()
+        mpr.check()
+        #mpr.print()
 
-        ans, soln_manager = convert_to_standard_form(lbp)
+        ans, soln_manager = convert_to_standard_form(mpr)
         #ans.print()
         ans.check()
 
         self.assertEqual(ans.U.d, 0)
-        self.assertEqual(len(ans.U.x), len(lbp.U.x)+2)
+        self.assertEqual(len(ans.U.x), len(mpr.U.x)+2)
 
         self.assertEqual(ans.U.LL.d, 0)
-        self.assertEqual(len(ans.U.LL.c[L]), len(lbp.U.LL.c[L])+3)
+        self.assertEqual(len(ans.U.LL.c[L]), len(mpr.U.LL.c[L])+3)
         self.assertEqual(ans.U.LL.c[L][0], 2)
         self.assertEqual(ans.U.LL.c[L][1], -2)
-        self.assertEqual(ans.U.LL.A[L].shape[0], lbp.U.LL.A[L].shape[0])
-        self.assertEqual(ans.U.LL.A[L].shape[1], lbp.U.LL.A[L].shape[1]+3)
+        self.assertEqual(ans.U.LL.A[L].shape[0], mpr.U.LL.A[L].shape[0])
+        self.assertEqual(ans.U.LL.A[L].shape[1], mpr.U.LL.A[L].shape[1]+3)
         self.assertEqual(ans.U.LL.A[L].todok()[0,0], 5)
         self.assertEqual(ans.U.LL.A[L].todok()[0,1], -5)
-        self.assertEqual(len(ans.U.LL.b), len(lbp.U.LL.b))
+        self.assertEqual(len(ans.U.LL.b), len(mpr.U.LL.b))
         self.assertEqual(ans.U.LL.b[0], 7)
-        self.assertEqual(len(ans.U.LL.x), len(lbp.U.LL.x)+3)
+        self.assertEqual(len(ans.U.LL.x), len(mpr.U.LL.x)+3)
 
     def test_test8(self):
         # Expect Changes - Nontrivial problem
@@ -1103,8 +1103,8 @@ class Test_Lower(unittest.TestCase):
         #   upper-level upper bounds, so the const objective and RHS are changed
         #   upper-level range bounds, so the const objective and RHS are changed
         #   upper-level unbounded variables, so variables are added
-        lbp = self._create()
-        U = lbp.add_upper(nxZ=2, nxB=3)
+        mpr = self._create()
+        U = mpr.add_upper(nxZ=2, nxB=3)
         L = U.add_lower(nxR=5, nxZ=2, nxB=3)
         L.equalities = True
         L.x.lower_bounds = [3,       np.NINF, 11, np.NINF, 0      , 0,       0,       0, 0, 0]
@@ -1112,19 +1112,19 @@ class Test_Lower(unittest.TestCase):
         L.c[L] = [2, 3, 4, 5, 6, 0, 0, 0, 0, 0]
         L.A[L] = [[5,17,19,23,29, 0, 0, 0, 0, 0]]
         L.b = [7]
-        lbp.check()
+        mpr.check()
 
-        ans, soln_manager = convert_to_standard_form(lbp)
+        ans, soln_manager = convert_to_standard_form(mpr)
         ans.check()
 
         self.assertEqual(ans.U.d, 0)
-        self.assertEqual(len(ans.U.x), len(lbp.U.x)+2)
+        self.assertEqual(len(ans.U.x), len(mpr.U.x)+2)
 
         self.assertEqual(ans.U.LL.d, 77)
-        self.assertEqual(len(ans.U.LL.c[L]), len(lbp.U.LL.c[L])+2)
+        self.assertEqual(len(ans.U.LL.c[L]), len(mpr.U.LL.c[L])+2)
         self.assertEqual(list(ans.U.LL.c[L]), [2,-3,4,5,6,0,-5,0,0,0,0,0])
-        self.assertEqual(ans.U.LL.A[L].shape[0], lbp.U.LL.A[L].shape[0]+1)
-        self.assertEqual(ans.U.LL.A[L].shape[1], lbp.U.LL.A[L].shape[1]+2)
+        self.assertEqual(ans.U.LL.A[L].shape[0], mpr.U.LL.A[L].shape[0]+1)
+        self.assertEqual(ans.U.LL.A[L].shape[1], mpr.U.LL.A[L].shape[1]+2)
         self.assertEqual(ans.U.LL.A[L].todok()[0,0], 5)
         self.assertEqual(ans.U.LL.A[L].todok()[0,1], -17)
         self.assertEqual(ans.U.LL.A[L].todok()[0,2], 19)
@@ -1132,10 +1132,10 @@ class Test_Lower(unittest.TestCase):
         self.assertEqual(ans.U.LL.A[L].todok()[0,4], 29)
         self.assertEqual(ans.U.LL.A[L].todok()[0,6], -23)
         self.assertEqual(ans.U.LL.A[L].todok()[1,5], 1)
-        self.assertEqual(len(ans.U.LL.b), len(lbp.U.LL.b)+1)
+        self.assertEqual(len(ans.U.LL.b), len(mpr.U.LL.b)+1)
         self.assertEqual(ans.U.LL.b[0], -370)
         self.assertEqual(ans.U.LL.b[1], 2)
-        self.assertEqual(len(ans.U.LL.x), len(lbp.U.LL.x)+2)
+        self.assertEqual(len(ans.U.LL.x), len(mpr.U.LL.x)+2)
 
     def test_test9(self):
         # Expect Changes - Nontrivial problem
@@ -1143,8 +1143,8 @@ class Test_Lower(unittest.TestCase):
         #   upper-level upper bounds, so the const objective and RHS are changed
         #   upper-level range bounds, so the const objective and RHS are changed
         #   upper-level unbounded variables, so variables are added
-        lbp = self._create()
-        U = lbp.add_upper(nxZ=2, nxB=3)
+        mpr = self._create()
+        U = mpr.add_upper(nxZ=2, nxB=3)
         L = U.add_lower(nxR=3, nxZ=2, nxB=3)
         L.inequalities = True
         L.x.lower_bounds = [0, 0, 0, np.NINF, np.NINF, 0, 0, 0]
@@ -1153,95 +1153,95 @@ class Test_Lower(unittest.TestCase):
                   [0,17,0 ,0,0,0,0,0],
                   [0, 0,19,0,0,0,0,0]]
         L.b = [7,8,9]
-        #lbp.print()
-        lbp.check()
+        #mpr.print()
+        mpr.check()
 
-        ans, soln_manager = convert_to_standard_form(lbp)
+        ans, soln_manager = convert_to_standard_form(mpr)
         ans.check()
 
         self.assertEqual(ans.U.d, 0)
-        self.assertEqual(len(ans.U.x), len(lbp.U.x)+2)
+        self.assertEqual(len(ans.U.x), len(mpr.U.x)+2)
 
         self.assertEqual(ans.U.LL.d, 0)
-        self.assertEqual(len(ans.U.LL.c[L]), len(lbp.U.LL.c[L])+5)
+        self.assertEqual(len(ans.U.LL.c[L]), len(mpr.U.LL.c[L])+5)
         self.assertEqual(list(ans.U.LL.c[L]), [2,3,4,0,0,0,0,0,0,0,0,0,0])
-        self.assertEqual(ans.U.LL.A[L].shape[0], lbp.U.LL.A[L].shape[0])
-        self.assertEqual(ans.U.LL.A[L].shape[1], lbp.U.LL.A[L].shape[1]+5)
+        self.assertEqual(ans.U.LL.A[L].shape[0], mpr.U.LL.A[L].shape[0])
+        self.assertEqual(ans.U.LL.A[L].shape[1], mpr.U.LL.A[L].shape[1]+5)
         self.assertEqual(ans.U.LL.A[L].todok()[0,0], 5)
         self.assertEqual(ans.U.LL.A[L].todok()[1,1], 17)
         self.assertEqual(ans.U.LL.A[L].todok()[2,2], 19)
         self.assertEqual(ans.U.LL.A[L].todok()[0,3], 1)
         self.assertEqual(ans.U.LL.A[L].todok()[1,4], 1)
         self.assertEqual(ans.U.LL.A[L].todok()[2,5], 1)
-        self.assertEqual(len(ans.U.LL.b), len(lbp.U.LL.b))
+        self.assertEqual(len(ans.U.LL.b), len(mpr.U.LL.b))
         self.assertEqual(ans.U.LL.b[0], 7)
         self.assertEqual(ans.U.LL.b[1], 8)
         self.assertEqual(ans.U.LL.b[2], 9)
-        self.assertEqual(len(ans.U.LL.x), len(lbp.U.LL.x)+5)
+        self.assertEqual(len(ans.U.LL.x), len(mpr.U.LL.x)+5)
 
     def test_test10(self):
         # Expect Changes - Nontrivial problem
         #   upper-level lower bounds, so the const objective and RHS are changed
         #   upper-level unbounded variables, so variables are added
-        lbp = self._create()
-        U = lbp.add_upper(nxZ=2, nxB=3)
+        mpr = self._create()
+        U = mpr.add_upper(nxZ=2, nxB=3)
         L = U.add_lower(nxR=3, nxZ=2, nxB=3)
         L.equalities = True
         L.x.lower_bounds = [3, np.NINF, 0, 0, 0, 0, 0, 0]
         L.c[L] = [2, 3, 4, 0, 0, 0, 0, 0]
         L.A[L] = [[5,17,19, 0, 0, 0, 0, 0]]
         L.b = [7]
-        lbp.check()
+        mpr.check()
 
-        ans, soln_manager = convert_to_standard_form(lbp)
+        ans, soln_manager = convert_to_standard_form(mpr)
         ans.check()
 
         self.assertEqual(ans.U.d, 0)
-        self.assertEqual(len(ans.U.x), len(lbp.U.x)+2)
+        self.assertEqual(len(ans.U.x), len(mpr.U.x)+2)
 
         self.assertEqual(ans.U.LL.d, 6)
-        self.assertEqual(len(ans.U.LL.c[L]), len(lbp.U.LL.c[L])+1)
+        self.assertEqual(len(ans.U.LL.c[L]), len(mpr.U.LL.c[L])+1)
         self.assertEqual(list(ans.U.LL.c[L]), [2,3,4,-3,0,0,0,0,0])
-        self.assertEqual(ans.U.LL.A[L].shape[0], lbp.U.LL.A[L].shape[0])
-        self.assertEqual(ans.U.LL.A[L].shape[1], lbp.U.LL.A[L].shape[1]+1)
+        self.assertEqual(ans.U.LL.A[L].shape[0], mpr.U.LL.A[L].shape[0])
+        self.assertEqual(ans.U.LL.A[L].shape[1], mpr.U.LL.A[L].shape[1]+1)
         self.assertEqual(ans.U.LL.A[L].todok()[0,0], 5)
         self.assertEqual(ans.U.LL.A[L].todok()[0,1], 17)
         self.assertEqual(ans.U.LL.A[L].todok()[0,2], 19)
         self.assertEqual(ans.U.LL.A[L].todok()[0,3], -17)
-        self.assertEqual(len(ans.U.LL.b), len(lbp.U.LL.b))
+        self.assertEqual(len(ans.U.LL.b), len(mpr.U.LL.b))
         self.assertEqual(ans.U.LL.b[0], -8)
-        self.assertEqual(len(ans.U.LL.x), len(lbp.U.LL.x)+1)
+        self.assertEqual(len(ans.U.LL.x), len(mpr.U.LL.x)+1)
 
     def test_test11(self):
         # Expect Changes - Nontrivial problem
         #   upper-level upper bounds, so the const objective and RHS are changed
         #   upper-level unbounded variables, so variables are added
-        lbp = self._create()
-        U = lbp.add_upper(nxZ=2, nxB=3)
+        mpr = self._create()
+        U = mpr.add_upper(nxZ=2, nxB=3)
         L = U.add_lower(nxR=2, nxZ=2, nxB=3)
         L.equalities = True
         L.x.upper_bounds = [3, np.PINF, 0, 0, 0, 0, 0]
         L.c[L] = [2, 3, 0, 0, 0, 0, 0]
         L.A[L] = [[5,17, 0, 0, 0, 0, 0]]
         L.b = [7]
-        lbp.check()
+        mpr.check()
 
-        ans, soln_manager = convert_to_standard_form(lbp)
+        ans, soln_manager = convert_to_standard_form(mpr)
         ans.check()
 
         self.assertEqual(ans.U.d, 0)
-        self.assertEqual(len(ans.U.x), len(lbp.U.x)+2)
+        self.assertEqual(len(ans.U.x), len(mpr.U.x)+2)
 
-        self.assertEqual(len(ans.U.LL.c[L]), len(lbp.U.LL.c[L])+1)
+        self.assertEqual(len(ans.U.LL.c[L]), len(mpr.U.LL.c[L])+1)
         self.assertEqual(list(ans.U.LL.c[L]), [-2,3,-3,0,0,0,0,0])
-        self.assertEqual(ans.U.LL.A[L].shape[0], lbp.U.LL.A[L].shape[0])
-        self.assertEqual(ans.U.LL.A[L].shape[1], lbp.U.LL.A[L].shape[1]+1)
+        self.assertEqual(ans.U.LL.A[L].shape[0], mpr.U.LL.A[L].shape[0])
+        self.assertEqual(ans.U.LL.A[L].shape[1], mpr.U.LL.A[L].shape[1]+1)
         self.assertEqual(ans.U.LL.A[L].todok()[0,0], -5)
         self.assertEqual(ans.U.LL.A[L].todok()[0,1], 17)
         self.assertEqual(ans.U.LL.A[L].todok()[0,2], -17)
-        self.assertEqual(len(ans.U.LL.b), len(lbp.U.LL.b))
+        self.assertEqual(len(ans.U.LL.b), len(mpr.U.LL.b))
         self.assertEqual(ans.U.LL.b[0], -8)
-        self.assertEqual(len(ans.U.LL.x), len(lbp.U.LL.x)+1)
+        self.assertEqual(len(ans.U.LL.x), len(mpr.U.LL.x)+1)
 
     def test_test12(self):
         # Expect Changes - Nontrivial problem
@@ -1249,8 +1249,8 @@ class Test_Lower(unittest.TestCase):
         #   upper-level upper bounds, so the const objective and RHS are changed
         #   upper-level range bounds, so the const objective and RHS are changed
         #   upper-level unbounded variables, so variables are added
-        lbp = self._create()
-        U = lbp.add_upper(nxZ=2, nxB=3)
+        mpr = self._create()
+        U = mpr.add_upper(nxZ=2, nxB=3)
         L = U.add_lower(nxR=5, nxZ=2, nxB=3)
         L.inequalities = True
         L.x.lower_bounds = [3,       np.NINF, 11, np.NINF, 0      , 0      , 0      , 0, 0, 0]
@@ -1258,19 +1258,19 @@ class Test_Lower(unittest.TestCase):
         L.c[L] = [2, 3, 4, 5, 6, 0, 0, 0, 0, 0]
         L.A[L] = [[5,17,19,23,29, 0, 0, 0, 0, 0]]
         L.b = [7]
-        lbp.check()
+        mpr.check()
 
-        ans, soln_manager = convert_to_standard_form(lbp)
+        ans, soln_manager = convert_to_standard_form(mpr)
         ans.check()
 
         self.assertEqual(ans.U.d, 0)
-        self.assertEqual(len(ans.U.x), len(lbp.U.x)+2)
+        self.assertEqual(len(ans.U.x), len(mpr.U.x)+2)
 
         self.assertEqual(ans.U.LL.d, 77)
-        self.assertEqual(len(ans.U.LL.c[L]), len(lbp.U.LL.c[L])+3)
+        self.assertEqual(len(ans.U.LL.c[L]), len(mpr.U.LL.c[L])+3)
         self.assertEqual(list(ans.U.LL.c[L]), [2,-3,4,5,6,0,0,-5, 0, 0, 0, 0 ,0])
-        self.assertEqual(ans.U.LL.A[L].shape[0], lbp.U.LL.A[L].shape[0]+1)
-        self.assertEqual(ans.U.LL.A[L].shape[1], lbp.U.LL.A[L].shape[1]+3)
+        self.assertEqual(ans.U.LL.A[L].shape[0], mpr.U.LL.A[L].shape[0]+1)
+        self.assertEqual(ans.U.LL.A[L].shape[1], mpr.U.LL.A[L].shape[1]+3)
         self.assertEqual(ans.U.LL.A[L].todok()[0,0], 5)
         self.assertEqual(ans.U.LL.A[L].todok()[0,1], -17)
         self.assertEqual(ans.U.LL.A[L].todok()[0,2], 19)
@@ -1280,10 +1280,10 @@ class Test_Lower(unittest.TestCase):
         self.assertEqual(ans.U.LL.A[L].todok()[1,2], 1)
         self.assertEqual(ans.U.LL.A[L].todok()[1,6], 1)
         self.assertEqual(ans.U.LL.A[L].todok()[0,7], -23)
-        self.assertEqual(len(ans.U.LL.b), len(lbp.U.LL.b)+1)
+        self.assertEqual(len(ans.U.LL.b), len(mpr.U.LL.b)+1)
         self.assertEqual(ans.U.LL.b[0], -370)
         self.assertEqual(ans.U.LL.b[1], 2)
-        self.assertEqual(len(ans.U.LL.x), len(lbp.U.LL.x)+3)
+        self.assertEqual(len(ans.U.LL.x), len(mpr.U.LL.x)+3)
 
 
 class Test_NonTrivial(unittest.TestCase):
@@ -1292,9 +1292,9 @@ class Test_NonTrivial(unittest.TestCase):
         return QuadraticMultilevelProblem()
 
     def test_test1(self):
-        lbp = self._create()
+        mpr = self._create()
 
-        U = lbp.add_upper(nxR=4)
+        U = mpr.add_upper(nxR=4)
         L0 = U.add_lower(nxR=5)
         L1 = U.add_lower(nxR=6)
 
@@ -1360,12 +1360,12 @@ class Test_NonTrivial(unittest.TestCase):
                       ]
         L1.b = [1,2,3,5]
 
-        #lbp.print()
-        lbp.check()
+        #mpr.print()
+        mpr.check()
 
         #print("-"*80)
 
-        ans, soln_manager = convert_to_standard_form(lbp)
+        ans, soln_manager = convert_to_standard_form(mpr)
         #ans.print()
         ans.check()
 
@@ -1391,9 +1391,9 @@ class Test_NonTrivial(unittest.TestCase):
         self.assertEqual(soln_manager.multipliers[L1.id], [[(0,1)], [(1,1)], [(2,-1)], [(3,1)], [(4,1),(7,-1)], [(5,1)]])
 
     def test_test1_inequality(self):
-        lbp = self._create()
+        mpr = self._create()
 
-        U = lbp.add_upper(nxR=4)
+        U = mpr.add_upper(nxR=4)
         L0 = U.add_lower(nxR=5)
         L1 = U.add_lower(nxR=6)
 
@@ -1459,12 +1459,12 @@ class Test_NonTrivial(unittest.TestCase):
                       ]
         L1.b = [1,2,3,5]
 
-        #lbp.print()
-        lbp.check()
+        #mpr.print()
+        mpr.check()
 
         #print("-"*80)
 
-        ans, soln_manager = convert_to_standard_form(lbp, inequalities=True)
+        ans, soln_manager = convert_to_standard_form(mpr, inequalities=True)
         #ans.print()
         ans.check()
 
@@ -1490,9 +1490,9 @@ class Test_NonTrivial(unittest.TestCase):
         self.assertEqual(soln_manager.multipliers[L1.id], [[(0,1)], [(1,1)], [(2,-1)], [(3,1)], [(4,1),(6,-1)], [(5,1)]])
 
     def test_test2(self):
-        lbp = self._create()
+        mpr = self._create()
 
-        U = lbp.add_upper(nxR=4)
+        U = mpr.add_upper(nxR=4)
         U.minimize = False
         L0 = U.add_lower(nxR=5)
         L0.minimize = False
@@ -1560,12 +1560,12 @@ class Test_NonTrivial(unittest.TestCase):
                          ]
         L1.b = [1,2,3,5]
 
-        #lbp.print()
-        lbp.check()
+        #mpr.print()
+        mpr.check()
 
         #print("-"*80)
 
-        ans, soln_manager = convert_to_standard_form(lbp)
+        ans, soln_manager = convert_to_standard_form(mpr)
         #ans.print()
         ans.check()
 
@@ -1597,9 +1597,9 @@ class Test_Integers(unittest.TestCase):
         return QuadraticMultilevelProblem()
 
     def test_test1(self):
-        lbp = self._create()
+        mpr = self._create()
 
-        U = lbp.add_upper(nxR=1, nxZ=2, nxB=3)
+        U = mpr.add_upper(nxR=1, nxZ=2, nxB=3)
         L = U.add_lower(nxR=2, nxZ=3, nxB=4)
 
         U.x.lower_bounds    = [0, np.NINF, np.NINF, 0, 0, 0]
@@ -1624,7 +1624,7 @@ class Test_Integers(unittest.TestCase):
 
         L.b = [3]
 
-        lbp.check()
+        mpr.check()
 
         self.assertEqual(len(U.x), 6)
         self.assertEqual(len(L.x), 9)
@@ -1635,8 +1635,8 @@ class Test_Integers(unittest.TestCase):
         self.assertEqual(len(L.c[U]), 6)
         self.assertEqual(len(L.c[L]), 9)
 
-        convert_binaries_to_integers(lbp)
-        lbp.check()
+        convert_binaries_to_integers(mpr)
+        mpr.check()
         
         self.assertEqual(len(U.x), 6)
         self.assertEqual(len(L.x), 9)
@@ -1670,9 +1670,9 @@ class Test_Integers(unittest.TestCase):
         #self.assertEqual(L.A.L.xB, None)
 
     def test_test2(self):
-        lbp = QuadraticMultilevelProblem()
+        mpr = QuadraticMultilevelProblem()
 
-        U = lbp.add_upper(nxR=1, nxZ=0, nxB=3)
+        U = mpr.add_upper(nxR=1, nxZ=0, nxB=3)
         L = U.add_lower(nxR=2, nxZ=0, nxB=4)
 
         #U.xZ.lower_bounds    = [0, np.NINF]
@@ -1699,7 +1699,7 @@ class Test_Integers(unittest.TestCase):
 
         L.b = [3]
 
-        lbp.check()
+        mpr.check()
 
         self.assertEqual(len(U.x), 4)
         self.assertEqual(len(L.x), 6)
@@ -1710,8 +1710,8 @@ class Test_Integers(unittest.TestCase):
         self.assertEqual(len(L.c[U]), 4)
         self.assertEqual(len(L.c[L]), 6)
 
-        convert_binaries_to_integers(lbp)
-        lbp.check()
+        convert_binaries_to_integers(mpr)
+        mpr.check()
         
         self.assertEqual(U.x.nxR, 1)
         self.assertEqual(U.x.nxZ, 3)
@@ -1741,8 +1741,8 @@ class Test_Examples(unittest.TestCase):
 
     # NOTE - this is one of the few tests with binaries that have nonzero A-matrix coefficients
     def test_simple1(self):
-        lbp = self._create()
-        U = lbp.add_upper(nxR=4, nxZ=1, nxB=1)
+        mpr = self._create()
+        U = mpr.add_upper(nxR=4, nxZ=1, nxB=1)
         U.equalities = True
         U.x.lower_bounds = [np.NINF, -1,      np.NINF, -2, 0,       0]
         U.x.upper_bounds = [np.PINF, np.PINF, 5,        2, np.PINF, 1]
@@ -1751,32 +1751,32 @@ class Test_Examples(unittest.TestCase):
                   [ 0, 7,  0, 1,  0, 0],
                   [ 0, 0,  1, 1,  0, 1]]
         U.b = [-3, 5, 2]
-        #lbp.print()
-        lbp.check()
+        #mpr.print()
+        mpr.check()
 
-        ans, soln_manager = convert_to_standard_form(lbp)
+        ans, soln_manager = convert_to_standard_form(mpr)
         #ans.print()
         ans.check()
 
         self.assertEqual(ans.U.d, 1)
-        self.assertEqual(len(ans.U.c[U]), len(lbp.U.c[U])+2)
+        self.assertEqual(len(ans.U.c[U]), len(mpr.U.c[U])+2)
         self.assertEqual(list(ans.U.c[U]), [3, -1, 0, 0, -3, 0, 1, 1])
-        self.assertEqual(ans.U.A[U].shape[0], lbp.U.A[U].shape[0]+1)
-        self.assertEqual(ans.U.A[U].shape[1], lbp.U.A[U].shape[1]+2)
+        self.assertEqual(ans.U.A[U].shape[0], mpr.U.A[U].shape[0]+1)
+        self.assertEqual(ans.U.A[U].shape[1], mpr.U.A[U].shape[1]+2)
 
-        self.assertEqual(len(ans.U.b), len(lbp.U.b)+1)
+        self.assertEqual(len(ans.U.b), len(mpr.U.b)+1)
         self.assertEqual(ans.U.b[0], 10)
         self.assertEqual(ans.U.b[1], 14)
         self.assertEqual(ans.U.b[2], -1)
         self.assertEqual(ans.U.b[3], 4)
-        self.assertEqual(len(ans.U.x), len(lbp.U.x)+2)
+        self.assertEqual(len(ans.U.x), len(mpr.U.x)+2)
 
 
     # NOTE - An example where the upper-level doesn't have constraints with its own variables
     #        Q - Can this ever happen?
     def test_simple2(self):
-        lbp = self._create()
-        U = lbp.add_upper(nxB=1)
+        mpr = self._create()
+        U = mpr.add_upper(nxB=1)
         L = U.add_lower(nxR=4, nxZ=1, nxB=1)
 
         U.inequalities = True
@@ -1797,30 +1797,30 @@ class Test_Examples(unittest.TestCase):
                   [ 0, 7,  0, 1,  0, 0],
                   [ 0, 0,  1, 1,  0, 1]]
         L.b = [-3, 5, 2]
-        #lbp.print()
-        lbp.check()
+        #mpr.print()
+        mpr.check()
 
-        ans, soln_manager = convert_to_standard_form(lbp)
+        ans, soln_manager = convert_to_standard_form(mpr)
         #ans.print()
         ans.check()
 
         self.assertEqual(ans.U.LL.d, 1)
-        self.assertEqual(len(ans.U.LL.c[U]), len(lbp.U.LL.c[U])+3)
-        self.assertEqual(len(ans.U.LL.c[L]), len(lbp.U.LL.c[L])+5)
+        self.assertEqual(len(ans.U.LL.c[U]), len(mpr.U.LL.c[U])+3)
+        self.assertEqual(len(ans.U.LL.c[L]), len(mpr.U.LL.c[L])+5)
         self.assertEqual(list(ans.U.LL.c[L]), [3, -1, 0, 0, 0, 0, 0, -3, 0, 1, 1])
-        self.assertEqual(ans.U.LL.A[U].shape[0], lbp.U.LL.A[U].shape[0]+1)
-        self.assertEqual(ans.U.LL.A[U].shape[1], lbp.U.LL.A[U].shape[1]+3)
-        self.assertEqual(ans.U.LL.A[L].shape[0], lbp.U.LL.A[L].shape[0]+1)
-        self.assertEqual(ans.U.LL.A[L].shape[1], lbp.U.LL.A[L].shape[1]+5)
+        self.assertEqual(ans.U.LL.A[U].shape[0], mpr.U.LL.A[U].shape[0]+1)
+        self.assertEqual(ans.U.LL.A[U].shape[1], mpr.U.LL.A[U].shape[1]+3)
+        self.assertEqual(ans.U.LL.A[L].shape[0], mpr.U.LL.A[L].shape[0]+1)
+        self.assertEqual(ans.U.LL.A[L].shape[1], mpr.U.LL.A[L].shape[1]+5)
 
-        self.assertEqual(len(ans.U.LL.b), len(lbp.U.LL.b)+1)
+        self.assertEqual(len(ans.U.LL.b), len(mpr.U.LL.b)+1)
         self.assertEqual(ans.U.LL.b[0], 10)
         self.assertEqual(ans.U.LL.b[1], 14)
         self.assertEqual(ans.U.LL.b[2], -1)
         self.assertEqual(ans.U.LL.b[3], 4)
 
-        self.assertEqual(len(ans.U.x), len(lbp.U.x)+3)
-        self.assertEqual(len(ans.U.LL.x), len(lbp.U.LL.x)+5)
+        self.assertEqual(len(ans.U.x), len(mpr.U.x)+3)
+        self.assertEqual(len(ans.U.LL.x), len(mpr.U.LL.x)+5)
 
 
 if __name__ == "__main__":

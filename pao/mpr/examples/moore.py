@@ -4,7 +4,7 @@
 # The mixed integer linear bilevel programming problem.
 # Operations Research 38(5), 911–921.
 #
-from pao.lbp import *
+from pao.mpr import *
 
 
 def create():
@@ -34,5 +34,5 @@ def create():
 if __name__ == "__main__":          #pragma: no cover
     M = create()
     M.print()
-    opt = Solver('pao.lbp.FA')
+    opt = Solver('pao.mpr.FA')
     opt.solve(M)

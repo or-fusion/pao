@@ -78,7 +78,7 @@ def create_model_replacing_LL_with_kkt(repn):
 
 
 @SolverFactory.register(
-        name="pao.lbp.REG",
+        name="pao.mpr.REG",
         doc="PAO solver for Multilevel Problem Representations that define linear bilevel problems.  Solver uses regularization discussed by Scheel and Scholtes (2000) and Ralph and Wright (2004).")
 class LinearMultilevelSolver_REG(LinearMultilevelSolverBase):
 
@@ -97,28 +97,28 @@ class LinearMultilevelSolver_REG(LinearMultilevelSolverBase):
         ))
 
     def __init__(self, **kwds):
-        super().__init__(name='pao.lbp.REG')
+        super().__init__(name='pao.mpr.REG')
 
-    def check_model(self, lbp):
+    def check_model(self, mpr):
         #
         # Confirm that the LinearMultilevelProblem is well-formed
         #
-        assert (type(lbp) is LinearMultilevelProblem), "Solver '%s' can only solve a LinearMultilevelProblem" % self.name
-        lbp.check()
+        assert (type(mpr) is LinearMultilevelProblem), "Solver '%s' can only solve a LinearMultilevelProblem" % self.name
+        mpr.check()
         #
         # Confirm that this is a bilevel problem
         #
-        for i in range(len(lbp.U.LL)):
-            assert (len(lbp.U.LL[i].LL) == 0), "Can only solve bilevel problems"
+        for i in range(len(mpr.U.LL)):
+            assert (len(mpr.U.LL[i].LL) == 0), "Can only solve bilevel problems"
         #
         # No binary or integer upper-level variables
         #
-        assert (lbp.U.x.nxZ == 0), "Cannot use solver %s with model with integer upper-level variables" % self.name
-        assert (lbp.U.x.nxB == 0), "Cannot use solver %s with model with binary upper-level variables" % self.name
+        assert (mpr.U.x.nxZ == 0), "Cannot use solver %s with model with integer upper-level variables" % self.name
+        assert (mpr.U.x.nxB == 0), "Cannot use solver %s with model with binary upper-level variables" % self.name
         #
         # No binary or integer lower-level variables
         #
-        for L in lbp.U.LL:
+        for L in mpr.U.LL:
             assert (L.x.nxZ == 0), "Cannot use solver %s with model with integer lower-level variables" % self.name
             assert (L.x.nxB == 0), "Cannot use solver %s with model with binary lower-level variables" % self.name
 

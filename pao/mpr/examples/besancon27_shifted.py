@@ -4,7 +4,7 @@
 #   M. Besancon, M. F. Anjos and L. Brotcorne
 #   arXiv:1908.04040v5 (2019)
 #
-from pao.lbp import *
+from pao.mpr import *
 
 
 def create():
@@ -37,6 +37,6 @@ def create():
 
 if __name__ == "__main__":          #pragma: no cover
     M = create()
-    opt = Solver('pao.lbp.FA')
+    opt = Solver('pao.mpr.FA')
     opt.solve(M, tee=True)
     M.print()

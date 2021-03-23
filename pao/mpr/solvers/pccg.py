@@ -28,7 +28,7 @@ from .pccg_solver import execute_PCCG_solver
 
 
 @SolverFactory.register(
-        name='pao.lbp.PCCG',
+        name='pao.mpr.PCCG',
         doc='PAO solver for Multilevel Problem Representations that define linear bilevel problems. Solver uses projected column constraint generation algorithm described by Yue et al. (2017).')
 class LinearMultilevelSolver_PCCG(LinearMultilevelSolverBase):
 
@@ -72,24 +72,24 @@ class LinearMultilevelSolver_PCCG(LinearMultilevelSolverBase):
         ))
 
     def __init__(self, **kwds):
-        super().__init__(name='pao.lbp.PCCG')
+        super().__init__(name='pao.mpr.PCCG')
 
-    def check_model(self, lbp):
+    def check_model(self, mpr):
         #
         # Confirm that the LinearMultilevelProblem is well-formed
         #
-        assert (type(lbp) is LinearMultilevelProblem), "Solver '%s' can only solve a LinearMultilevelProblem" % self.name
-        lbp.check()
+        assert (type(mpr) is LinearMultilevelProblem), "Solver '%s' can only solve a LinearMultilevelProblem" % self.name
+        mpr.check()
         #
-        assert (len(lbp.U.LL) == 1), "Can only solve linear bilevel problems with one lower-level"
+        assert (len(mpr.U.LL) == 1), "Can only solve linear bilevel problems with one lower-level"
         #
-        assert (len(lbp.U.LL.LL) == 0), "Can only solve bilevel problems"
+        assert (len(mpr.U.LL.LL) == 0), "Can only solve bilevel problems"
 
-    def solve(self, lbp, options=None, **config_options):
+    def solve(self, mpr, options=None, **config_options):
         #
         # Error checks
         #
-        self.check_model(lbp)
+        self.check_model(mpr)
         #
         # Process keyword options
         #
@@ -101,17 +101,17 @@ class LinearMultilevelSolver_PCCG(LinearMultilevelSolverBase):
 
         # PCCG requires a standard form with inequalities and 
         # a maximization lower-level
-        self.standard_form, soln_manager = convert_to_standard_form(lbp, inequalities=True)
+        self.standard_form, soln_manager = convert_to_standard_form(mpr, inequalities=True)
         convert_sense(self.standard_form.U.LL, minimize=False)
         convert_binaries_to_integers(self.standard_form)
         
         results = LinearMultilevelResults(solution_manager=soln_manager)
 
         UxR, UxZ, LxR, LxZ = execute_PCCG_solver(self.standard_form, self.config, results)
-        xR = {lbp.U.id:UxR, lbp.U.LL[0].id:LxR}
-        xZ = {lbp.U.id:UxZ, lbp.U.LL[0].id:LxZ}
+        xR = {mpr.U.id:UxR, mpr.U.LL[0].id:LxR}
+        xZ = {mpr.U.id:UxZ, mpr.U.LL[0].id:LxZ}
 
-        results.copy_solution(From=Munch(LxR=xR, LxZ=xZ), To=lbp)
+        results.copy_solution(From=Munch(LxR=xR, LxZ=xZ), To=mpr)
 
         results.solver.wallclock_time = time.time() - start_time
         return results

@@ -1,4 +1,4 @@
-# pao.lbp.examples
+# pao.mpr.examples
 
 from . import anadalingam
 from . import bard511_list

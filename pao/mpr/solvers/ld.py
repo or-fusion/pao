@@ -17,37 +17,37 @@ nan = float('nan')
 
 
 @SolverFactory.register(
-        name="pao.lbp.interdiction",
+        name="pao.mpr.interdiction",
         doc='PAO solver for Multilevel Problem Representations that define linear interdiction problems, where the upper- and lower-objectives are opposite.')
 class LinearMultilevelSolver_interdiction(LinearMultilevelSolverBase):
 
     def __init__(self, **kwds):
-        super().__init__(name='pao.lbp.interdiction')
+        super().__init__(name='pao.mpr.interdiction')
         self.config.solver = 'glpk'
         self.config.mipgap = nan
 
-    def check_model(self, lbp):
+    def check_model(self, mpr):
         #
         # Confirm that the LinearMultilevelProblem is well-formed
         #
-        assert (type(lbp) is LinearMultilevelProblem), "Solver '%s' can only solve a LinearMultilevelProblem" % self.solver_type
-        lbp.check()
+        assert (type(mpr) is LinearMultilevelProblem), "Solver '%s' can only solve a LinearMultilevelProblem" % self.solver_type
+        mpr.check()
         #
         # TODO: For now, we just deal with the case where there is a single lower-level.  Later, we
         # will generalize this.
         #
-        assert (len(lbp.L) == 1), "Only one lower-level is handled right now"
+        assert (len(mpr.L) == 1), "Only one lower-level is handled right now"
         #
         # No binary or integer lower level variables
         #
-        for i in range(len(lbp.L)):
-            assert (len(lbp.L[i].xZ) == 0), "Cannot use solver %s with model with integer lower-level variables" % self.solver_type
-            assert (len(lbp.L[i].xB) == 0), "Cannot use solver %s with model with binary lower-level variables" % self.solver_type
+        for i in range(len(mpr.L)):
+            assert (len(mpr.L[i].xZ) == 0), "Cannot use solver %s with model with integer lower-level variables" % self.solver_type
+            assert (len(mpr.L[i].xB) == 0), "Cannot use solver %s with model with binary lower-level variables" % self.solver_type
         #
         # Upper and lower objectives are the opposite of each other
         #
-        for i in range(len(lbp.L)):
-            assert (lbp.check_opposite_objectives(lbp.U, lbp.L[i])), "Lower level L[%d] does not have an objective that is the opposite of the upper-level" % i
+        for i in range(len(mpr.L)):
+            assert (mpr.check_opposite_objectives(mpr.U, mpr.L[i])), "Lower level L[%d] does not have an objective that is the opposite of the upper-level" % i
         #
         # Lower level variables are not allowed in the upper-level
         # constraints.
@@ -55,7 +55,7 @@ class LinearMultilevelSolver_interdiction(LinearMultilevelSolverBase):
         # TODO - confirm that this is a necessarily restriction for this
         # solver.
         #
-        for i in range(len(lbp.L)):
+        for i in range(len(mpr.L)):
             assert (U.A.L[i].xR is None), "The lower-level variables cannot be used in the upper-level constraints."
         #
         # Upper-level variables are not allowed in the lower-level
@@ -65,16 +65,16 @@ class LinearMultilevelSolver_interdiction(LinearMultilevelSolverBase):
         # dualizing the lower-level.  That might be OK, but for now we
         # are assuming the simple application of a MIP solver.
         #
-        for i in range(len(lbp.L)):
+        for i in range(len(mpr.L)):
             assert (L[i].A.U.xR is None), "The upper-level variables cannot be used in the lower-level constraints."
             assert (L[i].A.U.xZ is None), "The upper-level variables cannot be used in the lower-level constraints."
             assert (L[i].A.U.xB is None), "The upper-level variables cannot be used in the lower-level constraints."
 
-    def solve(self, lbp, options=None, **config_options):
+    def solve(self, mpr, options=None, **config_options):
         #
         # Error checks
         #
-        self.check_model(lbp)
+        self.check_model(mpr)
         #
         # Process keyword options
         #
@@ -84,7 +84,7 @@ class LinearMultilevelSolver_interdiction(LinearMultilevelSolverBase):
         #
         start_time = time.time()
 
-        self.standard_form, soln_manager = convert_to_standard_form(lbp)
+        self.standard_form, soln_manager = convert_to_standard_form(mpr)
 
         M = self._create_pyomo_model(self.standard_form)
         #
@@ -105,7 +105,7 @@ class LinearMultilevelSolver_interdiction(LinearMultilevelSolverBase):
 
             if self.config.load_solutions:
                 # Load results from the Pyomo model to the LinearMultilevelProblem
-                results.copy_solution(From=M, To=lbp)
+                results.copy_solution(From=M, To=mpr)
             else:
                 # Load results from the Pyomo model to the Results
                 results.load_from(pyomo_results)

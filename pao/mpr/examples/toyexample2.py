@@ -4,7 +4,7 @@
 # "A projection-based reformulation and decomposition algorithm for global optimization 
 #  of a class of mixed integer bilevel linear programs" by Dajun Yue, Jiyao Gao, Bo Zeng, Fengqi You
 #
-from pao.lbp import *
+from pao.mpr import *
 
 
 def create():
@@ -36,6 +36,6 @@ def create():
 
 if __name__ == "__main__":          #pragma: no cover
     M = create()
-    opt = Solver('pao.lbp.PCCG')
+    opt = Solver('pao.mpr.PCCG')
     opt.solve(M)
     M.print()

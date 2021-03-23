@@ -17,7 +17,7 @@ from .reg import create_model_replacing_LL_with_kkt
 
 
 @SolverFactory.register(
-        name='pao.lbp.FA',
+        name='pao.mpr.FA',
         doc='PAO solver for Multilevel Problem Representations that define linear bilevel problems.  Solver uses big-M relaxations discussed by Fortuny-Amat and McCarl (1981).')
 
 class LinearMultilevelSolver_FA(LinearMultilevelSolverBase):
@@ -37,7 +37,7 @@ class LinearMultilevelSolver_FA(LinearMultilevelSolverBase):
         ))
 
     def __init__(self, **kwds):
-        super().__init__(name='pao.lbp.FA')
+        super().__init__(name='pao.mpr.FA')
 
     def check_model(self, model):
         #

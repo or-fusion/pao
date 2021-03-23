@@ -15,7 +15,7 @@
 #       u1 unconstrained
 #
 
-from pao.lbp import *
+from pao.mpr import *
 
 def create():
     M = QuadraticMultilevelProblem()
@@ -46,6 +46,6 @@ if __name__ == "__main__":          #pragma: no cover
     m = linearize_bilinear_terms(M)
     m.print()
 
-    opt = Solver('pao.lbp.FA')
+    opt = Solver('pao.mpr.FA')
     opt.solve(m, tee=True)
     m.print()
