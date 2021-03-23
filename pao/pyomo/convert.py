@@ -7,7 +7,7 @@ import pyomo.environ as pe
 from pyomo.repn import generate_standard_repn
 from pyomo.core.base import SortComponents, is_fixed
 
-from pao.lbp import LinearMultilevelProblem, QuadraticMultilevelProblem
+from pao.mpr import LinearMultilevelProblem, QuadraticMultilevelProblem
 from .components import SubModel
 
 

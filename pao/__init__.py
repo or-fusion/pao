@@ -34,7 +34,7 @@ __doc__ = __doc__ % __version__
 __all__ = ('__version__')
 
 import pyomo.environ
-import pao.lbp
+import pao.mpr
 import pao.pyomo
 #import pao.duality.plugins
 import pao.pyomo.plugins

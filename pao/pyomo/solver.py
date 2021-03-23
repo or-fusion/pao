@@ -1,7 +1,7 @@
 import time
 from .convert import convert_pyomo2MultilevelProblem
 import pao.common
-import pao.lbp
+import pao.mpr
 
 
 SolverFactory = pao.common.SolverFactory  
@@ -50,7 +50,7 @@ class PyomoSubmodelSolverBase_LBP(PyomoSubmodelSolverBase):
             print("Cannot convert Pyomo model to a multilevel problem") 
             raise
         if linearize_bilinear:
-            lmp, soln = pao.lbp.linearize_bilinear_terms(mp)
+            lmp, soln = pao.mpr.linearize_bilinear_terms(mp)
         else:
             lmp = mp
         #

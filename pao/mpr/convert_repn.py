@@ -519,9 +519,9 @@ def convert_constraints(ans, inequalities):
         L.inequalities = inequalities
 
 
-def get_multipliers(lbp, changes):
+def get_multipliers(mpr, changes):
     multipliers = {}
-    for L in lbp.levels():
+    for L in mpr.levels():
         #
         # If there were no changes, then the multiplier is 1
         #
@@ -533,9 +533,9 @@ def get_multipliers(lbp, changes):
                 multipliers[L.id][ chg.v ] = [(chg.v,1), (chg.w,-1)]
     return multipliers
 
-def get_offsets(lbp, changes):
+def get_offsets(mpr, changes):
     offsets = {}
-    for L in lbp.levels():
+    for L in mpr.levels():
         #
         # If there were no changes, then the offset is 0
         #
@@ -550,8 +550,8 @@ def get_offsets(lbp, changes):
     return offsets
 
 
-def convert_binaries_to_integers(lbp):
-    for L in lbp.levels():
+def convert_binaries_to_integers(mpr):
+    for L in mpr.levels():
         if L.x.nxB > 0:
             L.x._resize(nxR=L.x.nxR, nxZ=L.x.nxZ+L.x.nxB, nxB=0, lb=0, ub=1)
 
