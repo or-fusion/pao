@@ -14,7 +14,7 @@ from pyomo.common.config import ConfigBlock, ConfigValue
         doc="PAO solver for Pyomo models that define linear and bilinear bilevel problems.  Solver uses big-M relaxations discussed by Fortuny-Amat and McCarl (1981).")
 class PyomoSubmodelSolver_FA(PyomoSubmodelSolverBase_LBP):
     """
-    PAO FA solver for Pyomo models: pao.pyomo.FA.
+    PAO FA solver for Pyomo models: pao.pyomo.FA
 
     This solver converts the Pyomo model to a LinearBilevelProblem and
     calls the pao.mpr.FA solver.
@@ -44,7 +44,7 @@ pao.common.SolverAPI._generate_solve_docstring(PyomoSubmodelSolver_FA)
         doc="PAO solver for Pyomo models that define linear and bilinear bilevel problems.  Solver uses regularization discussed by Scheel and Scholtes (2000) and Ralph and Wright (2004).")
 class PyomoSubmodelSolver_REG(PyomoSubmodelSolverBase_LBP):
     """
-    PAO REG solver for Pyomo models: pao.pyomo.REG.
+    PAO REG solver for Pyomo models: pao.pyomo.REG
 
     This solver converts the Pyomo model to a LinearBilevelProblem and
     calls the pao.mpr.REG solver.
@@ -73,7 +73,7 @@ pao.common.SolverAPI._generate_solve_docstring(PyomoSubmodelSolver_REG)
         doc="PAO solver for Pyomo models that define linear and bilinear bilevel problems.  Solver uses projected column constraint generation algorithm described by Yue et al. (2017)")
 class PyomoSubmodelSolver_PCCG(PyomoSubmodelSolverBase_LBP):
     """
-    PAO PCCG solver for Pyomo models: pao.pyomo.PCCG.
+    PAO PCCG solver for Pyomo models: pao.pyomo.PCCG
 
     This solver converts the Pyomo model to a LinearBilevelProblem and
     calls the pao.mpr.PCCG solver.

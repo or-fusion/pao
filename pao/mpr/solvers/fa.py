@@ -23,7 +23,12 @@ from .reg import create_model_replacing_LL_with_kkt
         doc='PAO solver for Multilevel Problem Representations that define linear bilevel problems.  Solver uses big-M relaxations discussed by Fortuny-Amat and McCarl (1981).')
 
 class LinearMultilevelSolver_FA(LinearMultilevelSolverBase):
+    """
+    PAO FA solver for linear MPRs: pao.mpr.FA
 
+    This solver replaces lower-level problems using the KKT conditions and
+    calls a MIP solver to solve the reformulated problem.
+    """
     config = LinearMultilevelSolverBase.config()
     config.declare('solver', ConfigValue(
         default='glpk',

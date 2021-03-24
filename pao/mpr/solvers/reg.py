@@ -81,6 +81,12 @@ def create_model_replacing_LL_with_kkt(repn):
         name="pao.mpr.REG",
         doc="PAO solver for Multilevel Problem Representations that define linear bilevel problems.  Solver uses regularization discussed by Scheel and Scholtes (2000) and Ralph and Wright (2004).")
 class LinearMultilevelSolver_REG(LinearMultilevelSolverBase):
+    """
+    PAO REG solver for linear MPRs: pao.mpr.REG
+
+    This solver replaces lower-level problems using the KKT conditions and
+    calls a NLP solver to solve the reformulated problem.
+    """
 
     config = LinearMultilevelSolverBase.config()
     config.declare('solver', ConfigValue(

@@ -32,6 +32,11 @@ from .pccg_solver import execute_PCCG_solver
         name='pao.mpr.PCCG',
         doc='PAO solver for Multilevel Problem Representations that define linear bilevel problems. Solver uses projected column constraint generation algorithm described by Yue et al. (2017).')
 class LinearMultilevelSolver_PCCG(LinearMultilevelSolverBase):
+    """
+    PAO PCCG solver for linear MPRs: pao.mpr.PCCG
+
+    This solver iteratively adds constraints to tighten a relaxation of the lower-level problem.
+    """
 
     config = LinearMultilevelSolverBase.config()
     config.declare('solver', ConfigValue(

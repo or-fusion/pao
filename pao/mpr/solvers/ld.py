@@ -22,6 +22,12 @@ nan = float('nan')
         name="pao.mpr.interdiction",
         doc='PAO solver for Multilevel Problem Representations that define linear interdiction problems, where the upper- and lower-objectives are opposite.')
 class LinearMultilevelSolver_interdiction(LinearMultilevelSolverBase):
+    """
+    PAO LD solver for linear interdiction MPRs: pao.mpr.LD
+
+    This solver replaces lower-level problems using the dual and
+    calls a MIP solver to solve the reformulated problem.
+    """
 
     def __init__(self, **kwds):
         super().__init__(name='pao.mpr.interdiction')
