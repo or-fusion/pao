@@ -40,7 +40,7 @@ class Test_pyomo_FA(unittest.TestCase):
         except AssertionError:
             pass
 
-        opt.solve(M, linearize_bilinear_terms=True)
+        opt.solve(M, linearize_bigm=1e6)
 
         self.assertTrue(math.isclose(M.u.value, 0))
         self.assertTrue(math.isclose(M.x.value, 0))
@@ -163,7 +163,7 @@ class Test_pyomo_PCCG(unittest.TestCase):
         except AssertionError:
             pass
 
-        opt.solve(M, linearize_bilinear_terms=True)
+        opt.solve(M, linearize_bigm=1e6)
 
         self.assertTrue(math.isclose(M.u.value, 0))
         self.assertTrue(math.isclose(M.x.value, 0))
