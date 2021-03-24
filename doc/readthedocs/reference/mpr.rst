@@ -5,7 +5,7 @@ LinearMultilevelProblem Representation
 --------------------------------------
 
 .. todo::
-    Describe the LinearMultilevelProblem, QuadraticMultilevelProblem and other functionality use to 
+    Flush out the description of the LinearMultilevelProblem, QuadraticMultilevelProblem and other functionality use to 
     support compact problem representations.
 
 .. currentmodule:: pao.mpr.repn
@@ -13,9 +13,17 @@ LinearMultilevelProblem Representation
 .. autoclass:: LinearMultilevelProblem
    :members:
 
+.. autoclass:: QuadraticMultilevelProblem
+   :members:
+
+Model Transformations
+---------------------
+
 .. currentmodule:: pao.mpr.convert_repn
 
 .. autofunction:: convert_to_standard_form
+
+.. autofunction:: linearize_bilinear_terms
 
 PAO Solvers
 -----------
@@ -31,6 +39,5 @@ PAO Solvers
 .. autoclass:: pao.mpr.solvers.pccg.LinearMultilevelSolver_PCCG
     :members:
     :inherited-members:
-
 
 

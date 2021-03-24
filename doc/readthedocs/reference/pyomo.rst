@@ -4,11 +4,11 @@ Pyomo Models
 Pyomo Representation
 --------------------
 
-Describe the SubModel component and other functionality use to 
-support the Pyomo problem representation.
-
 .. autoclass:: pao.pyomo.components.SubModel
     :special-members: __init__
+
+Model Transformations
+---------------------
 
 .. autofunction:: pao.pyomo.convert.convert_pyomo2MultilevelProblem
 

@@ -7,13 +7,13 @@ in PAO:
 .. toctree::
    :maxdepth: 1
 
-   solverapi.rst
-   pyomo.rst
-   compact.rst
+   reference/solverapi.rst
+   reference/pyomo.rst
+   reference/mpr.rst
 
 The following functionality is deprecated or not actively maintained:
 
 .. toctree::
    :maxdepth: 1
 
-   duality.rst
+   reference/duality.rst
