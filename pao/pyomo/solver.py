@@ -1,4 +1,6 @@
 import time
+from pyomo.common.config import ConfigBlock, ConfigValue
+
 from .convert import convert_pyomo2MultilevelProblem
 import pao.common
 import pao.mpr
@@ -21,6 +23,12 @@ class PyomoSubmodelSolverBase_LBP(PyomoSubmodelSolverBase):
     Define the API for solvers that optimize a Pyomo model using SubModel components
     """
 
+    config = pao.common.solver.SolverAPI.config()
+    config.declare('linearize_bigm', ConfigValue(
+        default=None,
+        description="The name of the big-M value used to linearize bilinear terms.  If this is not specified, then the solver will throw an error if bilinear terms exist in the model."
+        ))
+
     def __init__(self, name, lmp_solver):
         super().__init__(name)
         self.lmp_solver = lmp_solver
@@ -32,7 +40,7 @@ class PyomoSubmodelSolverBase_LBP(PyomoSubmodelSolverBase):
         options = self._update_config(options, validate_options=False)
         solver_options = {k:self.config[k] for k in self.config}
         solver_options['load_solutions'] = True
-        linearize_bilinear = options.get('linearize_bilinear_terms',False)
+        linearize_bigm = solver_options.pop('linearize_bigm')
         #
         # Start the clock
         #
@@ -48,8 +56,8 @@ class PyomoSubmodelSolverBase_LBP(PyomoSubmodelSolverBase):
         except RuntimeError as err:
             print("Cannot convert Pyomo model to a multilevel problem") 
             raise
-        if linearize_bilinear:
-            lmp, soln = pao.mpr.linearize_bilinear_terms(mp)
+        if linearize_bigm:
+            lmp, soln = pao.mpr.linearize_bilinear_terms(mp, linearize_bigm)
         else:
             lmp = mp
         #
@@ -59,7 +67,7 @@ class PyomoSubmodelSolverBase_LBP(PyomoSubmodelSolverBase):
 
             self._initialize_results(results, lmp_results, model, lmp, options)
             results.solver.rc = getattr(opt, '_rc', None)
-            if linearize_bilinear:
+            if linearize_bigm:
                 soln.copy(From=lmp, To=mp)
                 results.copy(From=mp, To=model)
             else:

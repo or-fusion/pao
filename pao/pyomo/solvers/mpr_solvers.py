@@ -20,7 +20,7 @@ class PyomoSubmodelSolver_FA(PyomoSubmodelSolverBase_LBP):
     calls the pao.mpr.FA solver.
     """
 
-    config = pao.common.solver.SolverAPI.config()
+    config = PyomoSubmodelSolverBase_LBP.config()
     config.declare('solver', ConfigValue(
         default='glpk',
         description="The name of the MIP solver used by FA.  (default is glpk)"
@@ -35,7 +35,7 @@ class PyomoSubmodelSolver_FA(PyomoSubmodelSolverBase_LBP):
     def solve(self, model, **options):
         return super().solve(model, **options)
 
-PyomoSubmodelSolver_FA._update_solve_docstring(PyomoSubmodelSolver_FA.config)
+pao.common.SolverAPI._generate_solve_docstring(PyomoSubmodelSolver_FA)
 
 
 
@@ -50,7 +50,7 @@ class PyomoSubmodelSolver_REG(PyomoSubmodelSolverBase_LBP):
     calls the pao.mpr.REG solver.
     """
 
-    config = pao.common.solver.SolverAPI.config()
+    config = PyomoSubmodelSolverBase_LBP.config()
     config.declare('solver', ConfigValue(
         default='ipopt',
         description="The name of the NLP solver used by REG.  (default is ipopt)"
@@ -65,7 +65,7 @@ class PyomoSubmodelSolver_REG(PyomoSubmodelSolverBase_LBP):
     def solve(self, model, **options):
         return super().solve(model, **options)
 
-PyomoSubmodelSolver_REG._update_solve_docstring(PyomoSubmodelSolver_REG.config)
+pao.common.SolverAPI._generate_solve_docstring(PyomoSubmodelSolver_REG)
 
 
 @Solver.register(
@@ -79,7 +79,7 @@ class PyomoSubmodelSolver_PCCG(PyomoSubmodelSolverBase_LBP):
     calls the pao.mpr.PCCG solver.
     """
 
-    config = pao.common.solver.SolverAPI.config()
+    config = PyomoSubmodelSolverBase_LBP.config()
     config.declare('solver', ConfigValue(
         default='cbc',
         description="The name of the MIP solver used by PCCG.  (default is cbc)"
@@ -94,6 +94,6 @@ class PyomoSubmodelSolver_PCCG(PyomoSubmodelSolverBase_LBP):
     def solve(self, model, **options):
         return super().solve(model, **options)
 
-PyomoSubmodelSolver_PCCG._update_solve_docstring(PyomoSubmodelSolver_PCCG.config)
+pao.common.SolverAPI._generate_solve_docstring(PyomoSubmodelSolver_PCCG)
 
 

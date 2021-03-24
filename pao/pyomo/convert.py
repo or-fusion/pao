@@ -417,7 +417,7 @@ class PyomoSubmodel_SolutionManager_LBP(object):
 
 def convert_pyomo2LinearMultilevelProblem(model, *, determinism=1, inequalities=True):
     """
-    Traverse the model an generate a LinearMultilevelProblem.  Generate errors
+    Traverse the model and generate a LinearMultilevelProblem.  Generate errors
     if this problem cannot be represented in this form.
 
     Args
@@ -485,7 +485,7 @@ def convert_pyomo2MultilevelProblem(model, *, determinism=1, inequalities=True, 
     ---- 
     model
         A Pyomo model object.
-    determinism: int
+    determinism: int, Default: 1
         Indicates whether the traversal of **model** is
         ordered.  Valid values are:
 
@@ -493,7 +493,11 @@ def convert_pyomo2MultilevelProblem(model, *, determinism=1, inequalities=True, 
                 * 1 - Ordered traversal of component indices in **model**
                 * 2 - Ordered traversal of components by name in **model**
 
-    inequalities: bool, (Default: True)
+    linear: bool
+        A flag that indicates whether the expected model representation is linear (True) or 
+        quadratic (False).  If not specified, then no error checking is done to confirm
+        whether the model is linear or quadratic.
+    inequalities: bool, Default: True
         If True, then the multilevel problem object represents all
         constraints as less-than-or-equal inequalities.  Otherwise,
         the multilevel problem represents all constraints as equalities.

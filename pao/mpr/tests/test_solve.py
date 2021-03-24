@@ -43,7 +43,7 @@ class Test_bilevel_FA(unittest.TestCase):
         except AssertionError:
             pass
 
-        lmp, soln = linearize_bilinear_terms(qmp) 
+        lmp, soln = linearize_bilinear_terms(qmp, 1e6) 
         lmp.check()
         opt.solve(lmp)
         soln.copy(From=lmp, To=qmp)
@@ -225,7 +225,7 @@ class Test_bilevel_PCCG(unittest.TestCase):
         except AssertionError:
             pass
 
-        lmp, soln = linearize_bilinear_terms(qmp) 
+        lmp, soln = linearize_bilinear_terms(qmp, 1e6) 
         lmp.check()
         opt.solve(lmp)
         soln.copy(From=lmp, To=qmp)

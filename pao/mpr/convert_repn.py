@@ -564,15 +564,15 @@ def convert_to_standard_form(M, inequalities=False):
     the problem such that
 
     1. Each real variable x is nonnegative (x >= 0)
-    2. Constraints are equalities
+    2. Constraints have the specified form (e.g. all equalities or all inequalities)
 
     Args
     ----
     M : LinearMultilevelProblem
         The model that is being normalized
-    inequalities : bool (Default: False)
-        A bool that is True if the normalized form has inequalities or equalities otherwise.
-        The default is False.
+    inequalities : bool, Default: False
+        If this is True, then the normalized form has inequality constraints.  Otherwise, the normalized
+        form has equality constraints.
 
     Returns
     -------
@@ -623,7 +623,7 @@ def merge_matrices(M1, M2, nrows, ncols):
     return M 
 
 
-def linearize_bilinear_terms(M, bigM=1e6):
+def linearize_bilinear_terms(M, bigM):
     """
     Generate a linear multilevel problem from a quadratic multilevel
     problem by linearizing bilinear terms.
@@ -637,6 +637,8 @@ def linearize_bilinear_terms(M, bigM=1e6):
     ----
     M : QuadraticMultilevelProblem
         The model that is being linearized
+    bigM : float
+        The big-M value used to linearize nonlinear terms
 
     Returns
     -------

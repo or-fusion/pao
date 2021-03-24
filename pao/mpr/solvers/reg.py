@@ -212,4 +212,4 @@ class LinearMultilevelSolver_REG(LinearMultilevelSolverBase):
             print("nu",j,pe.value(M.kkt.nu[j]))
 
 
-LinearMultilevelSolver_REG._update_solve_docstring(LinearMultilevelSolver_REG.config)
+pao.common.SolverAPI._generate_solve_docstring(LinearMultilevelSolver_REG)

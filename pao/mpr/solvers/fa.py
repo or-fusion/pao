@@ -9,6 +9,8 @@ import pyomo.environ as pe
 import pyomo.opt
 from pyomo.common.config import ConfigBlock, ConfigValue
 from pyomo.mpec import ComplementarityList, complements
+
+import pao.common
 from ..solver import Solver, LinearMultilevelSolverBase, LinearMultilevelResults
 from ..repn import LinearMultilevelProblem
 from ..convert_repn import convert_to_standard_form
@@ -153,5 +155,5 @@ class LinearMultilevelSolver_FA(LinearMultilevelSolverBase):
             print("nu",j,pe.value(M.kkt.nu[j]))
 
 
-LinearMultilevelSolver_FA._update_solve_docstring(LinearMultilevelSolver_FA.config)
+pao.common.SolverAPI._generate_solve_docstring(LinearMultilevelSolver_FA)
 

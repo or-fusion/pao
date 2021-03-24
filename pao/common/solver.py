@@ -1,14 +1,15 @@
 #
 # Classes used to define a solver API
 #
-__all__ = ['TerminationCondition', 'SolverAPI', 'Results', 'Solver']
-
+import copy
 import six
 import abc
 import enum
 import textwrap
 from pyutilib.misc import Options
 from pyomo.common.config import ConfigValue, ConfigBlock, add_docstring_list
+
+__all__ = ['TerminationCondition', 'SolverAPI', 'Results', 'Solver']
 
 
 class TerminationCondition(enum.Enum):
@@ -55,7 +56,9 @@ class TerminationCondition(enum.Enum):
 
 class SolverAPI(abc.ABC):
     """
-    The SolverAPI class defines the user API for optimization solvers.
+    The base class for all PAO solvers.
+
+    The SolverAPI class defines a consistent API for optimization solvers.
     """
 
     config = ConfigBlock()
@@ -81,13 +84,8 @@ class SolverAPI(abc.ABC):
         ))
 
     def __init__(self):
-        #self.config = Options(
-        #    time_limit=None,
-        #    keep_files=False,
-        #    tee=False,
-        #    load_solutions=True
-        #    )
-        pass
+        # Create a per-instance copy of the configuration data
+        self.config = self.config()
 
     def available(self):
         """
@@ -104,16 +102,13 @@ class SolverAPI(abc.ABC):
         """
         True
 
-    def license_status(self):
+    def valid_license(self):
         """
         Returns a bool indicating if the solver has a valid license.
 
         The default behavior is to always return `True`, but this method
         can be overloaded in a subclass to support solver-specific logic
         (e.g.  to check the solver license).
-
-        .. todo::
-            Consider renaming this to valid_license().
 
         Returns
         -------
@@ -159,17 +154,17 @@ class SolverAPI(abc.ABC):
     __solve_doc__ = solve.__doc__
 
     @staticmethod
-    def _update_solve_docstring(cfg):
+    def _generate_solve_docstring(cls):
         """
-        Update the docstring for SolverAPI.solve, including the description
+        Generate the docstring for cls.solve, including the description
         of the keyword arguments defined by a pyomo configuration object.
 
         Parameters
         ----------
-        cfg:
-            A Pyomo ConfigDict object that defines keyword arguments.
+        cls:
+            The subclass of SolverAPI whose docstring is being generated
         """
-        SolverAPI.solve.__doc__ = SolverAPI.__solve_doc__.format( add_docstring_list("", cfg, 8) )
+        cls.solve.__doc__ = SolverAPI.__solve_doc__.format( add_docstring_list("", cls.config, 8) )
 
     def is_persistent():
         """
@@ -231,6 +226,8 @@ class SolverAPI(abc.ABC):
             assert (len(keys) == 0), "Unexpected options to solve() have been specified: %s" % " ".join(sorted(k for k in keys))
         return {key:config_options[key] for key in keys}
 
+SolverAPI._generate_solve_docstring(SolverAPI)
+
 
 """
 >>> opt = Solver('my_solver')
@@ -289,8 +286,8 @@ class ResultsBase(abc.ABC):
         """
         Store the solution in this object into the given model.
 
-        A results object may contain one or solutions.  This method
-        copies the indicated solution, **i**, into the model.
+        A results object may contain one or more solutions. This method
+        copies the **i**-th solution into the model.
 
         Parameters
         ----------
@@ -305,7 +302,7 @@ class ResultsBase(abc.ABC):
         """
         Load solution from the model.
 
-        When completed, this sesults object contains only one solution, which corresponds
+        When completed, this results object contains only one solution, which corresponds
         to the solution in the model.
         """
         if self.solution_manager is None:
@@ -315,7 +312,7 @@ class ResultsBase(abc.ABC):
     @abc.abstractmethod
     def __str__(self):
         """
-        Generate a string summary of this sesults object.
+        Generate a string summary of this results object.
 
         Returns
         -------
@@ -348,7 +345,7 @@ class SolverFactory(object):
     """
     A class that manages a registry of solvers.
 
-    A solver factory supports a registry that enables 
+    A solver factory manages a registry that enables 
     solvers to be created by name.
     """
 
@@ -371,7 +368,8 @@ class SolverFactory(object):
         Returns
         -------
         decorator
-            If the **cls** parameter is None, then a decorator function
+            If the **cls** parameter is None, then a class 
+            decorator function
             is returned that can be used to register a solver.
         """
         def decorator(cls):
@@ -405,7 +403,7 @@ class SolverFactory(object):
 
     def description(self, name):
         """
-        Returns the description of a solver.
+        Returns the description of the specified solver.
 
         Parameters
         ----------
@@ -442,6 +440,6 @@ class SolverFactory(object):
 
 Solver = SolverFactory()
 """
-Solver is a global instance of the SolverFactory.
-This object provides a global registry of optimization solvers.
+Solver is a global instance of the :class:`SolverFactory`.
+This object provides a global registry of PAO optimization solvers.
 """

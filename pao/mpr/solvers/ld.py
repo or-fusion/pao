@@ -8,6 +8,8 @@ import numpy as np
 import pyutilib
 import pyomo.environ as pe
 import pyomo.opt
+
+import pao.common
 from ..solver import Solver, LinearMultilevelSolverBase, LinearMultilevelResults
 from ..repn import LinearMultilevelProblem
 from ..convert_repn import convert_to_standard_form

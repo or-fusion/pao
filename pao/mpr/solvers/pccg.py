@@ -20,6 +20,7 @@ import pyomo.opt
 from pyomo.common.config import ConfigBlock, ConfigValue
 from pyomo.mpec import ComplementarityList, complements
 
+import pao.common
 from ..solver import Solver, LinearMultilevelSolverBase, LinearMultilevelResults
 from ..repn import LinearMultilevelProblem
 from ..convert_repn import convert_to_standard_form, convert_sense, convert_binaries_to_integers
@@ -117,4 +118,4 @@ class LinearMultilevelSolver_PCCG(LinearMultilevelSolverBase):
         return results
 
 
-LinearMultilevelSolver_PCCG._update_solve_docstring(LinearMultilevelSolver_PCCG.config)
+pao.common.SolverAPI._generate_solve_docstring(LinearMultilevelSolver_PCCG)

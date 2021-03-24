@@ -24,7 +24,7 @@ class Test_Trivial(unittest.TestCase):
         L.P[U,L] = (6,7), {(3,0):11, (4,1):13, (5,3):17}
         mpr.check()
 
-        ans, soln = linearize_bilinear_terms(mpr)
+        ans, soln = linearize_bilinear_terms(mpr, 1e6)
         ans.check()
         self.assertEqual(type(ans), LinearMultilevelProblem)
 
@@ -106,7 +106,7 @@ class Test_Trivial(unittest.TestCase):
         L.P[U,L] = (6,7), {(3,1):19, (4,2):23, (5,4):31}
         mpr.check()
 
-        ans, soln = linearize_bilinear_terms(mpr)
+        ans, soln = linearize_bilinear_terms(mpr, 1e6)
         ans.check()
         self.assertEqual(type(ans), LinearMultilevelProblem)
 
@@ -227,7 +227,7 @@ class Test_Trivial(unittest.TestCase):
         L.P[U,L] = (6,7), {(3,1):11, (4,2):13, (5,4):17}
         mpr.check()
 
-        ans, soln = linearize_bilinear_terms(mpr)
+        ans, soln = linearize_bilinear_terms(mpr, 1e6)
         ans.check()
         self.assertEqual(type(ans), LinearMultilevelProblem)
 
@@ -352,7 +352,7 @@ class Test_Trivial(unittest.TestCase):
         L.b = [-2]
         mpr.check()
 
-        ans, soln = linearize_bilinear_terms(mpr)
+        ans, soln = linearize_bilinear_terms(mpr, 1e6)
         ans.check()
         self.assertEqual(type(ans), LinearMultilevelProblem)
 
@@ -489,7 +489,7 @@ class Test_Trivial(unittest.TestCase):
         L.b = [-2]
         mpr.check()
 
-        ans, soln = linearize_bilinear_terms(mpr)
+        ans, soln = linearize_bilinear_terms(mpr, 1e6)
         ans.check()
         self.assertEqual(type(ans), LinearMultilevelProblem)
 
