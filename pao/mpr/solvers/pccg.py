@@ -39,11 +39,11 @@ class LinearMultilevelSolver_PCCG(LinearMultilevelSolverBase):
     """
 
     config = LinearMultilevelSolverBase.config()
-    config.declare('solver', ConfigValue(
+    config.declare('mip_solver', ConfigValue(
         default='cbc',
         description="The name of the MIP solver used by PCCG.  (default is cbc)"
         ))
-    config.declare('solver_options', ConfigValue(
+    config.declare('mip_options', ConfigValue(
         default=None,
         description="A dictionary that defines the solver options for the MIP solver.  (default is None)"))
     config.declare('bigm', ConfigValue(

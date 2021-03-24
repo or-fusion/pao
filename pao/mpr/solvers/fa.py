@@ -30,11 +30,11 @@ class LinearMultilevelSolver_FA(LinearMultilevelSolverBase):
     calls a MIP solver to solve the reformulated problem.
     """
     config = LinearMultilevelSolverBase.config()
-    config.declare('solver', ConfigValue(
+    config.declare('mip_solver', ConfigValue(
         default='glpk',
         description="The name of the MIP solver used by FA.  (default is glpk)"
         ))
-    config.declare('solver_options', ConfigValue(
+    config.declare('mip_options', ConfigValue(
         default=None,
         description="A dictionary that defines the solver options for the MIP solver.  (default is None)"))
     config.declare('bigm', ConfigValue(
@@ -85,9 +85,9 @@ class LinearMultilevelSolver_FA(LinearMultilevelSolverBase):
         # Solve the Pyomo model the specified solver
         #
         results = LinearMultilevelResults(solution_manager=soln_manager)
-        with pe.SolverFactory(self.config.solver) as opt:
-            if self.config.solver_options is not None:
-                opt.options.update(self.config.solver_options)
+        with pe.SolverFactory(self.config.mip_solver) as opt:
+            if self.config.mip_options is not None:
+                opt.options.update(self.config.mip_options)
             pyomo_results = opt.solve(M, tee=self.config.tee, 
                                          timelimit=self.config.time_limit,
                                          load_solutions=self.config.load_solutions)
@@ -114,7 +114,7 @@ class LinearMultilevelSolver_FA(LinearMultilevelSolverBase):
         # SOLVER
         #
         solv = results.solver
-        solv.name = self.config.solver
+        solv.name = self.config.mip_solver
         solv.termination_condition = pyomo_results.solver.termination_condition
         solv.solver_time = pyomo_results.solver.time
         if self.config.load_solutions:

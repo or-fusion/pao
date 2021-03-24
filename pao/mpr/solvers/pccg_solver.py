@@ -453,7 +453,7 @@ def execute_PCCG_solver(mpr, config, results):
     rtol    = get_value(config, 'rtol', 1e-8)   #relative tolerance for UB-LB to claim convergence
     maxit   = get_value(config, 'maxit', 5)     #Maximum number of iterations
     M       = get_value(config, 'bigm', 1e6)    #upper bound on variables
-    solver  = config.solver                     # MIP solver to use here
+    solver  = config.mip_solver                 # MIP solver to use here
     quiet   = config.quiet                      # If True, then suppress output
 
     LB=-infinity
@@ -467,7 +467,7 @@ def execute_PCCG_solver(mpr, config, results):
     bigm_xfrm = TransformationFactory('gdp.bigm')
 
     #Step 1: Initialization (done)
-    with SolverFactory(solver) as opt:
+    with SolverFactory(mip_solver) as opt:
         #Iteration
         while k < maxit:
             #Step 2: Solve the Master Problem
