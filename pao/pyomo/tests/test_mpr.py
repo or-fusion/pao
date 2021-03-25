@@ -8,6 +8,39 @@ import pyomo.opt
 solvers = pyomo.opt.check_available_solvers('glpk','cbc','ipopt','gurobi')
 
 
+class Test_solver(unittest.TestCase):
+
+    @unittest.skipIf('cbc' not in solvers, "CBC solver is not available")
+    def test_FA(self):
+        M = examples.bard511.create()
+
+        opt = Solver('pao.pyomo.FA', mip_solver=Solver('cbc'))
+        opt.solve(M)
+
+        self.assertTrue(math.isclose(M.x.value, 4))
+        self.assertTrue(math.isclose(M.y.value, 4))
+
+    @unittest.skipIf('ipopt' not in solvers, "Ipopt solver is not available")
+    def test_REG(self):
+        M = examples.bard511.create()
+
+        opt = Solver('pao.pyomo.REG', nlp_solver=Solver('ipopt'))
+        opt.solve(M)
+
+        self.assertTrue(math.isclose(M.x.value, 4, abs_tol=1e-4))
+        self.assertTrue(math.isclose(M.y.value, 4, abs_tol=1e-4))
+
+    @unittest.skipIf('cbc' not in solvers, "CBC solver is not available")
+    def test_PCCG(self):
+        M = examples.bard511.create()
+
+        opt = Solver('pao.pyomo.PCCG', mip_solver=Solver('cbc'))
+        opt.solve(M)
+
+        self.assertTrue(math.isclose(M.x.value, 4))
+        self.assertTrue(math.isclose(M.y.value, 4))
+
+
 class Test_pyomo_FA(unittest.TestCase):
 
     # TODO - test with either cbc or glpk
