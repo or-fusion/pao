@@ -1,6 +1,7 @@
 #
 # Classes used to define a solver API
 #
+import os
 import copy
 import six
 import abc
@@ -273,12 +274,16 @@ class NEOSSolver(SolverAPI):
         default='local',
         description="Specification of how the solver is executed."
         ))
+    config.declare('email', ConfigValue(
+        default=None,
+        description="The email that NEOS requires for use.  If not specified, the NEOS_EMAIL environment variable is used."
+        ))
 
     def __init__(self, name, options):
         # Create a per-instance copy of the configuration data
         self.config = self.config()
         self.name = name
-        self.options = options
+        self.solver_options = self._update_config(options, validate_options=False)
         self.neos_available = None
 
     def available(self):
@@ -293,12 +298,15 @@ class NEOSSolver(SolverAPI):
 
     def solve(self, model, **options):
         assert (isinstance(model, pe.Model)), "The Pyomo solver '%s' cannot solve a model of type %s" % (self.name, str(type(model)))
+        if self.config['email'] is not None:
+            os.environ['NEOS_EMAIL'] = self.config['email']
+        assert ('NEOS_EMAIL' in os.environ), "The NEOS solver requires an email.  Please specify the NEOS_EMAIL environment variable."
         solver_manager = pe.SolverManagerFactory('neos')
         try:
-            if len(options) == 0:
+            if len(self.solver_options) == 0:
                 results = solver_manager.solve(model, opt=self.name)
             else:
-                results = solver_manager.solve(model, opt=self.name, solver_options=options)
+                results = solver_manager.solve(model, opt=self.name, solver_options=self.solver_options)
             return results
         except pyomo.opt.parallel.manager.ActionManagerError as err:
             raise RuntimeError(str(err)) from None
