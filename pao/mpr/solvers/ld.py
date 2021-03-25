@@ -104,7 +104,6 @@ class LinearMultilevelSolver_interdiction(LinearMultilevelSolverBase):
             if options is not None:
                 opt.options.update(options)
             pyomo_results = opt.solve(M, tee=tee, 
-                                         timelimit=timelimit,
                                          load_solutions=self.config.load_solutions)
             pyomo.opt.check_termination(pyomo_results)
 
