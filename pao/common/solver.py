@@ -6,10 +6,18 @@ import six
 import abc
 import enum
 import textwrap
+import logging
+
 from pyutilib.misc import Options
+
+import pyomo.environ as pe
 from pyomo.common.config import ConfigValue, ConfigBlock, add_docstring_list
+from pyomo.neos.kestrel import kestrelAMPL
 
 __all__ = ['TerminationCondition', 'SolverAPI', 'Results', 'Solver']
+
+
+_logger = logging.getLogger('pyomo')
 
 
 class TerminationCondition(enum.Enum):
@@ -229,6 +237,66 @@ class SolverAPI(abc.ABC):
 SolverAPI._generate_solve_docstring(SolverAPI)
 
 
+class PyomoSolver(SolverAPI):
+
+    config = SolverAPI.config()
+    config.declare('executable', ConfigValue(
+        default=None,
+        description="The path to the executable used for this solver."
+        ))
+
+    def __init__(self, name, options):
+        # Create a per-instance copy of the configuration data
+        self.config = self.config()
+        self.name = name
+        self.solver_options = self._update_config(options, validate_options=False)
+        level = _logger.getEffectiveLevel()
+        _logger.setLevel(logging.ERROR)
+        self.solver = pe.SolverFactory(name)
+        _logger.setLevel(level)
+
+    def available(self):
+        return self.solver.available(exception_flag=False)
+
+    def solve(self, model, **options):
+        assert (isinstance(model, pe.Model)), "The Pyomo solver '%s' cannot solve a model of type %s" % (self.name, str(type(model)))
+        if self.config['executable'] is not None:
+            self.solver.set_executable(self.config['executable'])
+        return self.solver.solve(model, **self.solver_options)
+
+
+class NEOSSolver(SolverAPI):
+
+    config = SolverAPI.config()
+    config.declare('host', ConfigValue(
+        default='local',
+        description="Specification of how the solver is executed."
+        ))
+
+    def __init__(self, name, options):
+        # Create a per-instance copy of the configuration data
+        self.config = self.config()
+        self.name = name
+        self.options = options
+        self.neos_available = None
+
+    def available(self):
+        if self.neos_available is None:
+            self.neos_available = False
+            try:
+                if kestrelAMPL().neos is not None:
+                    self.neos_available = True
+            except:
+                pass
+        return self.neos_available
+
+    def solve(self, model, **options):
+        assert (isinstance(model, pe.Model)), "The Pyomo solver '%s' cannot solve a model of type %s" % (self.name, str(type(model)))
+        solver_manager = pyo.SolverManagerFactory('neos')
+        results = solver_manager.solve(model, opt=self.name, solver_options=options)
+        return results
+        
+
 """
 >>> opt = Solver('my_solver')
 >>> results = opt.solve(my_model, load_solutions=False)
@@ -418,7 +486,7 @@ class SolverFactory(object):
         assert (name in SolverFactory._registry), "Unknown solver '%s' specified" % name
         return SolverFactory._doc[name]
 
-    def __call__(self, name):
+    def __call__(self, name, **options):
         """
         Constructs the specified solver.
 
@@ -428,14 +496,36 @@ class SolverFactory(object):
         ----------
         name: str
             The name of a solver
+        options
+            Keyword options that are used to configure the solver.
 
         Returns
         -------
         SolverAPI
             A solver class instance for the solver that is specified.
         """
-        assert (name in SolverFactory._registry), "Unknown solver '%s' specified" % name
-        return SolverFactory._registry[name]()
+        #
+        # Create a solver registered in PAO
+        #
+        if name in SolverFactory._registry:
+            solver = SolverFactory._registry[name]()
+            solver._update_config(options)
+            return solver
+        #
+        # Create a NEOS solver interface
+        #
+        host=options.pop("host","local")
+        if host == 'neos':
+            solver = NEOSSolver(name, options)
+            assert (solver.available()), "NEOS is not available.  Cannot use NEOS solver '%s'." % name
+            return solver
+        #
+        # Create an solver interface using Pyomo, but
+        # fail if the solver is not available.
+        #
+        solver = PyomoSolver(name, options)
+        assert (solver.available()), "Unknown solver '%s' specified" % name
+        return solver
 
 
 Solver = SolverFactory()
