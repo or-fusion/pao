@@ -270,9 +270,9 @@ class PyomoSolver(SolverAPI):
 class NEOSSolver(SolverAPI):
 
     config = SolverAPI.config()
-    config.declare('host', ConfigValue(
-        default='local',
-        description="Specification of how the solver is executed."
+    config.declare('server', ConfigValue(
+        default=None,
+        description="The server that is used to execute the solver."
         ))
     config.declare('email', ConfigValue(
         default=None,
@@ -529,11 +529,12 @@ class SolverFactory(object):
         #
         # Create a NEOS solver interface
         #
-        host=options.pop("host","local")
-        if host == 'neos':
+        server = options.pop("server",None)
+        if server == 'neos':
             solver = NEOSSolver(name, options)
             assert (solver.available()), "NEOS is not available.  Cannot use NEOS solver '%s'." % name
             return solver
+        assert (server is None), "Unknown solver server: "+server
         #
         # Create an solver interface using Pyomo, but
         # fail if the solver is not available.

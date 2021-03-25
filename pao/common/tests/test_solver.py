@@ -69,7 +69,7 @@ class Test_neos(unittest.TestCase):
     @unittest.skipIf(not neos_available, "NEOS not available")
     def test_neos_cbc_available(self):
         M = create_lp1()
-        opt = Solver('cbc', host='neos', email='pao@gmail.com')
+        opt = Solver('cbc', server='neos', email='pao@gmail.com')
         self.assertTrue(opt.available())
         res = opt.solve(M)
         
@@ -79,7 +79,7 @@ class Test_neos(unittest.TestCase):
     @unittest.skipIf(not neos_available, "NEOS not available")
     def Xtest_neos_cbc_options(self):
         M = create_lp1()
-        opt = Solver('cbc', host='neos', email='pao@gmail.com', foo=1, bar=None)
+        opt = Solver('cbc', server='neos', email='pao@gmail.com', foo=1, bar=None)
         self.assertTrue(opt.available())
         res = opt.solve(M)
         
@@ -89,14 +89,14 @@ class Test_neos(unittest.TestCase):
     @unittest.skipIf(neos_available, "NEOS is available")
     def test_neos_cbc_missing(self):
         try:
-            opt = Solver('cbc', host='neos')
+            opt = Solver('cbc', server='neos')
         except AssertionError:
             pass
 
     @unittest.skipIf(not neos_available, "NEOS not available")
     def test_neos_foobar(self):
         M = create_lp1()
-        opt = Solver('foobar', host='neos')
+        opt = Solver('foobar', server='neos')
         try:
             res = opt.solve(M)
         except RuntimeError:
