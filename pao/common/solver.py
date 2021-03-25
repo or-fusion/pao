@@ -10,6 +10,7 @@ import logging
 
 from pyutilib.misc import Options
 
+import pyomo.opt.parallel.manager
 import pyomo.environ as pe
 from pyomo.common.config import ConfigValue, ConfigBlock, add_docstring_list
 from pyomo.neos.kestrel import kestrelAMPL
@@ -292,9 +293,15 @@ class NEOSSolver(SolverAPI):
 
     def solve(self, model, **options):
         assert (isinstance(model, pe.Model)), "The Pyomo solver '%s' cannot solve a model of type %s" % (self.name, str(type(model)))
-        solver_manager = pyo.SolverManagerFactory('neos')
-        results = solver_manager.solve(model, opt=self.name, solver_options=options)
-        return results
+        solver_manager = pe.SolverManagerFactory('neos')
+        try:
+            if len(options) == 0:
+                results = solver_manager.solve(model, opt=self.name)
+            else:
+                results = solver_manager.solve(model, opt=self.name, solver_options=options)
+            return results
+        except pyomo.opt.parallel.manager.ActionManagerError as err:
+            raise RuntimeError(str(err)) from None
         
 
 """

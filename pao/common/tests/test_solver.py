@@ -83,6 +83,15 @@ class Test_neos(unittest.TestCase):
         except AssertionError:
             pass
 
+    @unittest.skipIf(not neos_available, "NEOS not available")
+    def test_neos_glpk(self):
+        M = create_lp1()
+        opt = Solver('foobar', host='neos')
+        try:
+            res = opt.solve(M)
+        except RuntimeError:
+            pass
+
 
 if __name__ == "__main__":
     unittest.main()
