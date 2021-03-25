@@ -6,15 +6,15 @@ of solvers supported in PAO and their use.
 
 Consider the following simple workflow supported by PAO:
 
-1. Create a multi-level model, represented with Pyomo or LinearBilevelProblem objects
+1. Create a multi-level model, represented with Pyomo or LinearMultilevelProblem objects
 
-2. Create a solver using the SolverFactory
+2. Create a solver using the Solver functor
 
 3. Apply the solver to the problem
 
 4. Get the final solution from the model object
 
-The SolverFactory is a global object that is used to create a solver.
+The Solver is a global object that is used to create a solver.
 This simplifies a user's workflow by eliminating the need to 
 import the Python modules containing the PAO solvers.  Instead, a user
 can give the name of the solver as a string.
@@ -23,7 +23,7 @@ The following list summarizes the solvers currently supported in PAO:
 
 * FA
 
-  * pao.pyomo.FA, pao.lbp.FA
+  * pao.pyomo.FA, pao.mpr.FA
 
   * Linear bilevel problems with a continuous subproblem.
 
@@ -31,7 +31,7 @@ The following list summarizes the solvers currently supported in PAO:
 
 * REG
 
-  * pao.pyomo.REG, pao.lbp.REG
+  * pao.pyomo.REG, pao.mpr.REG
 
   * Linear bilevel problems with a continuous subproblem.  
 
@@ -39,7 +39,7 @@ The following list summarizes the solvers currently supported in PAO:
 
 * PCCG
 
-  * pao.pyomo.PCCG, pao.lbp.PCCG
+  * pao.pyomo.PCCG, pao.mpr.PCCG
 
   * Linear bilevel problems with a continuous or integer subproblem.
 

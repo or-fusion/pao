@@ -39,7 +39,7 @@ from setuptools import setup
 import sys
 
 packages = _find_packages('pao')
-print("PACKAGES",packages)
+#print("PACKAGES",packages)
 
 setup(name='pao',
       #

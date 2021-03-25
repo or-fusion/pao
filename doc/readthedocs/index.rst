@@ -3,30 +3,41 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-PAO Documentation | DRAFT
-=========================
+.. |br| raw:: html
+
+   <br />
+
+
+
+PAO Documentation
+=================
 
 PAO is a Python-based package for Adversarial Optimization.  The goal of
 this package is to provide a general modeling and analysis capability for
-bilevel, trilevel and other multi-level optimization forms that express
-adversarial dynamics.  PAO integrates two different modeling abstractions:
+bilevel, trilevel and other multilevel optimization forms that express
+adversarial dynamics.  PAO integrates two different modeling abstractions::
 
-* *Algebraic models* that extend the modeling concepts in the
-  `Pyomo <https://github.com/Pyomo/pyomo>`_ algebraic modeling language
-  to express problems with an intuitive algebraic syntax.
+1. **Algebraic models** extend the modeling concepts in the
+   `Pyomo <https://github.com/Pyomo/pyomo>`_ algebraic modeling language
+   to express problems with an intuitive algebraic syntax.  Thus, we
+   expect that this modeling abstraction will commonly be used by PAO
+   end-users.
 
-* *Compact models* that express objective and constraints in a manner
-  that is typically used to express the mathematical form of these problems
-  (e.g. using vector and matrix data types).
+2. **Compact models** express objective and constraints in a manner
+   that is typically used to express the mathematical form of these
+   problems (e.g. using vector and matrix data types).  PAO defines
+   custom *Multilevel Problem Representations* (MPRs) that simplify the
+   implementation of solvers for bilevel, trilevel and other multilevel 
+   optimization problems.
+
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
-   installation.rst
    overview.rst
+   installation.rst
    examples.rst
    representations.rst
-   tutorial.rst
    reference.rst
    bibliography.rst
 

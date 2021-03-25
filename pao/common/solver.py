@@ -1,13 +1,25 @@
 #
 # Classes used to define a solver API
 #
-__all__ = ['TerminationCondition', 'SolverAPI', 'Results', 'SolverFactory']
-
+import os
+import copy
 import six
 import abc
 import enum
+import textwrap
+import logging
+
 from pyutilib.misc import Options
+
+import pyomo.opt.parallel.manager
+import pyomo.environ as pe
 from pyomo.common.config import ConfigValue, ConfigBlock, add_docstring_list
+from pyomo.neos.kestrel import kestrelAMPL
+
+__all__ = ['TerminationCondition', 'SolverAPI', 'Results', 'Solver']
+
+
+_logger = logging.getLogger('pyomo')
 
 
 class TerminationCondition(enum.Enum):
@@ -54,7 +66,9 @@ class TerminationCondition(enum.Enum):
 
 class SolverAPI(abc.ABC):
     """
-    The SolverAPI class defines the user API for optimization solvers.
+    The base class for all PAO solvers.
+
+    The SolverAPI class defines a consistent API for optimization solvers.
     """
 
     config = ConfigBlock()
@@ -80,13 +94,8 @@ class SolverAPI(abc.ABC):
         ))
 
     def __init__(self):
-        #self.config = Options(
-        #    time_limit=None,
-        #    keep_files=False,
-        #    tee=False,
-        #    load_solutions=True
-        #    )
-        pass
+        # Create a per-instance copy of the configuration data
+        self.config = self.config()
 
     def available(self):
         """
@@ -103,16 +112,13 @@ class SolverAPI(abc.ABC):
         """
         True
 
-    def license_status(self):
+    def valid_license(self):
         """
         Returns a bool indicating if the solver has a valid license.
 
         The default behavior is to always return `True`, but this method
         can be overloaded in a subclass to support solver-specific logic
         (e.g.  to check the solver license).
-
-        .. todo::
-            Consider renaming this to valid_license().
 
         Returns
         -------
@@ -158,17 +164,17 @@ class SolverAPI(abc.ABC):
     __solve_doc__ = solve.__doc__
 
     @staticmethod
-    def _update_solve_docstring(cfg):
+    def _generate_solve_docstring(cls):
         """
-        Update the docstring for SolverAPI.solve, including the description
+        Generate the docstring for cls.solve, including the description
         of the keyword arguments defined by a pyomo configuration object.
 
         Parameters
         ----------
-        cfg:
-            A Pyomo ConfigDict object that defines keyword arguments.
+        cls:
+            The subclass of SolverAPI whose docstring is being generated
         """
-        SolverAPI.solve.__doc__ = SolverAPI.__solve_doc__.format( add_docstring_list("", cfg, 8) )
+        cls.solve.__doc__ = SolverAPI.__solve_doc__.format( add_docstring_list("", cls.config, 8) )
 
     def is_persistent():
         """
@@ -230,9 +236,84 @@ class SolverAPI(abc.ABC):
             assert (len(keys) == 0), "Unexpected options to solve() have been specified: %s" % " ".join(sorted(k for k in keys))
         return {key:config_options[key] for key in keys}
 
+SolverAPI._generate_solve_docstring(SolverAPI)
+
+
+class PyomoSolver(SolverAPI):
+
+    config = SolverAPI.config()
+    config.declare('executable', ConfigValue(
+        default=None,
+        description="The path to the executable used for this solver."
+        ))
+
+    def __init__(self, name, options):
+        # Create a per-instance copy of the configuration data
+        self.config = self.config()
+        self.name = name
+        self.solver_options = self._update_config(options, validate_options=False)
+        level = _logger.getEffectiveLevel()
+        _logger.setLevel(logging.ERROR)
+        self.solver = pe.SolverFactory(name)
+        _logger.setLevel(level)
+
+    def available(self):
+        return self.solver.available(exception_flag=False)
+
+    def solve(self, model, **options):
+        assert (isinstance(model, pe.Model) or isinstance(model, pe.SimpleBlock)), "The Pyomo solver '%s' cannot solve a model of type %s" % (self.name, str(type(model)))
+        if self.config['executable'] is not None:
+            self.solver.set_executable(self.config['executable'])
+        return self.solver.solve(model, **self.solver_options)
+
+
+class NEOSSolver(SolverAPI):
+
+    config = SolverAPI.config()
+    config.declare('host', ConfigValue(
+        default='local',
+        description="Specification of how the solver is executed."
+        ))
+    config.declare('email', ConfigValue(
+        default=None,
+        description="The email that NEOS requires for use.  If not specified, the NEOS_EMAIL environment variable is used."
+        ))
+
+    def __init__(self, name, options):
+        # Create a per-instance copy of the configuration data
+        self.config = self.config()
+        self.name = name
+        self.solver_options = self._update_config(options, validate_options=False)
+        self.neos_available = None
+
+    def available(self):
+        if self.neos_available is None:
+            self.neos_available = False
+            try:
+                if kestrelAMPL().neos is not None:
+                    self.neos_available = True
+            except:
+                pass
+        return self.neos_available
+
+    def solve(self, model, **options):
+        assert (isinstance(model, pe.Model)), "The Pyomo solver '%s' cannot solve a model of type %s" % (self.name, str(type(model)))
+        if self.config['email'] is not None:
+            os.environ['NEOS_EMAIL'] = self.config['email']
+        assert ('NEOS_EMAIL' in os.environ), "The NEOS solver requires an email.  Please specify the NEOS_EMAIL environment variable."
+        solver_manager = pe.SolverManagerFactory('neos')
+        try:
+            if len(self.solver_options) == 0:
+                results = solver_manager.solve(model, opt=self.name)
+            else:
+                results = solver_manager.solve(model, opt=self.name, solver_options=self.solver_options)
+            return results
+        except pyomo.opt.parallel.manager.ActionManagerError as err:
+            raise RuntimeError(str(err)) from None
+        
 
 """
->>> opt = SolverFactory('my_solver')
+>>> opt = Solver('my_solver')
 >>> results = opt.solve(my_model, load_solutions=False)
 >>> if results.solver.termination_condition == TerminationCondition.optimal:
 >>>     print('optimal solution found: ', results.solver.best_feasible_objective)
@@ -288,8 +369,8 @@ class ResultsBase(abc.ABC):
         """
         Store the solution in this object into the given model.
 
-        A results object may contain one or solutions.  This method
-        copies the indicated solution, **i**, into the model.
+        A results object may contain one or more solutions. This method
+        copies the **i**-th solution into the model.
 
         Parameters
         ----------
@@ -304,7 +385,7 @@ class ResultsBase(abc.ABC):
         """
         Load solution from the model.
 
-        When completed, this sesults object contains only one solution, which corresponds
+        When completed, this results object contains only one solution, which corresponds
         to the solution in the model.
         """
         if self.solution_manager is None:
@@ -314,7 +395,7 @@ class ResultsBase(abc.ABC):
     @abc.abstractmethod
     def __str__(self):
         """
-        Generate a string summary of this sesults object.
+        Generate a string summary of this results object.
 
         Returns
         -------
@@ -343,11 +424,11 @@ class Results(ResultsBase):
             "\nSolver:\n-" + solver[1:]
 
 
-class SolverFactoryClass(object):
+class SolverFactory(object):
     """
     A class that manages a registry of solvers.
 
-    A solver factory supports a registry that enables 
+    A solver factory manages a registry that enables 
     solvers to be created by name.
     """
 
@@ -370,14 +451,15 @@ class SolverFactoryClass(object):
         Returns
         -------
         decorator
-            If the **cls** parameter is None, then a decorator function
+            If the **cls** parameter is None, then a class 
+            decorator function
             is returned that can be used to register a solver.
         """
         def decorator(cls):
             assert (name is not None), "Must register a solver with a name"
-            #assert (name in SolverFactoryClass._registry), "Name '%s' is already registered!" % name
-            SolverFactoryClass._registry[name] = cls
-            SolverFactoryClass._doc[name] = doc
+            #assert (name in SolverFactory._registry), "Name '%s' is already registered!" % name
+            SolverFactory._registry[name] = cls
+            SolverFactory._doc[name] = doc
             return cls
         if cls is None:
             return decorator
@@ -390,12 +472,21 @@ class SolverFactoryClass(object):
         generator
             Returns an iterator that generates the solver names.
         """
-        for name in sorted(SolverFactoryClass._doc.keys()):
+        for name in sorted(SolverFactory._doc.keys()):
             yield name
 
-    def doc(self, name):
+    def summary(self):
         """
-        Returns the description of a solver.
+        Print a summary of all solvers.
+        """
+        for name in self:
+            print(name)
+            print(textwrap.indent("\n".join(textwrap.wrap(self.description(name))), "    "))
+            print("")
+
+    def description(self, name):
+        """
+        Returns the description of the specified solver.
 
         Parameters
         ----------
@@ -407,10 +498,10 @@ class SolverFactoryClass(object):
         str
             A short description of the specified solver
         """
-        assert (name in SolverFactoryClass._registry), "Unknown solver '%s' specified" % name
-        return SolverFactoryClass._doc[name]
+        assert (name in SolverFactory._registry), "Unknown solver '%s' specified" % name
+        return SolverFactory._doc[name]
 
-    def __call__(self, name):
+    def __call__(self, name, **options):
         """
         Constructs the specified solver.
 
@@ -420,18 +511,40 @@ class SolverFactoryClass(object):
         ----------
         name: str
             The name of a solver
+        options
+            Keyword options that are used to configure the solver.
 
         Returns
         -------
         SolverAPI
             A solver class instance for the solver that is specified.
         """
-        assert (name in SolverFactoryClass._registry), "Unknown solver '%s' specified" % name
-        return SolverFactoryClass._registry[name]()
+        #
+        # Create a solver registered in PAO
+        #
+        if name in SolverFactory._registry:
+            solver = SolverFactory._registry[name]()
+            solver._update_config(options)
+            return solver
+        #
+        # Create a NEOS solver interface
+        #
+        host=options.pop("host","local")
+        if host == 'neos':
+            solver = NEOSSolver(name, options)
+            assert (solver.available()), "NEOS is not available.  Cannot use NEOS solver '%s'." % name
+            return solver
+        #
+        # Create an solver interface using Pyomo, but
+        # fail if the solver is not available.
+        #
+        solver = PyomoSolver(name, options)
+        assert (solver.available()), "Unknown solver '%s' specified" % name
+        return solver
 
 
-SolverFactory = SolverFactoryClass()
+Solver = SolverFactory()
 """
-SolverFactory is a global instance of the SolverFactoryClass.
-This object provides a global registry of optimization solvers.
+Solver is a global instance of the :class:`SolverFactory`.
+This object provides a global registry of PAO optimization solvers.
 """
