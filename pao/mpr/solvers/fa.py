@@ -93,7 +93,6 @@ class LinearMultilevelSolver_FA(LinearMultilevelSolverBase):
         if self.config.mip_options is not None:
             opt.options.update(self.config.mip_options)
         pyomo_results = opt.solve(M, tee=self.config.tee, 
-                                     timelimit=self.config.time_limit,
                                      load_solutions=self.config.load_solutions)
         pyomo.opt.check_optimal_termination(pyomo_results)
 

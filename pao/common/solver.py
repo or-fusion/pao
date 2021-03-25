@@ -72,11 +72,11 @@ class SolverAPI(abc.ABC):
     """
 
     config = ConfigBlock()
-    config.declare('time_limit', ConfigValue(
-        default=None,
-        domain=float,
-        description="Solver time limit (in seconds)",
-        ))
+    #config.declare('time_limit', ConfigValue(
+    #    default=None,
+    #    domain=float,
+    #    description="Solver time limit (in seconds)",
+    #    ))
     config.declare('keep_files', ConfigValue(
         default=False,
         domain=bool,
@@ -222,15 +222,17 @@ class SolverAPI(abc.ABC):
         """
         pass
 
-    def _update_config(self, config_options, validate_options=True):
+    def _update_config(self, config_options, config=None, validate_options=True):
         """
         .. todo::
             Document where and how this is used.
         """
+        if config is None:
+            config = self.config
         keys = set(config_options.keys())
         for k,v in config_options.items():
-            if k in self.config:
-                self.config[k] = v
+            if k in config:
+                config[k] = v
                 keys.remove(k)    
         if validate_options:
             assert (len(keys) == 0), "Unexpected options to solve() have been specified: %s" % " ".join(sorted(k for k in keys))
@@ -251,20 +253,27 @@ class PyomoSolver(SolverAPI):
         # Create a per-instance copy of the configuration data
         self.config = self.config()
         self.name = name
-        self.solver_options = self._update_config(options, validate_options=False)
         level = _logger.getEffectiveLevel()
         _logger.setLevel(logging.ERROR)
         self.solver = pe.SolverFactory(name)
         _logger.setLevel(level)
+        self.solver_options = self._update_config(options, validate_options=False)
+        self.solver.options.update(self.solver_options)
+        if self.config['executable'] is not None:
+            self.solver.set_executable(self.config['executable'])
 
     def available(self):
+        if self.config['executable'] is not None:
+            self.solver.set_executable(self.config['executable'])
         return self.solver.available(exception_flag=False)
 
     def solve(self, model, **options):
         assert (isinstance(model, pe.Model) or isinstance(model, pe.SimpleBlock)), "The Pyomo solver '%s' cannot solve a model of type %s" % (self.name, str(type(model)))
-        if self.config['executable'] is not None:
-            self.solver.set_executable(self.config['executable'])
-        return self.solver.solve(model, **self.solver_options)
+        tmp_config = self.config()
+        tmp_options = self._update_config(options, config=tmp_config, validate_options=False)
+        if tmp_config['executable'] is not None:
+            self.solver.set_executable(tmp_config['executable'])
+        return self.solver.solve(model, tee=tmp_config.tee, keepfiles=tmp_config.keep_files, options=tmp_options)
 
 
 class NEOSSolver(SolverAPI):
@@ -297,16 +306,16 @@ class NEOSSolver(SolverAPI):
         return self.neos_available
 
     def solve(self, model, **options):
-        assert (isinstance(model, pe.Model)), "The Pyomo solver '%s' cannot solve a model of type %s" % (self.name, str(type(model)))
+        assert (isinstance(model, pe.Model) or isinstance(model, pe.SimpleBlock)), "The Pyomo solver '%s' cannot solve a model of type %s" % (self.name, str(type(model)))
         if self.config['email'] is not None:
             os.environ['NEOS_EMAIL'] = self.config['email']
         assert ('NEOS_EMAIL' in os.environ), "The NEOS solver requires an email.  Please specify the NEOS_EMAIL environment variable."
         solver_manager = pe.SolverManagerFactory('neos')
         try:
-            if len(self.solver_options) == 0:
-                results = solver_manager.solve(model, opt=self.name)
-            else:
-                results = solver_manager.solve(model, opt=self.name, solver_options=self.solver_options)
+            tmp_config = self.config()
+            tmp_options = copy.copy(self.solver_options)
+            tmp_options.update( self._update_config(options, config=tmp_config, validate_options=False) )
+            results = solver_manager.solve(model, opt=self.name, tee=tmp_config.tee, keepfiles=tmp_config.keep_files, options=tmp_options)
             return results
         except pyomo.opt.parallel.manager.ActionManagerError as err:
             raise RuntimeError(str(err)) from None
