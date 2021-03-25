@@ -184,7 +184,8 @@ class LinearMultilevelSolver_REG(LinearMultilevelSolverBase):
         solv = results.solver
         solv.name = self.config.nlp_solver
         solv.termination_condition = pyomo_results.solver.termination_condition
-        solv.solver_time = pyomo_results.solver.time
+        if hasattr(pyomo_results.solver, 'time'):
+            solv.solver_time = pyomo_results.solver.time
         if self.config.load_solutions:
             solv.best_feasible_objective = pe.value(M.o)
         #
