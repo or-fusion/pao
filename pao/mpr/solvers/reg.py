@@ -149,26 +149,30 @@ class LinearMultilevelSolver_REG(LinearMultilevelSolverBase):
         # Solve the Pyomo model the specified solver
         #
         results = LinearMultilevelResults(solution_manager=soln_manager)
-        with pe.SolverFactory(self.config.nlp_solver) as opt:
-            if self.config.nlp_options is not None:
-                opt.options.update(self.config.nlp_options)
-            pyomo_results = opt.solve(M, tee=self.config.tee, 
-                                         timelimit=self.config.time_limit,
-                                         load_solutions=self.config.load_solutions)
-            pyomo.opt.check_optimal_termination(pyomo_results)
+        if isinstance(self.config.nlp_solver, str):
+            opt = pe.SolverFactory(self.config.nlp_solver)
+        else:
+            opt = self.config.nlp_solver
 
-            self._initialize_results(results, pyomo_results, M)
-            results.solver.rc = getattr(opt, '_rc', None)
+        if self.config.nlp_options is not None:
+            opt.options.update(self.config.nlp_options)
+        pyomo_results = opt.solve(M, tee=self.config.tee, 
+                                     timelimit=self.config.time_limit,
+                                     load_solutions=self.config.load_solutions)
+        pyomo.opt.check_optimal_termination(pyomo_results)
 
-            if self.config.load_solutions:
-                # Load results from the Pyomo model to the LinearMultilevelProblem
-                results.copy_solution(From=M, To=model)
-            else:
-                # Load results from the Pyomo model to the Results
-                results.load_from(pyomo_results)
+        self._initialize_results(results, pyomo_results, M)
+        results.solver.rc = getattr(opt, '_rc', None)
 
-            #self._debug()
-            #results.solver.log = getattr(opt, '_log', None)
+        if self.config.load_solutions:
+            # Load results from the Pyomo model to the LinearMultilevelProblem
+            results.copy_solution(From=M, To=model)
+        else:
+            # Load results from the Pyomo model to the Results
+            results.load_from(pyomo_results)
+
+        #self._debug()
+        #results.solver.log = getattr(opt, '_log', None)
 
         results.solver.wallclock_time = time.time() - start_time
         return results

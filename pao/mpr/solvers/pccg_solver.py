@@ -467,86 +467,90 @@ def execute_PCCG_solver(mpr, config, results):
     bigm_xfrm = TransformationFactory('gdp.bigm')
 
     #Step 1: Initialization (done)
-    with SolverFactory(mip_solver) as opt:
-        #Iteration
-        while k < maxit:
-            #Step 2: Solve the Master Problem
-            TransformationFactory('mpec.simple_disjunction').apply_to(Parent.Master)
-            bigm_xfrm.apply_to(Parent.Master) 
-            res = opt.solve(Parent.Master)
-            if res.solver.termination_condition !=TerminationCondition.optimal:
-                raise RuntimeError("ERROR! ERROR! Master: Could not find optimal solution")
+    if isinstance(solver, str):
+        opt = SolverFactory(solver)
+    else:
+        opt = solver
 
-            for i in Parent.xu_star:
-                Parent.xu_star[i]=Parent.Master.xu[i].value    
-            for i in Parent.yu_star:
-                Parent.yu_star[i]=Parent.Master.yu[i].value    
-            for i in Parent.xl0_star:
-                Parent.xl0_star[i]=Parent.Master.xl0[i].value
-            for i in Parent.yl0_star:
-                Parent.yl0_star[i]=Parent.Master.yl0[i].value
+    #Iteration
+    while k < maxit:
+        #Step 2: Solve the Master Problem
+        TransformationFactory('mpec.simple_disjunction').apply_to(Parent.Master)
+        bigm_xfrm.apply_to(Parent.Master) 
+        res = opt.solve(Parent.Master)
+        if res.solver.termination_condition !=TerminationCondition.optimal:
+            raise RuntimeError("ERROR! ERROR! Master: Could not find optimal solution")
 
-            LB=value(Parent.Master.Theta_star) 
-            if not quiet:
-                print(f'Iteration {k}: Master Obj={LB} UB={UB}')
+        for i in Parent.xu_star:
+            Parent.xu_star[i]=Parent.Master.xu[i].value    
+        for i in Parent.yu_star:
+            Parent.yu_star[i]=Parent.Master.yu[i].value    
+        for i in Parent.xl0_star:
+            Parent.xl0_star[i]=Parent.Master.xl0[i].value
+        for i in Parent.yl0_star:
+            Parent.yl0_star[i]=Parent.Master.yl0[i].value
 
-            #Step 3: Terminate?
-            flag = check_termination(LB, UB, atol, rtol, quiet)
-            if flag:
-                elapsed = time.time() - t
-                break
+        LB=value(Parent.Master.Theta_star) 
+        if not quiet:
+            print(f'Iteration {k}: Master Obj={LB} UB={UB}')
 
-            if not quiet:
-                print("Step 4")
-            #Step 4: Solve first subproblem
-            results1=opt.solve(Parent.sub1) 
+        #Step 3: Terminate?
+        flag = check_termination(LB, UB, atol, rtol, quiet)
+        if flag:
+            elapsed = time.time() - t
+            break
+
+        if not quiet:
+            print("Step 4")
+        #Step 4: Solve first subproblem
+        results1=opt.solve(Parent.sub1) 
+        
+        if results1.solver.termination_condition !=TerminationCondition.optimal:
+            raise RuntimeError("ERROR! ERROR! Subproblem 1: Could not find optimal solution")
+        Parent.theta=value(Parent.sub1.theta)
+
+        for i in Parent.xl_hat:
+            Parent.xl_hat[i]=Parent.sub1.xl[i].value 
+        for i in Parent.yl_hat:
+            Parent.yl_hat[i]=int(round(Parent.sub1.yl[i].value)) 
+        
+        if not quiet:
+            print("Step 5")
+        #Step 5: Solve second subproblem
+        results2=opt.solve(Parent.sub2)
+        
+        if results2.solver.termination_condition==TerminationCondition.optimal: #If Optimal
+            for i in Parent.xl_star:
+                Parent.xl_star[i]=Parent.sub2.xl[i].value
+            for i in Parent.yl_star:
+                Parent.yl_star[i]=int(round(Parent.sub2.yl[i].value))
+                Parent.yl_arc[i]=int(round(Parent.sub2.yl[i].value))
+            Parent.Theta_0=value(Parent.sub2.Theta_0)
+
+     
+            UB=min(UB,value(UBnew(Parent)))
             
-            if results1.solver.termination_condition !=TerminationCondition.optimal:
-                raise RuntimeError("ERROR! ERROR! Subproblem 1: Could not find optimal solution")
-            Parent.theta=value(Parent.sub1.theta)
+        elif results2.solver.termination_condition==TerminationCondition.infeasible or results2.solver.termination_condition==TerminationCondition.infeasibleOrUnbounded: #If infeasible
+            for i in Parent.yl_arc:
+                Parent.yl_arc[i]=Parent.yl_hat[i]  
+        else: 
+             raise RuntimeError("ERROR! Unexpected termination condition for Subproblem2: %s.  Expected an infeasible or optimal solution." % str(results2.solver.termination_condition)) 
+        
+        if not quiet:
+            print("Step 6")
+        #Step 6: Add new constraints
+        k = k+1
+        for i in Parent.yl_arc:  #range(nZ):
+            Parent.Master.Y[(i,k)]=Parent.yl_arc[i] #Make sure yl_arc is int or else Master.Y rejects
+        Master_add(Parent, k, epsilon)
 
-            for i in Parent.xl_hat:
-                Parent.xl_hat[i]=Parent.sub1.xl[i].value 
-            for i in Parent.yl_hat:
-                Parent.yl_hat[i]=int(round(Parent.sub1.yl[i].value)) 
-            
-            if not quiet:
-                print("Step 5")
-            #Step 5: Solve second subproblem
-            results2=opt.solve(Parent.sub2)
-            
-            if results2.solver.termination_condition==TerminationCondition.optimal: #If Optimal
-                for i in Parent.xl_star:
-                    Parent.xl_star[i]=Parent.sub2.xl[i].value
-                for i in Parent.yl_star:
-                    Parent.yl_star[i]=int(round(Parent.sub2.yl[i].value))
-                    Parent.yl_arc[i]=int(round(Parent.sub2.yl[i].value))
-                Parent.Theta_0=value(Parent.sub2.Theta_0)
-
-         
-                UB=min(UB,value(UBnew(Parent)))
-                
-            elif results2.solver.termination_condition==TerminationCondition.infeasible or results2.solver.termination_condition==TerminationCondition.infeasibleOrUnbounded: #If infeasible
-                for i in Parent.yl_arc:
-                    Parent.yl_arc[i]=Parent.yl_hat[i]  
-            else: 
-                 raise RuntimeError("ERROR! Unexpected termination condition for Subproblem2: %s.  Expected an infeasible or optimal solution." % str(results2.solver.termination_condition)) 
-            
-            if not quiet:
-                print("Step 6")
-            #Step 6: Add new constraints
-            k = k+1
-            for i in Parent.yl_arc:  #range(nZ):
-                Parent.Master.Y[(i,k)]=Parent.yl_arc[i] #Make sure yl_arc is int or else Master.Y rejects
-            Master_add(Parent, k, epsilon)
-
-            if not quiet:
-                print(f'Iteration {k}: Step 7 Obj={LB} UB={UB}')
-            #Step 7: Loop 
-            flag = check_termination(LB, UB, atol, rtol, quiet)
-            if flag:
-                elapsed = time.time() - t
-                break
+        if not quiet:
+            print(f'Iteration {k}: Step 7 Obj={LB} UB={UB}')
+        #Step 7: Loop 
+        flag = check_termination(LB, UB, atol, rtol, quiet)
+        if flag:
+            elapsed = time.time() - t
+            break
 
     #Output Information regarding objective and time/iterations to convergence    
     elapsed = time.time() - t

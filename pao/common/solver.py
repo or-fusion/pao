@@ -261,7 +261,7 @@ class PyomoSolver(SolverAPI):
         return self.solver.available(exception_flag=False)
 
     def solve(self, model, **options):
-        assert (isinstance(model, pe.Model)), "The Pyomo solver '%s' cannot solve a model of type %s" % (self.name, str(type(model)))
+        assert (isinstance(model, pe.Model) or isinstance(model, pe.SimpleBlock)), "The Pyomo solver '%s' cannot solve a model of type %s" % (self.name, str(type(model)))
         if self.config['executable'] is not None:
             self.solver.set_executable(self.config['executable'])
         return self.solver.solve(model, **self.solver_options)
