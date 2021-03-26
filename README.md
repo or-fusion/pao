@@ -1,4 +1,8 @@
-*PAO DRAFT DOCUMENTATION*
+*PAO ARCHIVE COPY*
+
+This is a copy of the repository before the cleanup for the 1.0 release.  I'm 
+treating this as an archive of code that we are removing.
+
 
 [![Documentation Status](https://readthedocs.org/projects/pao/badge/?version=latest)](http://pao.readthedocs.org/en/latest/)
 
