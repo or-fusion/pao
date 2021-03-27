@@ -15,7 +15,7 @@ PAO Documentation
 PAO is a Python-based package for Adversarial Optimization.  The goal of
 this package is to provide a general modeling and analysis capability for
 bilevel, trilevel and other multilevel optimization forms that express
-adversarial dynamics.  PAO integrates two different modeling abstractions::
+adversarial dynamics.  PAO integrates two different modeling abstractions:
 
 1. **Algebraic models** extend the modeling concepts in the
    `Pyomo <https://github.com/Pyomo/pyomo>`_ algebraic modeling language
@@ -38,6 +38,7 @@ adversarial dynamics.  PAO integrates two different modeling abstractions::
    installation.rst
    examples.rst
    representations.rst
+   solvers.rst
    reference.rst
    bibliography.rst
 
