@@ -59,7 +59,7 @@ jobs:
       run: |
         conda list
         cd doc/readthedocs; make doctest
-        nosetests --with-xunit --with-coverage --cover-xml -v .
+        cd ../..; nosetests --with-xunit --with-coverage --cover-xml -v .
         coverage report -m
 
     - name: Send coverage data to codecov
