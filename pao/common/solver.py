@@ -476,10 +476,10 @@ class SolverFactory(object):
 
     def __iter__(self):
         """
-        Returns
+        Yields
         -------
-        generator
-            Returns an iterator that generates the solver names.
+        string
+            Yields the next solver name that has been registered
         """
         for name in sorted(SolverFactory._doc.keys()):
             yield name

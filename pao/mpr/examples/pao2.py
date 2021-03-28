@@ -4,40 +4,56 @@
 #
 # Optimal solution: (x,y,z) = (6,4,2)
 #
+import numpy as np
 import pyomo.environ as pe
-from pao.pyomo import *
+import pao.mpr
 
 
 def create():
-    M = pe.ConcreteModel()
+    M = pao.mpr.LinearMultilevelProblem()
 
-    M.x = pe.Var(bounds=(2,6))
-    M.y = pe.Var()
-    M.z = pe.Var([1,2], bounds=(0,None))
+    U = M.add_upper(nxR=2)
+    L1 = U.add_lower(nxR=1)
+    L2 = U.add_lower(nxR=1)
 
-    M.o = pe.Objective(expr=M.x + 3*M.z[1]+3*M.z[2], sense=pe.minimize)
-    M.c = pe.Constraint(expr= M.x + M.y == 10)
+    U.x.lower_bounds = [2, np.NINF]
+    U.x.upper_bounds = [6, np.PINF]
+    U.c[U] = [1, 0]
+    U.c[L1] = [3]
+    U.c[L2] = [3]
+    U.equalities = True
+    U.A[U] = [[1, 1]]
+    U.b = [10]
 
-    M.L1 = SubModel(fixed=[M.x])
-    M.L1.o = pe.Objective(expr=M.z[1], sense=pe.maximize)
-    M.L1.c1 = pe.Constraint(expr= M.x + M.z[1] <= 8)
-    M.L1.c2 = pe.Constraint(expr= M.x + 4*M.z[1] >= 8)
-    M.L1.c3 = pe.Constraint(expr= M.x + 2*M.z[1] <= 13)
+    L1.x.lower_bounds = [0]
+    L1.x.upper_bounds = [np.PINF]
+    L1.c[L1] = [1]
+    L1.maximize = True
+    L1.A[U] = [[ 1, 0],
+               [-1, 0],
+               [ 1, 0]]
+    L1.A[L1] = [[ 1],
+                [-4],
+                [ 2]]
+    L1.b = [8, -8, 13]
 
-    M.L2 = SubModel(fixed=[M.y])
-    M.L2.o = pe.Objective(expr=M.z[2], sense=pe.maximize)
-    M.L2.c1 = pe.Constraint(expr= M.y + M.z[2] <= 8)
-    M.L2.c2 = pe.Constraint(expr= M.y + 4*M.z[2] >= 8)
-    M.L2.c3 = pe.Constraint(expr= M.y + 2*M.z[2] <= 13)
+    L2.x.lower_bounds = [0]
+    L2.x.upper_bounds = [np.PINF]
+    L2.c[L2] = [1]
+    L2.maximize = True
+    L2.A[U] = [[0,  1],
+               [0, -1],
+               [0,  1]]
+    L2.A[L2] = [[ 1],
+                [-4],
+                [ 2]]
+    L2.b = [8, -8, 13]
 
     return M
 
-
 if __name__ == "__main__":          #pragma: no cover
     M = create()
-    #M.pprint()
-    opt = Solver("pao.pyomo.FA")
+    opt = pao.Solver("pao.mpr.FA")
     opt.solve(M)
-    print(pe.value(M.x))
-    print(pe.value(M.y))
-    print(M.z[1].value, M.z[2].value)
+    for L in M.levels():
+        print(L.name, L.x.values)

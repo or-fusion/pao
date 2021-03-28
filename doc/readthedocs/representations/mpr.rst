@@ -3,368 +3,340 @@ Multilevel Representations
 
 .. testsetup:: mpr_repn
 
+    import numpy as np
     import pao
     import pao.mpr
 
-TODO HERE
+PAO includes several *Multilevel Problem Representations* (MPRs)
+that represent multilevel optimization problems with an explicit,
+compact representation that simplifies the implementation of solvers for
+bilevel, trilevel and other multilevel optimization problems.  These MPRs
+express objective and constraints using vector and matrix data types.
+However, they organize these data types to provide a semantically clear
+organization of multilevel problems.  Additionally, the MPRs provide
+checks to ensure the consistency of the data within and across levels.
 
-PAO can be used to express linear and quadratic problems in `Pyomo
-<https://github.com/Pyomo/pyomo>`_ using a :class:`.SubModel`
-component, which was previously introduced in the **pyomo.bilevel**
-package [PyomoBookII]_.  `Pyomo <https://github.com/Pyomo/pyomo>`_
-represents optimization models using an model objects that are
-annotated with modeling component objects.  Thus, :class:`.SubModel`
-component is a simple extension of the modeling concepts in `Pyomo
-<https://github.com/Pyomo/pyomo>`_.
+The classes :class:`.LinearMultilevelProblem`
+and :class:`.QuadraticMultilevelProblem` respectively
+represent linear and quadratic multilevel problems.  Although
+:class:`.QuadraticMultilevelProblem` is a generalization of the
+representation in :class:`.LinearMultilevelProblem`, the use of tailored
+representations for different classes of problems clarifies the semantic
+context when using them.  For example, this allows for simple error checking
+to confirm that a problem is linear.
 
-.. hint::
+Currently, all PAO solvers for MPRs support only linear problems, so the
+following sections focus on :class:`.LinearMultilevelProblem`.  However,
+we conclude with an example of model transformations that enable the
+solution of quadratic problems using :class:`.QuadraticMultilevelProblem`.
 
-    Advanced Pyomo users will realize that the PAO :class:`.SubModel` component
-    is a special case of the Pyomo ``Block`` component, which is used to
-    structure the expression of Pyomo models.
+.. note::
 
-A :class:`.SubModel` component creates a context for expressing the
-objective and constraints in a lower-level model.  Pyomo models can
-include nested and parallel :class:`.SubModel` components to express
-complex multilevel problems.
+    We do not expect many users to directly employ a MPR data
+    representation for their applications.  Perhaps this would be
+    desirable if their problem was already represented with matrix and
+    vector data.  In general, the algebraic representation supported by
+    Pyomo will be more convenient for large, complex applications.
 
-Bilevel Examples
-~~~~~~~~~~~~~~~~
+    We expect this representation to be more useful for researchers
+    developing multilevel solvers, since the MPR representations provide
+    structure that simplifies the expression of necessary mathematical
+    operations for these problems.
 
-Consider the following bilevel problem:
 
-.. math::
-   :nowrap:
- 
-    \begin{equation*}
-    \textbf{Model PAO1}\\
-    \begin{array}{ll}
-    \min_{x\in[2,6],y} & x + 3 z \\
-    \textrm{s.t.} & x + y = 10\\
-    & \begin{array}{lll}
-      \max_{z \geq 0} & z &\\
-      \textrm{s.t.} & x+z &\leq 8\\
-      & x + 4 z &\geq 8\\
-      & x + 2 z &\leq 13
-      \end{array}
-    \end{array}
-    \end{equation*}
+Linear Bilevel Examples
+~~~~~~~~~~~~~~~~~~~~~~~
 
-This problem has has linear upper- and lower-level problems with different
-objectives in each level.
+We consider again the bilevel problem PAO1 :eq:`eq-pao1`.  This problem
+has has linear upper- and lower-level problems with different objectives
+in each level.
 
-.. doctest:: pyomo_repn
+.. doctest:: mpr_repn
 
-    >>> M = pe.ConcreteModel()
+    >>> M = pao.mpr.LinearMultilevelProblem()
 
-    >>> M.x = pe.Var(bounds=(2,6))
-    >>> M.y = pe.Var()
+    >>> U = M.add_upper(nxR=2)
+    >>> L = U.add_lower(nxR=1)
 
-    >>> M.L = pao.pyomo.SubModel(fixed=[M.x,M.y])
-    >>> M.L.z = pe.Var(bounds=(0,None))
+    >>> U.x.lower_bounds = [2, np.NINF]
+    >>> U.x.upper_bounds = [6, np.PINF]
+    >>> L.x.lower_bounds = [0]
+    >>> L.x.upper_bounds = [np.PINF]
 
-    >>> M.o = pe.Objective(expr=M.x + 3*M.L.z, sense=pe.minimize)
-    >>> M.c = pe.Constraint(expr= M.x + M.y == 10)
+    >>> U.c[U] = [1, 0]
+    >>> U.c[L] = [3]
 
-    >>> M.L.o = pe.Objective(expr=M.L.z, sense=pe.maximize)
-    >>> M.L.c1 = pe.Constraint(expr= M.x + M.L.z <= 8)
-    >>> M.L.c2 = pe.Constraint(expr= M.x + 4*M.L.z >= 8)
-    >>> M.L.c3 = pe.Constraint(expr= M.x + 2*M.L.z <= 13)
+    >>> L.c[L] = [1]
+    >>> L.maximize = True
 
-    >>> opt = pao.Solver("pao.pyomo.FA")
+    >>> U.equalities = True
+    >>> U.A[U] = [[1, 1]]
+    >>> U.b = [10]
+
+    >>> L.A[U] = [[ 1, 0],
+    ...          [-1, 0],
+    ...          [ 1, 0]]
+    >>> L.A[L] = [[ 1],
+    ...          [-4],
+    ...          [ 2]]
+    >>> L.b = [8, -8, 13]
+
+    >>> M.check()
+
+    >>> opt = pao.Solver("pao.mpr.FA")
     >>> results = opt.solve(M)
-    >>> print(M.x.value, M.y.value, M.L.z.value)
-    6.0 4.0 2.0
+    >>> print(M.U.x.values)
+    [6.0, 4.0]
+    >>> print(M.U.LL.x.values)
+    [2.0]
 
-This example illustrates the flexibility of Pyomo representations in PAO:
+The example illustrates both the flexibility of the MPR representions
+in PAO but also the structure they enforce on the multilevel problem
+representation.  The upper-level problem is created by calling the
+:meth:`.add_upper` method, which takes arguments that specify the
+variables at that level:
 
-* Each level can express different objectives with different senses
-* Variables can be bounded or unbounded
-* Equality and inequality constraints can be expressed
+* ``nxR`` - The number of real variables (Default: 0)
+* ``nxZ`` - The number of general integer variables (Default: 0)
+* ``nxB`` - The number of binary variables (Default: 0)
 
-The :class:`.SubModel` component is used to define a logically separate
-optimization model that includes variables that are dynamically fixed
-by upper-level problems.  All of the Pyomo objective and constraint
-declarations contained in the :class:`.SubModel` declaration are included
-in the sub-problem that it defines, even if they are nested in Pyomo
-``Block`` components.  The :class:`.SubModel` component also declares
-which variables are fixed in a lower-level problem.  The value of the
-`fixed` argument is a Pyomo variable or a list of variables.  For example,
-the following model expresses the upper-level variables with a single
-variable, `M.x`, which is fixed in the :class:`.SubModel` declaration:
+In each level, the variables are represented as a vector of values,
+ordered in this manner.
 
-.. doctest:: pyomo_repn
+Similarly, the :meth:`.add_lower` method is used to generate a lower-level
+problem from a given level.  Note that this allows for the specification
+of arbitrary nesting of levels, since a lower-level can be defined
+relative to any other level in the model.  Additionally, multiple
+lower-levels can be specified for relative to a single level (see below).
 
-    >>> M = pe.ConcreteModel()
+The :meth:`.add_upper` and :meth:`.add_lower` methods return the
+corresponding level object, which is used to specify data in the model
+later.
 
-    >>> M.x = pe.Var([0,1])
-    >>> M.x[0].setlb(2)
-    >>> M.x[0].setub(6)
+For a given level object, ``Z``, the data ``Z.x`` contains
+information about the decision variables.  In particular, the values
+``Z.x.lower_bounds`` and ``Z.x.upper_bounds`` can be set with arrays
+of numeric values to specify lower- and upper-bounds on the decision
+variables.  Note that missing lower- and upper-bounds are specified with
+``numpy.NINF`` and ``numpy.PINF`` respectively.
 
-    >>> M.L = pao.pyomo.SubModel(fixed=M.x)
-    >>> M.L.z = pe.Var(bounds=(0,None))
+The ``Z.c`` data specifies coefficients of the objective function for
+this level.  This data is indexed by a level object ``B`` to indicate
+the data associated with the variables in ``B``.  In the example above:
 
-    >>> M.o = pe.Objective(expr=M.x[0] + 3*M.L.z, sense=pe.minimize)
-    >>> M.c = pe.Constraint(expr= M.x[0] + M.x[1] == 10)
+* ``U.c[U]`` is the array of coefficients of the upper-level objective for the variables in the upper-level,
+* ``U.c[L]`` is the array of coefficients of the upper-level objective for the variables in the lower-level, and
+* ``L.c[L]`` is the array of coefficients of the lower-level objective for the variables in the lower-level.
 
-    >>> M.L.o = pe.Objective(expr=M.L.z, sense=pe.maximize)
-    >>> M.L.c1 = pe.Constraint(expr= M.x[0] + M.L.z <= 8)
-    >>> M.L.c2 = pe.Constraint(expr= M.x[0] + 4*M.L.z >= 8)
-    >>> M.L.c3 = pe.Constraint(expr= M.x[0] + 2*M.L.z <= 13)
+Since ``L.c[U]`` is not specified, it has a value ``None`` that
+indicates that no upper-level variables have non-zero coefficients in the
+lower-level objective.  The ``Z.A`` data specifies the matrix coefficients
+for the constraints using a similar indexing notation and semantics.
 
-    >>> opt = pao.Solver("pao.pyomo.FA")
-    >>> results = opt.solve(M)
-    >>> print(M.x[0].value, M.x[1].value, M.L.z.value)
-    6.0 4.0 2.0
+The values ``Z.minimize`` and ``Z.maximize`` can be set to ``True``
+to indicate whether the objective in ``Z`` minimizes or maximizes.
+(The default is minimize.)  Similarly the value ``Z.inequalities``
+and ``Z.equalities`` can be set to ``True`` to indicate whether the
+constraints in ``Z`` are inequalities or equalities.  (The default
+is inequalities.)  Finally, the value ``Z.b`` defines the array of
+constraint right-hand-side values.
 
-Although a lower-level problem is logically a separate optimization model,
-you cannot use a :class:`.SubModel` that is defined with a separate Pyomo 
-model object.  Pyomo implicitly requires that all variables used in 
-objective and constraint expressions are attributes of the same Pyomo model.
-However, the location of variable declarations in a Pyomo model does *not* denote their 
-use in upper- or lower-level problems.  For example, consider the following
-model that re-expresses the previous problem:
+The :meth:``check`` method provides a convenient sanity check that the
+data is defined consistently within each level and between levels.
 
-.. doctest:: pyomo_repn
-
-    >>> M = pe.ConcreteModel()
-
-    >>> M.x = pe.Var(bounds=(2,6))
-    >>> M.y = pe.Var()
-    >>> M.z = pe.Var(bounds=(0,None))
-
-    >>> M.o = pe.Objective(expr=M.x + 3*M.z, sense=pe.minimize)
-    >>> M.c = pe.Constraint(expr= M.x + M.y == 10)
-
-    >>> M.L = pao.pyomo.SubModel(fixed=[M.x,M.y])
-    >>> M.L.o = pe.Objective(expr=M.z, sense=pe.maximize)
-    >>> M.L.c1 = pe.Constraint(expr= M.x + M.z <= 8)
-    >>> M.L.c2 = pe.Constraint(expr= M.x + 4*M.z >= 8)
-    >>> M.L.c3 = pe.Constraint(expr= M.x + 2*M.z <= 13)
-
-    >>> opt = pao.Solver("pao.pyomo.FA")
-    >>> results = opt.solve(M)
-    >>> print(M.x.value, M.y.value, M.z.value)
-    6.0 4.0 2.0
-
-Note that *all* of the decision variables are declared outside of the
-:class:`.SubModel` component, even though the variable ``M.z`` is a
-lower-level variable.  The declarations of :class:`.SubModel` components
-defines the mathematical role of all decision variables in a Pyomo model.
-As this example illustrates, the specification of a bilevel problem can
-be simplified if all variables are expressed at once.
-
-Finally, we observe that PAO's Pyomo representation only works with a
-subset of the many different modeling components that are supported in
-`Pyomo <https://github.com/Pyomo/pyomo>`_:
-
-* :class:`Set` - Set declarations
-* :class:`Param` - Parameter declarations
-* :class:`Var` - Variable declarations
-* :class:`Block` - Defines a subset of a model
-* :class:`Objective` - Define a model objective
-* :class:`Constraint` - Define model constraints
-
-Additional Pyomo modeling components will be added to PAO as motivating
-applications arise and as suitable solvers become available.
+Note that PAO supports a consistent interface for creating a solver
+interface and for applying solvers.  In fact, the user should be
+aware that Pyomo and MPR solvers are named in a consistent fashion.
+For example, the Pyomo solver **pao.pyomo.FA** calls the MPR solver
+**pao.mpr.FA** after automatically converting the Pyomo representation
+to a :class:``LinearMultilevelProblem`` representation.  This example
+illustrates that values ``Z.x.values`` contains the values of each level
+``Z`` after optimization.
 
 Multilevel Examples
 ~~~~~~~~~~~~~~~~~~~
 
-Multilevel problems can be easily expressed with Pyomo using multiple declarations
-of :class:`.SubModel`.
+Multilevel problems can be easily expressed using the same MPR data 
+representation.
 
 Multiple Lower Levels
 ^^^^^^^^^^^^^^^^^^^^^
 
-Consider the following bilevel problem that 
-extends the **PAO1** model to include two equivalent lower-levels:
+We consider again the bilevel problem PAO2 :eq:`eq-pao2`, which has has
+multiple lower-level problems.  The **PAO2** model can be expressed as
+a linear multilevel problem as follows:
 
-.. math::
-   :nowrap:
- 
-    \begin{equation*}
-    \textbf{Model PAO2}\\
-    \begin{array}{ll}
-    \min_{x\in[2,6],y} & x + 3 z_1 + 3 z_2 \\
-    \textrm{s.t.} & x + y = 10\\
-    & \begin{array}{lll}
-      \max_{z_1 \geq 0} & z_1 &\\
-      \textrm{s.t.} & x+z_1 &\leq 8\\
-      & x + 4 z_1 &\geq 8\\
-      & x + 2 z_1 &\leq 13\\
-      \end{array}\\
-    & \begin{array}{lll}
-      \max_{z_2 \geq 0} & z_2 &\\
-      \textrm{s.t.} & y+z_2 &\leq 8\\
-      & y + 4 z_2 &\geq 8\\
-      & y + 2 z_2 &\leq 13\\
-      \end{array}\\
-    \end{array}
-    \end{equation*}
+.. doctest:: mpr_repn
 
-The **PAO2** model can be expressed in Pyomo as follows:
+    >>> M = pao.mpr.LinearMultilevelProblem()
+  
+    >>> U = M.add_upper(nxR=2)
+    >>> L1 = U.add_lower(nxR=1)
+    >>> L2 = U.add_lower(nxR=1)
 
-.. doctest:: pyomo_repn
+    >>> U.x.lower_bounds = [2, np.NINF]
+    >>> U.x.upper_bounds = [6, np.PINF]
+    >>> U.c[U] = [1, 0]
+    >>> U.c[L1] = [3]
+    >>> U.c[L2] = [3]
+    >>> U.equalities = True
+    >>> U.A[U] = [[1, 1]]
+    >>> U.b = [10]
 
-    >>> M = pe.ConcreteModel()
+    >>> L1.x.lower_bounds = [0]
+    >>> L1.x.upper_bounds = [np.PINF]
+    >>> L1.c[L1] = [1]
+    >>> L1.maximize = True
+    >>> L1.A[U] = [[ 1, 0],
+    ...           [-1, 0],
+    ...           [ 1, 0]]
+    >>> L1.A[L1] = [[ 1],
+    ...            [-4],
+    ...            [ 2]]
+    >>> L1.b = [8, -8, 13]
 
-    >>> M.x = pe.Var(bounds=(2,6))
-    >>> M.y = pe.Var()
-    >>> M.z = pe.Var([1,2], bounds=(0,None))
+    >>> L2.x.lower_bounds = [0]
+    >>> L2.x.upper_bounds = [np.PINF]
+    >>> L2.c[L2] = [1]
+    >>> L2.maximize = True
+    >>> L2.A[U] = [[0,  1],
+    ...           [0, -1],
+    ...           [0,  1]]
+    >>> L2.A[L2] = [[ 1],
+    ...            [-4],
+    ...            [ 2]]
+    >>> L2.b = [8, -8, 13]
 
-    >>> M.o = pe.Objective(expr=M.x + 3*M.z[1]+3*M.z[2], sense=pe.minimize)
-    >>> M.c = pe.Constraint(expr= M.x + M.y == 10)
-
-    >>> M.L1 = pao.pyomo.SubModel(fixed=[M.x])
-    >>> M.L1.o = pe.Objective(expr=M.z[1], sense=pe.maximize)
-    >>> M.L1.c1 = pe.Constraint(expr= M.x + M.z[1] <= 8)
-    >>> M.L1.c2 = pe.Constraint(expr= M.x + 4*M.z[1] >= 8)
-    >>> M.L1.c3 = pe.Constraint(expr= M.x + 2*M.z[1] <= 13)
-
-    >>> M.L2 = pao.pyomo.SubModel(fixed=[M.y])
-    >>> M.L2.o = pe.Objective(expr=M.z[2], sense=pe.maximize)
-    >>> M.L2.c1 = pe.Constraint(expr= M.y + M.z[2] <= 8)
-    >>> M.L2.c2 = pe.Constraint(expr= M.y + 4*M.z[2] >= 8)
-    >>> M.L2.c3 = pe.Constraint(expr= M.y + 2*M.z[2] <= 13)
-
-    >>> opt = pao.Solver("pao.pyomo.FA")
+    >>> opt = pao.Solver("pao.mpr.FA")
     >>> results = opt.solve(M)
-    >>> print(M.x.value, M.y.value, M.z[1].value, M.z[2].value)
-    2.0 8.0 5.5 0.0
+    >>> print(U.x.values)
+    [2.0, 8.0]
+    >>> print(L1.x.values)
+    [5.5]
+    >>> print(L2.x.values)
+    [0.0]
+
+The declarataion of the two lower level problems is naturally contained
+within the data of the ``L1`` and ``L2`` objects.  Further, the
+cross-level interactions are intuitively represented using the index
+notation for the objective and constraint data objects.
+
+Note that this more explicit representation clarifies some ambiguity in
+the expression of lower-levels in the Pyomo representation.  The Pyomo
+representation of PAO2 only specifies the fixed variables that are
+**used** in each of the two lower-level problems.  PAO analyzes
+the use of decision variables in Pyomo models, and treats *unused*
+variables as fixed.  Thus, the Pyomo and MPR representations generate
+a consistent interpretation of the variable specifications.  However,
+the MPR representation is more explicit in this regard.
+
 
 Trilevel Problems
 ^^^^^^^^^^^^^^^^^
 
-Trilevel problems can be described with nested declarations of :class:`.SubModel` components.  Consider the 
-following trilevel continuous linear problem described by Anadalingam [Anadalingam]:
+We consider again the trilevel problem described by Anadalingam
+:eq:`eq-anadalingam`, which can be expressed as a trilevel linear problem
+as follows:
 
-.. math::
-   :nowrap:
- 
-    \begin{equation*}
-    \textbf{Model Anadalingam1988}\\
-    \begin{array}{llll}
-    \min_{x_1 \geq 0} & -7 x_1 - 3 x_2 + 4 x_3 \\
-    \textrm{s.t.} & \min_{x_2 \geq 0} & -x_2 \\
-                  & \textrm{s.t.} & \min_{x_3 \in [0,0.5]} & -x_3 \\
-                  &               & \textrm{s.t.} & x_1 + x_2 + x_3 \leq 3\\
-                  &               &               & x_1 + x_2 - x_3 \leq 1\\
-                  &               &               & x_1 + x_2 + x_3 \geq 1\\
-                  &               &               & -x_1 + x_2 + x_3 \leq 1\\
-    \end{array}
-    \end{equation*}
+.. doctest:: mpr_repn
 
-This model can be expressed in Pyomo as follows:
+    >>> M = pao.mpr.LinearMultilevelProblem()
 
-.. doctest:: pyomo_repn
+    >>> U = M.add_upper(nxR=1)
+    >>> U.x.lower_bounds = [0]
 
-    >>> M = pe.ConcreteModel()
-    >>> M.x1 = pe.Var(bounds=(0,None))
-    >>> M.x2 = pe.Var(bounds=(0,None))
-    >>> M.x3 = pe.Var(bounds=(0,0.5))
+    >>> L = U.add_lower(nxR=1)
+    >>> L.x.lower_bounds = [0]
 
-    >>> M.L = pao.pyomo.SubModel(fixed=M.x1)
+    >>> B = L.add_lower(nxR=1)
+    >>> B.x.lower_bounds = [0]
+    >>> B.x.upper_bounds = [0.5]
 
-    >>> M.L.B = pao.pyomo.SubModel(fixed=M.x2)
+    >>> U.minimize = True
+    >>> U.c[U] = [-7]
+    >>> U.c[L] = [-3]
+    >>> U.c[B] = [4]
 
-    >>> M.o = pe.Objective(expr=-7*M.x1 - 3*M.x2 + 4*M.x3)
+    >>> L.minimize = True
+    >>> L.c[L] = [-1]
 
-    >>> M.L.o = pe.Objective(expr=-M.x2)
-    >>> M.L.B.o = pe.Objective(expr=-M.x3)
+    >>> B.minimize = True
+    >>> B.c[B] = [-1]
+    >>> B.inequalities = True
+    >>> B.A[U] = [[1], [ 1], [-1], [-1]]
+    >>> B.A[L] = [[1], [ 1], [-1], [ 1]]
+    >>> B.A[B] = [[1], [-1], [-1], [ 1]]
+    >>> B.b = [3,1,-1,1]
 
-    >>> M.L.B.c1 = pe.Constraint(expr=   M.x1 + M.x2 + M.x3 <= 3)
-    >>> M.L.B.c2 = pe.Constraint(expr=   M.x1 + M.x2 - M.x3 <= 1)
-    >>> M.L.B.c3 = pe.Constraint(expr=   M.x1 + M.x2 + M.x3 >= 1)
-    >>> M.L.B.c4 = pe.Constraint(expr= - M.x1 + M.x2 + M.x3 <= 1)
-
-.. note::
-
-    PAO solvers cannot currently solve trilevel solvers like this,
-    but an issue has been submitted to add this functionality.
 
 Bilinear Problems
 ^^^^^^^^^^^^^^^^^
 
-PAO models using Pyomo represent general quadratic problems with quadratic
-terms in the objective and constraints at each level.  The special case
-where bilinear terms arise with an upper-level binary variable multiplied
-with a lower-level variable is common in many applications.  For this case, the PAO solvers
-for Pyomo models include an option to linearize these bilinear terms.
+The :class:`.QuadraticMultilevelProblem` class can represent general
+quadratic problems with quadratic terms in the objective and constraints
+at each level.  The special case where bilinear terms arise with an
+upper-level binary variable multiplied with a lower-level variable is
+common in many applications.  For this case, PAO provides a function to
+linearize these bilinear terms.
 
-The following models considers a variation of the **PAO1** model where binary variables control
-the expression of lower-level constraints:
+We consider again the bilevel problem PAO3 :eq:`eq-pao3`, which is 
+represented and solved as follows:
 
-.. math::
-   :nowrap:
- 
-    \begin{equation*}
-    \textbf{Model PAO3}\\
-    \begin{array}{ll}
-    \min_{x\in[2,6],y,w_1,w_2} & x + 3 z + 5 w_1\\
-    \textrm{s.t.} & x + y = 10\\
-    & w_1 + w_2 \geq 1\\
-    & w_1,w_2 \in \{0,1\}\\
-    & \begin{array}{lll}
-      \max_{z \geq 0} & z &\\
-      \textrm{s.t.} & x+ w_1 z &\leq 8\\
-      & x + 4 z &\geq 8\\
-      & x + 2 w_2 z &\leq 13
-      \end{array}
-    \end{array}
-    \end{equation*}
+.. doctest:: mpr_repn
 
-The **PAO3** model can be expressed in Pyomo as follows:
+    >>> M = pao.mpr.QuadraticMultilevelProblem()
 
-.. doctest:: pyomo_repn
+    >>> U = M.add_upper(nxR=2, nxB=2)
+    >>> L = U.add_lower(nxR=1)
 
-    >>> M = pe.ConcreteModel()
+    >>> U.x.lower_bounds = [2, np.NINF, 0, 0]
+    >>> U.x.upper_bounds = [6, np.PINF, 1, 1]
+    >>> L.x.lower_bounds = [0]
+    >>> L.x.upper_bounds = [np.PINF]
 
-    >>> M.w = pe.Var([1,2], within=pe.Binary)
-    >>> M.x = pe.Var(bounds=(2,6))
-    >>> M.y = pe.Var()
-    >>> M.z = pe.Var(bounds=(0,None))
+    >>> U.c[U] = [1, 0, 5, 0]
+    >>> U.c[L] = [3]
 
-    >>> M.o = pe.Objective(expr=M.x + 3*M.z+5*M.w[1], sense=pe.minimize)
-    >>> M.c1 = pe.Constraint(expr= M.x + M.y == 10)
-    >>> M.c2 = pe.Constraint(expr= M.w[1] + M.w[2] >= 1)
+    >>> L.c[L] = [1]
+    >>> L.maximize = True
 
-    >>> M.L = pao.pyomo.SubModel(fixed=[M.x,M.y,M.w])
-    >>> M.L.o = pe.Objective(expr=M.z, sense=pe.maximize)
-    >>> M.L.c1 = pe.Constraint(expr= M.x + M.w[1]*M.z <= 8)
-    >>> M.L.c2 = pe.Constraint(expr= M.x + 4*M.z >= 8)
-    >>> M.L.c3 = pe.Constraint(expr= M.x + 2*M.w[2]*M.z <= 13)
+    >>> U.A[U] = [[ 1,  1,  0,  0],
+    ...          [-1, -1,  0,  0],
+    ...          [ 0,  0, -1, -1]
+    ...          ]
+    >>> U.b = [10, -10, -1]
 
-    >>> opt = pao.Solver("pao.pyomo.FA", linearize_bigm=100)
-    >>> results = opt.solve(M)
-    >>> print(M.x.value, M.y.value, M.z.value, M.w[1].value, M.w[2].value)
-    6.0 4.0 3.5 0 1
+    >>> L.A[U] = [[ 1, 0, 0, 0],
+    ...          [-1, 0, 0, 0],
+    ...          [ 1, 0, 0, 0]]
+    >>> L.A[L] = [[ 0],
+    ...          [-4],
+    ...          [ 0]]
+    >>> L.Q[U,L] = (3,4,1), {(0,2,0):1, (2,3,0):2}
+                
+    >>> L.b = [8, -8, 13]
 
+    >>> lmr, soln = pao.mpr.linearize_bilinear_terms(M, 100)
+    >>> opt = pao.Solver("pao.mpr.FA")
+    >>> results = opt.solve(lmr)
+    >>> soln.copy(From=lmr, To=M)
+    >>> print(U.x.values)
+    [6.0, 4.0, 0, 1]
+    >>> print(L.x.values)
+    [3.5]
 
+The data ``L.Q[U,L]`` specifies the bilinear terms multiplying
+variables from level ``U`` with variables from level ``L``, which
+are included in the constraints in level ``L``.  Note that ``Q`` is a
+tensor, which is indexed over the constraints, upper-level variables
+and lower-level variables.  A similar syntax is used to define bilinear
+terms in objectives, ``P``, though that is represented as a sparse matrix.
+Quadratic terms can be specified simply by using the same levels to index
+``Q`` or ``P``.
 
-Multilevel Problem Representations
-----------------------------------
-
-compact *Multilevel
-Problem Representations* (MPRs) that express objective and constraints
-using vector and matrix data types.
-
-PAO includes several *Multilevel Problem Representations*
-(MPRs) that represent multilevel optimization problems with an explicit,
-compact representation that simplifies the implementation of solvers
-for bilevel, trilevel and other multilevel optimization problems.
-
-For example, PAO includes a compact representation for linear bilevel
-problems, ``LinearMultilevelProblem``.  Several solvers have been
-developed for problems expressed as a ``LinearMultilevelProblem``,
-including the big-M method proposed by Fortuny-Amat and McCarl
-[FortunyMcCarl]_.  
-
-
-These sections will provide a detailed discussion of the algebraic and
-compact representations supported by PAO.
-
-.. todo::
-    Details about the PAO and LinearMultilevelProblem representations, showing
-    the range of multi-level problems they can express.
+Model transformations like :func:``.linearize_bilinear_terms`` are
+described in further detail in the next section.  Note that this function
+returns both the transformed model as well as a helper class that maps
+solutions back to the original model.  This logic facilitates the
+automation of model transformations within PAO.
 

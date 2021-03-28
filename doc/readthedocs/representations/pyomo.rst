@@ -33,6 +33,7 @@ Bilevel Examples
 Consider the following bilevel problem:
 
 .. math::
+   :label: eq-pao1
    :nowrap:
  
     \begin{equation*}
@@ -180,6 +181,7 @@ Consider the following bilevel problem that
 extends the **PAO1** model to include two equivalent lower-levels:
 
 .. math::
+   :label: eq-pao2
    :nowrap:
  
     \begin{equation*}
@@ -239,6 +241,7 @@ Trilevel problems can be described with nested declarations of :class:`.SubModel
 following trilevel continuous linear problem described by Anadalingam [Anadalingam]:
 
 .. math::
+   :label: eq-anadalingam
    :nowrap:
  
     \begin{equation*}

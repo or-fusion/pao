@@ -4,41 +4,52 @@
 #
 # Optimal solution: (x,y,z) = (6,4,2)
 #
+import numpy as np
 import pyomo.environ as pe
-from pao.pyomo import *
+import pao.mpr
 
 
 def create():
-    M = pe.ConcreteModel()
+    M = pao.mpr.QuadraticMultilevelProblem()
 
-    M.w = pe.Var([1,2], within=pe.Binary)
-    M.x = pe.Var(bounds=(2,6))
-    M.y = pe.Var()
-    M.z = pe.Var(bounds=(0,None))
+    U = M.add_upper(nxR=2, nxB=2)
+    L = U.add_lower(nxR=1)
 
-    M.o = pe.Objective(expr=M.x + 3*M.z+5*M.w[1], sense=pe.minimize)
-    M.c1 = pe.Constraint(expr= M.x + M.y == 10)
-    M.c2 = pe.Constraint(expr= M.w[1] + M.w[2] >= 1)
+    U.x.lower_bounds = [2, np.NINF, 0, 0]
+    U.x.upper_bounds = [6, np.PINF, 1, 1]
+    L.x.lower_bounds = [0]
+    L.x.upper_bounds = [np.PINF]
 
-    M.L = SubModel(fixed=[M.x,M.y,M.w])
-    M.L.o = pe.Objective(expr=M.z, sense=pe.maximize)
-    M.L.c1 = pe.Constraint(expr= M.x + M.w[1]*M.z <= 8)
-    M.L.c2 = pe.Constraint(expr= M.x + 4*M.z >= 8)
-    M.L.c3 = pe.Constraint(expr= M.x + 2*M.w[2]*M.z <= 13)
+    U.c[U] = [1, 0, 5, 0]
+    U.c[L] = [3]
+
+    L.c[L] = [1]
+    L.maximize = True
+
+    U.A[U] = [[ 1,  1,  0,  0],
+              [-1, -1,  0,  0],
+              [ 0,  0, -1, -1]
+              ]
+    U.b = [10, -10, -1]
+
+    L.A[U] = [[ 1, 0, 0, 0],
+              [-1, 0, 0, 0],
+              [ 1, 0, 0, 0]]
+    L.A[L] = [[ 0],
+              [-4],
+              [ 0]]
+    L.Q[U,L] = (3,4,1), {(0,2,0):1, (2,3,0):2}
+                
+    L.b = [8, -8, 13]
 
     return M
 
 
 if __name__ == "__main__":          #pragma: no cover
-    M = create()
-    #M.pprint()
-    #M.pprint()
-    opt = Solver("pao.pyomo.FA", linearize_bigm=100)
-    opt.solve(M)
-    #M.pprint()
-    print("="*10)
-    print(pe.value(M.x))
-    print(pe.value(M.y))
-    print(pe.value(M.z))
-    print(pe.value(M.w[1]))
-    print(pe.value(M.w[2]))
+    qmr = create()
+    lmr, soln = pao.mpr.linearize_bilinear_terms(qmr, 100)
+    opt = pao.Solver("pao.mpr.FA")
+    opt.solve(lmr)
+    soln.copy(From=lmr, To=qmr)
+    print(qmr.U.x.values)
+    print(qmr.U.LL.x.values)
