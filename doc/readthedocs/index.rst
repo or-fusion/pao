@@ -34,10 +34,11 @@ adversarial dynamics.  PAO integrates two different modeling abstractions:
 .. toctree::
    :maxdepth: 1
 
-   overview.rst
    installation.rst
+   overview.rst
    examples.rst
-   representations.rst
+   representations/pyomo.rst
+   representations/mpr.rst
    solvers.rst
    reference.rst
    bibliography.rst
