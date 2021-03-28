@@ -628,7 +628,7 @@ class LinearLevelRepn(object):
         # Ncols of 'A'
         #
         for X in self.levels():
-            assert ((self.A[X] is None) or (self.A[X].shape[1] == len(X.x))), "Incompatible specification of %s.A[%s] and %s.x (%d != %d)" % (self.name, X.name, x.name, self.A[X].shape[1], len(X.x))
+            assert ((self.A[X] is None) or (self.A[X].shape[1] == len(X.x))), "Incompatible specification of %s.A[%s] and %s.x (%d != %d)" % (self.name, X.name, X.name, self.A[X].shape[1], len(X.x))
         #
         # Nrows of 'A'
         #
