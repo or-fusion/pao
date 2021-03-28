@@ -50,7 +50,7 @@ jobs:
         pip install --quiet git+https://github.com/Pyomo/pyomo
         python setup.py develop
         pip install wheel
-        pip install nose coverage codecov pyyaml numpy scipy
+        pip install nose coverage codecov pyyaml numpy scipy sphinx
         conda install -c conda-forge coincbc glpk ipopt
         conda list
 
