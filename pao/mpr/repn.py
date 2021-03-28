@@ -444,7 +444,7 @@ class LinearLevelRepn(object):
         self.A = LevelValueWrapper1("A",
                         matrix=True)    # constraint matrices at this level
         self.b = np.ndarray(0, dtype=np.float64)          # RHS of the constraints
-        self.minimize = True            # sense of the objective at this level
+        self._minimize = True           # sense of the objective at this level
         self._inequalities = True       # If True, the constraints are inequalities
         self.d = 0                      # constant in objective at this level
 
@@ -480,6 +480,22 @@ class LinearLevelRepn(object):
     @equalities.setter
     def equalities(self, val):
         self._inequalities = not val
+
+    @property
+    def minimize(self):
+        return self._minimize
+
+    @minimize.setter
+    def minimize(self, val):
+        self._minimize = val
+
+    @property
+    def maximize(self):
+        return not self._minimize
+
+    @maximize.setter
+    def maximize(self, val):
+        self._minimize = not val
 
     def resize(self, *, nxR=0, nxZ=0, nxB=0, lb=np.NINF, ub=np.PINF):
         old = Bunch(nxR=self.x.nxR, nxZ=self.x.nxZ, nxB=self.x.nxB)
@@ -667,7 +683,7 @@ class QuadraticLevelRepn(LinearLevelRepn):
     def clone(self, parent=None, clone_fn=None):
         if clone_fn is None:
             clone_fn = QuadraticLevelRepn._clone_level
-        ans = clone_fn(self, parent=parent, data=['x', 'c', 'A', 'b', 'minimize', 'inequalities', 'equalities', 'd', 'LL', 'UL', 'P', 'Q'])
+        ans = clone_fn(self, parent=parent, data=['x', 'c', 'A', 'b', 'minimize', 'maximize', 'inequalities', 'equalities', 'd', 'LL', 'UL', 'P', 'Q'])
         ans.LL = self.LL.clone(parent=ans, clone_fn=clone_fn)
         return ans
 

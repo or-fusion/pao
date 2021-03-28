@@ -14,11 +14,11 @@ class Test_Trivial(unittest.TestCase):
         mpr = self._create()
         U = mpr.add_upper(nxR=1, nxZ=2, nxB=3)
         L = U.add_lower(nxR=1, nxZ=2, nxB=4)
-        U.minimize = False
+        U.maximize = True
         U.c[U] = [1, 1, 1, 1, 1, 1]
         U.c[L] = [2, 2, 2, 2, 2, 2, 2]
         U.P[U,L] = (6,7), {(3,0):11, (4,1):13, (5,3):17}
-        L.minimize = False
+        L.maximize = True
         L.c[U] = [3, 3, 3, 3, 3, 3]
         L.c[L] = [4, 4, 4, 4, 4, 4, 4]
         L.P[U,L] = (6,7), {(3,0):11, (4,1):13, (5,3):17}
@@ -97,11 +97,11 @@ class Test_Trivial(unittest.TestCase):
         mpr = self._create()
         U = mpr.add_upper(nxR=1, nxZ=2, nxB=3)
         L = U.add_lower(nxR=1, nxZ=2, nxB=4)
-        U.minimize = False
+        U.maximize = True
         U.c[U] = [1, 1, 1, 1, 1, 1]
         U.c[L] = [2, 2, 2, 2, 2, 2, 2]
         U.P[U,L] = (6,7), {(3,0):11, (4,1):13, (5,3):17}
-        L.minimize = False
+        L.maximize = True
         L.c[U] = [3, 3, 3, 3, 3, 3]
         L.c[L] = [4, 4, 4, 4, 4, 4, 4]
         L.P[U,L] = (6,7), {(3,1):19, (4,2):23, (5,4):31}
@@ -219,11 +219,11 @@ class Test_Trivial(unittest.TestCase):
         U.x.upper_bounds = [13,13,13,1,1,1]
         L.x.lower_bounds = [15,15,15,0,0,0,0]
         L.x.upper_bounds = [17,17,17,1,1,1,1]
-        U.minimize = False
+        U.maximize = True
         U.c[U] = [1, 1, 1, 1, 1, 1]
         U.c[L] = [2, 2, 2, 2, 2, 2, 2]
         U.P[U,L] = (6,7), {(3,0):11, (4,1):13, (5,3):17}
-        L.minimize = False
+        L.maximize = True
         L.c[U] = [3, 3, 3, 3, 3, 3]
         L.c[L] = [4, 4, 4, 4, 4, 4, 4]
         L.P[U,L] = (6,7), {(3,1):11, (4,2):13, (5,4):17}
@@ -340,14 +340,14 @@ class Test_Trivial(unittest.TestCase):
         U.x.upper_bounds = [13,13,13,1,1,1]
         L.x.lower_bounds = [15,15,15,0,0,0,0]
         L.x.upper_bounds = [17,17,17,1,1,1,1]
-        U.minimize = False
+        U.maximize = True
         U.c[U] = [1, 1, 1, 1, 1, 1]
         U.c[L] = [2, 2, 2, 2, 2, 2, 2]
         U.P[U,L] = (6,7), {(3,0):11, (4,1):13, (5,3):17}
         U.A[U] = (1,6),{(0,5):2}
         U.A[L] = (1,7),{(0,6):2}
         U.b = [2]
-        L.minimize = False
+        L.maximize = True
         L.c[U] = [3, 3, 3, 3, 3, 3]
         L.c[L] = [4, 4, 4, 4, 4, 4, 4]
         L.P[U,L] = (6,7), {(3,1):11, (4,2):13, (5,4):17}
@@ -478,14 +478,14 @@ class Test_Trivial(unittest.TestCase):
         U.x.upper_bounds = [13,13,13,1,1,1]
         L.x.lower_bounds = [15,15,15,0,0,0,0]
         L.x.upper_bounds = [17,17,17,1,1,1,1]
-        U.minimize = False
+        U.maximize = True
         U.c[U] = [1, 1, 1, 1, 1, 1]
         U.c[L] = [2, 2, 2, 2, 2, 2, 2]
         U.P[U,L] = (6,7), {(3,0):11, (4,1):13, (5,3):17}
         U.A[U] = (1,6),{(0,5):2}
         U.A[L] = (1,7),{(0,6):2}
         U.b = [2]
-        L.minimize = False
+        L.maximize = True
         L.c[U] = [3, 3, 3, 3, 3, 3]
         L.c[L] = [4, 4, 4, 4, 4, 4, 4]
         L.A[U] = (1,6),{(0,5):-2}

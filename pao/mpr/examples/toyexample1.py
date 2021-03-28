@@ -20,7 +20,7 @@ def create():
     U.c[U] = [-1]
     U.c[L] = [-10]
 
-    L.minimize = False
+    L.maximize = True
     L.c[L] = [-1]
 
     L.A[U] = [[-25], [1], [2], [-2]]

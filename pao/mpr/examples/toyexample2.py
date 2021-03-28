@@ -24,7 +24,7 @@ def create():
     U.A[L] = [[3], [1]]
     U.b = [12,14]
 
-    L.minimize = False
+    L.maximize = True
     L.c[L] = [1]
 
     L.A[U] = [[-3], [3]]

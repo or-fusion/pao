@@ -22,7 +22,7 @@ def create():
 
     U = M.add_upper(nxB=1)
     L = U.add_lower(nxR=2)
-    L.minimize=False
+    L.maximize = True
 
     L.x.lower_bounds=[0, 0]
     L.x.upper_bounds=[1, 1]

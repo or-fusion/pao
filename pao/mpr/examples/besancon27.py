@@ -20,7 +20,7 @@ def create():
     U.c[U] = [1]
 
     L.c[L] = [1]
-    L.minimize = False
+    L.maximize = True
 
     # Constraints
     U.A[U] = [[-1/10]]

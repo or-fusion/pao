@@ -21,7 +21,7 @@ def create():
     U.c[L] = [-1]               # Adding pressure to maximize LL variable
 
     L.c[L] = [1]
-    L.minimize = False
+    L.maximize = True
 
     # Constraints
     U.A[U] = [[-1/10]]
