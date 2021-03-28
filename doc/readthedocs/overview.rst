@@ -35,10 +35,7 @@ including the big-M method proposed by Fortuny-Amat and McCarl
 Pyomo using a ``Submodel`` component, which was previously introduced in
 the **pyomo.bilevel** package [PyomoBookII]_.  Further, these Pyomo models
 can be automatically converted to the compact ``LinearMultilevelProblem``
-representation and solved with solvers tailored for that representation.
-
-.. todo::
-    TODO - Figure illustrating the use of Pyomo and LinearMultilevelProblem representations.
+representation and optimized with solvers tailored for that representation.
 
 The use of independent problem representations in this manner has
 several implications for PAO.  First, this design facilitates the
@@ -57,4 +54,24 @@ representations that may or may not be inter-operable.  Although PAO
 is derived from initial efforts with **pyomo.bilevel**, it has evolved
 from an extension of Pyomo's modeling capability to be a library that
 is synergistic with Pyomo but not strictly dependent on it.
+
+The following sections provide detailed descriptions of these
+representations that are illustrated with increasingly complex examples,
+including
+
+* bilevel
+* bilevel with multiple lower-levels
+* trilevel
+
+Additionally, the following sections describe the setup of linear and
+quadratic problems, and the transformations that can be applied to them
+in PAO.
+
+.. note::
+
+    We do not restrict the description of PAO representations to
+    models that PAO can solve. Rather, a goal of this documentation
+    to illustrate the breadth of the adversarial optimization problems
+    that can be expressed with PAO, thereby motivating the development
+    of new solvers for new classes of problems.
 

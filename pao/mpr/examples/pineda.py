@@ -11,7 +11,7 @@ def create():
     U = M.add_upper(nxR=1)
     L = U.add_lower(nxR=1)
 
-    U.minimize = False
+    U.maximize = True
     U.x.lower_bounds = [0]
     U.x.upper_bounds = [2]
     U.c[U] = [1]

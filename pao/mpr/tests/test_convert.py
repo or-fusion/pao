@@ -72,11 +72,11 @@ class Test_Trivial(unittest.TestCase):
         mpr = self._create()
         U = mpr.add_upper(nxR=1, nxZ=2, nxB=3)
         L = U.add_lower(nxR=1, nxZ=2, nxB=4)
-        U.minimize = False
+        U.maximize = True
         U.c[U] = [1, 1, 1, 1, 1, 1]
         U.c[L] = [2, 2, 2, 2, 2, 2, 2]
         #U.P[U,L] = (6,7), {(i,i):3 for i in range(6)}
-        L.minimize = False
+        L.maximize = True
         L.c[U] = [3, 3, 3, 3, 3, 3]
         L.c[L] = [4, 4, 4, 4, 4, 4, 4]
         #L.P[U,L] = (6,7), {(i,i):5 for i in range(6)}
@@ -1493,9 +1493,9 @@ class Test_NonTrivial(unittest.TestCase):
         mpr = self._create()
 
         U = mpr.add_upper(nxR=4)
-        U.minimize = False
+        U.maximize = True
         L0 = U.add_lower(nxR=5)
-        L0.minimize = False
+        L0.maximize = True
         L1 = U.add_lower(nxR=6)
 
         U.x.lower_bounds  = [3,       np.NINF, 7, np.NINF]

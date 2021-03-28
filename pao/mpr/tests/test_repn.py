@@ -969,7 +969,7 @@ class Test_LinearMultilevelProblem(unittest.TestCase):
         U.d = 7
         L = U.add_lower(nxR=1, nxZ=1, nxB=1)
         L.c = U.c
-        L.minimize = False
+        L.maximize = True
         self.assertEqual( blp.check_opposite_objectives(U,L), True )
 
 

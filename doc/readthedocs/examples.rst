@@ -29,38 +29,43 @@ Using Pyomo
 
 The following python script defines a bilevel problem in Pyomo:
 
-.. code-block:: python
+.. doctest::
 
-    import pyomo.environ as pe
-    from pao.pyomo import *
+    >>> import pyomo.environ as pe
+    >>> from pao.pyomo import *
 
     # Create a model object
-    M = pe.ConcreteModel()
+    >>> M = pe.ConcreteModel()
 
     # Define decision variables
-    M.x = pe.Var(bounds=(0,None))
-    M.y = pe.Var(bounds=(0,None))
+    >>> M.x = pe.Var(bounds=(0,None))
+    >>> M.y = pe.Var(bounds=(0,None))
 
     # Define the upper-level objective
-    M.o = pe.Objective(expr=M.x - 4*M.y)
+    >>> M.o = pe.Objective(expr=M.x - 4*M.y)
 
     # Create a SubModel component to declare a lower-level problem
     # The variable M.x is fixed in this lower-level problem
-    M.L = SubModel(fixed=M.x)
+    >>> M.L = SubModel(fixed=M.x)
 
     # Define the lower-level objective
-    M.L.o = pe.Objective(expr=M.y)
+    >>> M.L.o = pe.Objective(expr=M.y)
 
     # Define lower-level constraints
-    M.L.c1 = pe.Constraint(expr=   -M.x -   M.y <= -3)
-    M.L.c2 = pe.Constraint(expr= -2*M.x +   M.y <=  0)
-    M.L.c3 = pe.Constraint(expr=  2*M.x +   M.y <= 12)
-    M.L.c4 = pe.Constraint(expr=  3*M.x - 2*M.y <=  4)
+    >>> M.L.c1 = pe.Constraint(expr=   -M.x -   M.y <= -3)
+    >>> M.L.c2 = pe.Constraint(expr= -2*M.x +   M.y <=  0)
+    >>> M.L.c3 = pe.Constraint(expr=  2*M.x +   M.y <= 12)
+    >>> M.L.c4 = pe.Constraint(expr=  3*M.x - 2*M.y <=  4)
 
     # Create a solver and apply it
-    with Solver('pao.pyomo.FA') as solver:
-        # The final solution is loaded into the model 
-        results = solver.solve(M)
+    >>> with Solver('pao.pyomo.FA') as solver:
+    ...     results = solver.solve(M)
+
+    # The final solution is loaded into the model 
+    >>> print(M.x.value)
+    4.0
+    >>> print(M.y.value)
+    4.0
 
 The ``SubModel`` component defines a Pyomo block object within which the
 lower-level problem is declared.  The ``fixed`` option is used to specify
@@ -90,47 +95,54 @@ Using Numpy and Scipy Data
 The following python script defines a bilevel problem using ``LinearMultilevelProblem`` with
 numpy and scipy data:
 
-.. code-block:: python
+.. doctest::
 
-    import numpy as np
-    from scipy.sparse import coo_matrix
-    from pao.mpr import *
+    >>> import numpy as np
+    >>> from scipy.sparse import coo_matrix
+    >>> from pao.mpr import *
 
     # Create a model object
-    M = LinearMultilevelProblem()
+    >>> M = LinearMultilevelProblem()
 
     # Declare the upper- and lower-levels, including the number of decision-variables
     #  nxR=1 means there will be 1 real-valued decision variable
-    U = M.add_upper(nxR=1)
-    L = U.add_lower(nxR=1)
+    >>> U = M.add_upper(nxR=1)
+    >>> L = U.add_lower(nxR=1)
 
     # Declare the bounds on the decision variables
-    U.x.lower_bounds = np.array([0])
-    L.x.lower_bounds = np.array([0])
+    >>> U.x.lower_bounds = np.array([0])
+    >>> L.x.lower_bounds = np.array([0])
 
     # Declare the upper-level objective
-    #  U.c[X] is the array of coefficients in the objective for variables in level X
-    U.c[U] = np.array([1])
-    U.c[L] = np.array([-4])
+    #   U.c[X] is the array of coefficients in the objective for variables in level X
+    >>> U.c[U] = np.array([1])
+    >>> U.c[L] = np.array([-4])
+
     # Declare the lower-level objective, which has no upper-level decision-variables
-    L.c[L] = np.array([1])
+    >>> L.c[L] = np.array([1])
 
     # Declare the lower-level constraints
-    #  L.A[X] is the matrix coefficients in the constraints for variables in level X
-    L.A[U] = coo_matrix((np.array([-1, -2, 2, 3]),
-                        (np.array([0, 1, 2, 3]),
-                         np.array([0, 0, 0, 0]))))
-    L.A[L] = coo_matrix((np.array([-1, 1, 1, -2]),
-                        (np.array([0, 1, 2, 3]),
-                         np.array([0, 0, 0, 0]))))
+    #   L.A[X] is the matrix coefficients in the constraints for variables in level X
+    >>> L.A[U] = coo_matrix((np.array([-1, -2, 2, 3]),
+    ...                    (np.array([0, 1, 2, 3]),
+    ...                     np.array([0, 0, 0, 0]))))
+    >>> L.A[L] = coo_matrix((np.array([-1, 1, 1, -2]),
+    ...                    (np.array([0, 1, 2, 3]),
+    ...                     np.array([0, 0, 0, 0]))))
+
     # Declare the constraint right-hand-side
     #   By default, constraints are inequalities, so these are upper-bounds
-    L.b = np.array([-3, 0, 12, 4])
+    >>> L.b = np.array([-3, 0, 12, 4])
 
     # Create a solver and apply it
-    with Solver('pao.mpr.FA') as solver:
-        # The final solution is loaded into the model 
-        results = solver.solve(M)
+    >>> with Solver('pao.mpr.FA') as solver:
+    ...    results = solver.solve(M)
+
+    # The final solution is loaded into the model 
+    >>> print(U.x.values[0])
+    4.0
+    >>> print(L.x.values[0])
+    4.0
 
 The ``U`` and ``L`` objects represent the upper- and lower-level
 respectively.  When declaring these objects, the user specifies the number
@@ -158,29 +170,34 @@ The ``LinearMultilevelProblem`` class also supports a simpler syntax
 where dense arrays can be specified and Python lists and sparse matrices
 can be specified with Python tuple and dictionary objects:
 
-.. code-block:: python
+.. doctest::
 
-    from pao.mpr import *
-
-    M = LinearMultilevelProblem()
-
-    U = M.add_upper(nxR=1)
-    L = U.add_lower(nxR=1)
-
-    U.x.lower_bounds = [0]
-    L.x.lower_bounds = [0]
-
-    U.c[U] = [1]
-    U.c[L] = [-4]
-    L.c[L] = [1]
-
-    L.A[U] = (4,1), {(0,0):-1, (1,0):-2, (2,0): 2, (3,0): 3}
-    L.A[L] = (4,1), {(0,0):-1, (1,0): 1, (2,0): 1, (3,0):-2}
-
-    L.b = [-3, 0, 12, 4]
-
-    with Solver('pao.mpr.FA') as solver:
-        results = solver.solve(M)
+    >>> from pao.mpr import *
+    
+    >>> M = LinearMultilevelProblem()
+    
+    >>> U = M.add_upper(nxR=1)
+    >>> L = U.add_lower(nxR=1)
+    
+    >>> U.x.lower_bounds = [0]
+    >>> L.x.lower_bounds = [0]
+    
+    >>> U.c[U] = [1]
+    >>> U.c[L] = [-4]
+    >>> L.c[L] = [1]
+    
+    >>> L.A[U] = (4,1), {(0,0):-1, (1,0):-2, (2,0):2, (3,0): 3}
+    >>> L.A[L] = (4,1), {(0,0):-1, (1,0): 1, (2,0):1, (3,0):-2}
+    
+    >>> L.b = [-3, 0, 12, 4]
+    
+    >>> with Solver('pao.mpr.FA') as solver:
+    ...    results = solver.solve(M)
+    
+    >>> print(U.x.values[0])
+    4.0
+    >>> print(L.x.values[0])
+    4.0
 
 When specifying a sparse matrix, a tuple is provided (e.g. for
 ``L.A[U]``).  The first element is a 2-tuple that defines the shape
@@ -189,29 +206,33 @@ non-zero values in the sparse matrix.
 
 Similarly, a list-of-lists syntax can be used to specify dense matrices:
 
-.. code-block:: python
+.. doctest::
 
-    from pao.mpr import *
+    >>> from pao.mpr import *
 
-    M = LinearMultilevelProblem()
+    >>> M = LinearMultilevelProblem()
 
-    U = M.add_upper(nxR=1)
-    L = U.add_lower(nxR=1)
+    >>> U = M.add_upper(nxR=1)
+    >>> L = U.add_lower(nxR=1)
 
-    U.x.lower_bounds = [0]
-    L.x.lower_bounds = [0]
+    >>> U.x.lower_bounds = [0]
+    >>> L.x.lower_bounds = [0]
 
-    U.c[U] = [1]
-    U.c[L] = [-4]
-    L.c[L] = [1]
+    >>> U.c[U] = [1]
+    >>> U.c[L] = [-4]
+    >>> L.c[L] = [1]
 
-    L.A[U] = [[-1], [-2], [-2], [3]]
-    L.A[L] = [[-1], [1], [1], [-2]]
-    L.b = [-3, 0, 12, 4]
+    >>> L.A[U] = [[-1], [-2], [2], [3]]
+    >>> L.A[L] = [[-1], [1], [1], [-2]]
+    >>> L.b = [-3, 0, 12, 4]
 
-    with Solver('pao.mpr.FA') as solver:
-        results = solver.solve(M)
+    >>> with Solver('pao.mpr.FA') as solver:
+    ...    results = solver.solve(M)
 
+    >>> print(U.x.values[0])
+    4.0
+    >>> print(L.x.values[0])
+    4.0
 
 When native Python data values are used to initialize a
 ``LinearMultilevelProblem``, they are converted into numpy and scipy

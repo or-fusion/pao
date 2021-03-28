@@ -59,12 +59,12 @@ class LinearMultilevelSolver_PCCG(LinearMultilevelSolverBase):
     config.declare('atol', ConfigValue(
         default=1e-8,
         domain=float,
-        description="Convergence tolerance for |UB-LB|. (default is 1e-8)"
+        description="Convergence tolerance for \|UB-LB\|. (default is 1e-8)"
         ))
     config.declare('rtol', ConfigValue(
         default=1e-8,
         domain=float,
-        description="Convergence tolerance for |UB-LB|. (default is 1e-8)"
+        description="Convergence tolerance for \|UB-LB\|. (default is 1e-8)"
         ))
     config.declare('maxit', ConfigValue(
         default=None,
@@ -116,6 +116,20 @@ class LinearMultilevelSolver_PCCG(LinearMultilevelSolverBase):
         UxR, UxZ, LxR, LxZ = execute_PCCG_solver(self.standard_form, self.config, results)
         xR = {mpr.U.id:UxR, mpr.U.LL[0].id:LxR}
         xZ = {mpr.U.id:UxZ, mpr.U.LL[0].id:LxZ}
+
+        if False:
+            print("UxR")
+            for i in UxR:
+                print(i, UxR[i].value)
+            print("UxZ")
+            for i in UxZ:
+                print(i, UxZ[i].value)
+            print("LxR")
+            for i in LxR:
+                print(i, LxR[i].value)
+            print("LxZ")
+            for i in LxZ:
+                print(i, LxZ[i].value)
 
         results.copy_solution(From=Munch(LxR=xR, LxZ=xZ), To=mpr)
 

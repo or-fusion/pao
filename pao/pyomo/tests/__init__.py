@@ -10,5 +10,3 @@
 #
 # pao.pyomo tests
 #
-
-import pao.pyomo.tests.auxiliary

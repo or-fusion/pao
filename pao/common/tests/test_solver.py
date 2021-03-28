@@ -8,6 +8,7 @@ from pyomo.neos.kestrel import kestrelAMPL
 
 neos_available = False
 try:
+    raise RuntimeError("Disable NEOS Tests")
     if kestrelAMPL().neos is not None:
         neos_available = True
 except:
@@ -134,8 +135,9 @@ class Test_neos(unittest.TestCase):
         self.assertTrue(math.isclose(M.x.value, 1, abs_tol=1e-6))
         self.assertTrue(math.isclose(M.y.value, 0, abs_tol=1e-6))
 
+    # This is slow
     @unittest.skipIf(neos_available, "NEOS is available")
-    def test_neos_cbc_missing(self):
+    def Xtest_neos_cbc_missing(self):
         try:
             opt = Solver('cbc', server='neos')
         except AssertionError:
