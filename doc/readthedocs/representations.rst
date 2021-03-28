@@ -183,12 +183,12 @@ Finally, we observe that PAO's Pyomo representation only works with a
 subset of the many different modeling components that are supported in
 `Pyomo <https://github.com/Pyomo/pyomo>`_:
 
-* :class:`Set`
-* :class:`Param`
-* :class:`Var`
-* :class:`Block`
-* :class:`Objective`
-* :class:`Constraint`
+* :class:`Set` - Set declarations
+* :class:`Param` - Parameter declarations
+* :class:`Var` - Variable declarations
+* :class:`Block` - Defines a subset of a model
+* :class:`Objective` - Define a model objective
+* :class:`Constraint` - Define model constraints
 
 Additional Pyomo modeling components will be added to PAO as motivating
 applications arise and as suitable solvers become available.
@@ -197,7 +197,12 @@ Multilevel Examples
 ~~~~~~~~~~~~~~~~~~~
 
 Multilevel problems can be easily expressed with Pyomo using multiple declarations
-of :class:`.SubModel`.  For example, consider the following bilevel problem that 
+of :class:`.SubModel`.
+
+Multiple Lower Levels
+^^^^^^^^^^^^^^^^^^^^^
+
+Consider the following bilevel problem that 
 extends the **PAO1** model to include two equivalent lower-levels:
 
 .. math::
@@ -252,6 +257,114 @@ The **PAO2** model can be expressed in Pyomo as follows:
     >>> results = opt.solve(M)
     >>> print(M.x.value, M.y.value, M.z[1].value, M.z[2].value)
     2.0 8.0 5.5 0.0
+
+Trilevel Problems
+^^^^^^^^^^^^^^^^^
+
+Trilevel problems can be described with nested declarations of :class:`.SubModel` components.  Consider the 
+following trilevel continuous linear problem described by Anadalingam [Anadalingam]:
+
+.. math::
+   :nowrap:
+ 
+    \begin{equation*}
+    \textbf{Model Anadalingam1988}\\
+    \begin{array}{llll}
+    \min_{x_1 \geq 0} & -7 x_1 - 3 x_2 + 4 x_3 \\
+    \textrm{s.t.} & \min_{x_2 \geq 0} & -x_2 \\
+                  & \textrm{s.t.} & \min_{x_3 \in [0,0.5]} & -x_3 \\
+                  &               & \textrm{s.t.} & x_1 + x_2 + x_3 \leq 3\\
+                  &               &               & x_1 + x_2 - x_3 \leq 1\\
+                  &               &               & x_1 + x_2 + x_3 \geq 1\\
+                  &               &               & -x_1 + x_2 + x_3 \leq 1\\
+    \end{array}
+    \end{equation*}
+
+This model can be expressed in Pyomo as follows:
+
+.. doctest:: pyomo_repn
+
+    >>> M = pe.ConcreteModel()
+    >>> M.x1 = pe.Var(bounds=(0,None))
+    >>> M.x2 = pe.Var(bounds=(0,None))
+    >>> M.x3 = pe.Var(bounds=(0,0.5))
+
+    >>> M.L = pao.pyomo.SubModel(fixed=M.x1)
+
+    >>> M.L.B = pao.pyomo.SubModel(fixed=M.x2)
+
+    >>> M.o = pe.Objective(expr=-7*M.x1 - 3*M.x2 + 4*M.x3)
+
+    >>> M.L.o = pe.Objective(expr=-M.x2)
+    >>> M.L.B.o = pe.Objective(expr=-M.x3)
+
+    >>> M.L.B.c1 = pe.Constraint(expr=   M.x1 + M.x2 + M.x3 <= 3)
+    >>> M.L.B.c2 = pe.Constraint(expr=   M.x1 + M.x2 - M.x3 <= 1)
+    >>> M.L.B.c3 = pe.Constraint(expr=   M.x1 + M.x2 + M.x3 >= 1)
+    >>> M.L.B.c4 = pe.Constraint(expr= - M.x1 + M.x2 + M.x3 <= 1)
+
+.. note::
+
+    PAO solvers cannot currently solve trilevel solvers like this,
+    but an issue has been submitted to add this functionality.
+
+Bilinear Problems
+^^^^^^^^^^^^^^^^^
+
+PAO models using Pyomo represent general quadratic problems with quadratic
+terms in the objective and constraints at each level.  The special case
+where bilinear terms arise with an upper-level binary variable multiplied
+with a lower-level variable is common in many applications.  For this case, the PAO solvers
+for Pyomo models include an option to linearize these bilinear terms.
+
+The following models considers a variation of the **PAO1** model where binary variables control
+the expression of lower-level constraints:
+
+.. math::
+   :nowrap:
+ 
+    \begin{equation*}
+    \textbf{Model PAO3}\\
+    \begin{array}{ll}
+    \min_{x\in[2,6],y,w_1,w_2} & x + 3 z + 5 w_1\\
+    \textrm{s.t.} & x + y = 10\\
+    & w_1 + w_2 \geq 1\\
+    & w_1,w_2 \in \{0,1\}\\
+    & \begin{array}{lll}
+      \max_{z \geq 0} & z &\\
+      \textrm{s.t.} & x+ w_1 z &\leq 8\\
+      & x + 4 z &\geq 8\\
+      & x + 2 w_2 z &\leq 13
+      \end{array}
+    \end{array}
+    \end{equation*}
+
+The **PAO3** model can be expressed in Pyomo as follows:
+
+.. doctest:: pyomo_repn
+
+    >>> M = pe.ConcreteModel()
+
+    >>> M.w = pe.Var([1,2], within=pe.Binary)
+    >>> M.x = pe.Var(bounds=(2,6))
+    >>> M.y = pe.Var()
+    >>> M.z = pe.Var(bounds=(0,None))
+
+    >>> M.o = pe.Objective(expr=M.x + 3*M.z+5*M.w[1], sense=pe.minimize)
+    >>> M.c1 = pe.Constraint(expr= M.x + M.y == 10)
+    >>> M.c2 = pe.Constraint(expr= M.w[1] + M.w[2] >= 1)
+
+    >>> M.L = pao.pyomo.SubModel(fixed=[M.x,M.y,M.w])
+    >>> M.L.o = pe.Objective(expr=M.z, sense=pe.maximize)
+    >>> M.L.c1 = pe.Constraint(expr= M.x + M.w[1]*M.z <= 8)
+    >>> M.L.c2 = pe.Constraint(expr= M.x + 4*M.z >= 8)
+    >>> M.L.c3 = pe.Constraint(expr= M.x + 2*M.w[2]*M.z <= 13)
+
+    >>> opt = pao.Solver("pao.pyomo.FA", linearize_bigm=100)
+    >>> results = opt.solve(M)
+    >>> print(M.x.value, M.y.value, M.z.value, M.w[1].value, M.w[2].value)
+    6.0 4.0 3.5 0 1
+
 
 
 Multilevel Problem Representations

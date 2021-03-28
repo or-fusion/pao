@@ -424,6 +424,7 @@ def convert_to_nonnegative_variables(ans, inequalities):
     for L in ans.levels():
         L.resize(nxR=changes[L.id].nxR, nxZ=changes[L.id].nxZ, nxB=L.x.nxB)
         L.x.lower_bounds = np.zeros(len(L.x))
+        L.x.upper_bounds = [np.PINF]*(changes[L.id].nxR+changes[L.id].nxZ) + [1]*L.x.nxB
         if len(changes[L.id]) > 0:
             for X in L.levels():
                 X.c[L], X.d = _process_changes_obj(changes[L.id], L.x, X.c[L], X.d)
@@ -550,10 +551,33 @@ def get_offsets(mpr, changes):
     return offsets
 
 
-def convert_binaries_to_integers(mpr):
+def convert_binaries_to_integers(mpr, nonnegative=True):
     for L in mpr.levels():
         if L.x.nxB > 0:
-            L.x._resize(nxR=L.x.nxR, nxZ=L.x.nxZ+L.x.nxB, nxB=0, lb=0, ub=1)
+            if nonnegative:
+                nxRZ = L.x.nxR + L.x.nxZ
+                nxB = L.x.nxB
+                L.x._resize(nxR=L.x.nxR, nxZ=L.x.nxZ+L.x.nxB, nxB=0, lb=0, ub=np.PINF)
+                if L.b is None or L.b.size == 0:
+                    continue
+                M = dok_matrix((nxB,len(L.x)))
+                for i in range(nxB):
+                    M[i,nxRZ+i] = 1
+                L.b = np.append(L.b, [1]*nxB)
+                if L.A[L] is None:
+                    L.A[L] = M.tocoo()
+                else:
+                    L.A[L] = vstack([L.A[L], M.tocoo()])
+            else:
+                L.x._resize(nxR=L.x.nxR, nxZ=L.x.nxZ+L.x.nxB, nxB=0, lb=0, ub=1)
+    #
+    # Resize Matrices
+    #
+    for L in mpr.levels():
+        for X in L.levels():
+            A = X.A[L]
+            if A is not None:
+                A.resize( [len(X.b), len(L.x)] )
 
 
 def convert_to_standard_form(M, inequalities=False):
@@ -665,7 +689,7 @@ def linearize_bilinear_terms(M, bigM):
     #
     # Collect all of the bilevel terms
     #
-    # The terms in P[i,j] and Q[i,j] generate a variable in level i,
+    # The terms in P[i,j] and Q[i,j] generate a variable in level j,
     # regardless where they appear in the model.  Hence, we need to collect
     # these terms before adding their replacement throughout the model.
     #
@@ -693,7 +717,6 @@ def linearize_bilinear_terms(M, bigM):
     #
     if sum(len(bilevel[i]) for i in bilevel) == 0:
         return ans
-
     #
     # Now we walk through each level
     #
@@ -702,49 +725,56 @@ def linearize_bilinear_terms(M, bigM):
     # NOTE: We cache the constraint terms for the *new* variables
     #
     A = {}
+    wlb = {}
+    wub = {}
     for l,L in LL.items():
         lenb = len(L.b)
         nxR = L.x.nxR
         nrows = lenb
+        wlb[l] = {}
+        wub[l] = {}
         b = []
         # A[l] is the new terms in the constraint matrix for new variables in level l
         A[l] = {}
         # B[i] is the new terms in the constraint matrix for variables in level l
-        B = {}
+        X = {}
         # C[j] is the new terms in the constraint matrix for variables in level j that appear in level l
-        C = {}
+        Y = {}
         for key,w in bilevel[l].items():
             # w = xy
             i,v1,j,v2 = key
-            if i not in B:
-                B[i] = {}
-            if j not in C:
-                C[j] = {}
+            assert (j==l), "Something is wrong..."
+            if i not in X:
+                X[i] = {}
+            if j not in Y:
+                Y[j] = {}
             lb = LL[j].x.lower_bounds[v2]
+            wlb[j][nxR+w] = lb
             if lb == np.NINF:
                 lb = -bigM
             ub = LL[j].x.upper_bounds[v2]
+            wub[j][nxR+w] = ub
             if ub == np.PINF:
                 ub = bigM
-            # Ly - w <= 0
-            C[j][nrows,v2] = lb
+            # Lx - w <= 0
+            X[i][nrows,v1] = lb
             A[l][nrows,nxR+w] = -1
             b.append(0)
             nrows += 1
-            # Uy + x - w <= U
-            C[j][nrows,v2] = ub
-            B[i][nrows,v1] = 1
+            # Ux + y - w <= U
+            Y[j][nrows,v2] = 1
+            X[i][nrows,v1] = ub
             A[l][nrows,nxR+w] = -1
             b.append(ub)
             nrows += 1
-            # w - Uy <= 0
-            C[j][nrows,v2] = -ub
+            # w - Ux <= 0
+            X[i][nrows,v1] = -ub
             A[l][nrows,nxR+w] = 1
             b.append(0)
             nrows += 1
-            # w - x - Ly <= -L
-            C[j][nrows,v2] = - lb
-            B[i][nrows,v1] = -1
+            # w - y - Lx <= -L
+            Y[j][nrows,v2] = -1
+            X[i][nrows,v1] = -lb
             A[l][nrows,nxR+w] = 1
             if lb == 0:
                 b.append(0)
@@ -752,15 +782,18 @@ def linearize_bilinear_terms(M, bigM):
                 b.append(-lb)
             nrows += 1
         L.b = list(L.b) + b
-        for i in B:
-            L.A[i] = merge_matrices(L.A[i], B[i], len(L.b), len(LL[i].x))
-        for j in C:
-            L.A[j] = merge_matrices(L.A[j], C[j], len(L.b), len(LL[j].x))
+        for i in X:
+            L.A[i] = merge_matrices(L.A[i], X[i], len(L.b), len(LL[i].x))
+        for j in Y:
+            L.A[j] = merge_matrices(L.A[j], Y[j], len(L.b), len(LL[j].x))
     #
     # Resize the variables
     #
     for l,L in LL.items():
         L.resize(nxR=L.x.nxR+len(bilevel[l]), nxZ=L.x.nxZ, nxB=L.x.nxB)
+        #for i in wlb[l]:
+        #    L.x.lower_bounds[i] = wlb[l][i]
+        #    L.x.upper_bounds[i] = wub[l][i]
     #
     # Update the coefficients of the objectives
     #
