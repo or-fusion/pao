@@ -59,12 +59,12 @@ class LinearMultilevelSolver_PCCG(LinearMultilevelSolverBase):
     config.declare('atol', ConfigValue(
         default=1e-8,
         domain=float,
-        description="Convergence tolerance for |UB-LB|. (default is 1e-8)"
+        description="Convergence tolerance for \|UB-LB\|. (default is 1e-8)"
         ))
     config.declare('rtol', ConfigValue(
         default=1e-8,
         domain=float,
-        description="Convergence tolerance for |UB-LB|. (default is 1e-8)"
+        description="Convergence tolerance for \|UB-LB\|. (default is 1e-8)"
         ))
     config.declare('maxit', ConfigValue(
         default=None,
