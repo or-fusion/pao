@@ -32,7 +32,7 @@ class LinearMultilevelSolver_FA(LinearMultilevelSolverBase):
     config = LinearMultilevelSolverBase.config()
     config.declare('mip_solver', ConfigValue(
         default='glpk',
-        description="The name of the MIP solver used by FA.  (default is glpk)"
+        description="The MIP solver used by FA.  (default is glpk)"
         ))
     #config.declare('mip_options', ConfigValue(
     #    default=None,
@@ -118,7 +118,7 @@ class LinearMultilevelSolver_FA(LinearMultilevelSolverBase):
         #
         solv = results.solver
         solv.name = self.config.mip_solver
-        solv.termination_condition = pyomo_results.solver.termination_condition
+        solv.termination_condition = pyomo_util.pyomo2pao_termination_condition(pyomo_results.solver.termination_condition)
         if hasattr(pyomo_results.solver, 'time'):
             solv.solver_time = pyomo_results.solver.time
         if self.config.load_solutions:

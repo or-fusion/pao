@@ -41,7 +41,7 @@ class LinearMultilevelSolver_PCCG(LinearMultilevelSolverBase):
     config = LinearMultilevelSolverBase.config()
     config.declare('mip_solver', ConfigValue(
         default='cbc',
-        description="The name of the MIP solver used by PCCG.  (default is cbc)"
+        description="The MIP solver used by PCCG.  (default is cbc)"
         ))
     #config.declare('mip_options', ConfigValue(
     #    default=None,

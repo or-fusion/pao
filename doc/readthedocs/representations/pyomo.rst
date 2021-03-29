@@ -298,6 +298,7 @@ The following models considers a variation of the **PAO1** model where binary va
 the expression of lower-level constraints:
 
 .. math::
+   :label: eq-pao3
    :nowrap:
  
     \begin{equation*}

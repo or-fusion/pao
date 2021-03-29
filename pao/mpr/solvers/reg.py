@@ -91,7 +91,7 @@ class LinearMultilevelSolver_REG(LinearMultilevelSolverBase):
     config = LinearMultilevelSolverBase.config()
     config.declare('nlp_solver', ConfigValue(
         default='ipopt',
-        description="The name of the NLP solver used by REG.  (default is ipopt)"
+        description="The NLP solver used by REG.  (default is ipopt)"
         ))
     #config.declare('nlp_options', ConfigValue(
     #    default=None,
@@ -182,7 +182,7 @@ class LinearMultilevelSolver_REG(LinearMultilevelSolverBase):
         #
         solv = results.solver
         solv.name = self.config.nlp_solver
-        solv.termination_condition = pyomo_results.solver.termination_condition
+        solv.termination_condition = pyomo_util.pyomo2pao_termination_condition(pyomo_results.solver.termination_condition)
         if hasattr(pyomo_results.solver, 'time'):
             solv.solver_time = pyomo_results.solver.time
         if self.config.load_solutions:

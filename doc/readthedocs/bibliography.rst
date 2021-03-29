@@ -6,6 +6,8 @@ Bibliography
 
 .. [FortunyMcCarl] Citation Here
 
+.. [NEOS] https://neos-server.org/neos/
+
 .. [PyomoBookII] W. E. Hart, C. D. Laird,
                  J.-P. Watson, D. L. Woodruff, G. A. Hackebeil, B. L. Nicholson, 
                  J. D. Siirola. Pyomo - Optimization Modeling in Python,

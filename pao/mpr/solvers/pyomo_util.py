@@ -4,7 +4,9 @@
 #
 import numpy as np
 import pyomo.environ as pe
+import pyomo.opt.results
 from ..repn import LinearLevelRepn, LevelValues, SimplifiedList, LevelVariable
+import pao.common.solver
 
 
 def dot(A, x, num=None):
@@ -108,3 +110,54 @@ def add_linear_constraints(block, A, U, L, b, inequalities):
         else:
             block.c.add( e[i] == b[i] )
 
+
+def pyomo2pao_termination_condition(tc):
+
+    if tc == pyomo.opt.results.TerminationCondition.unknown or \
+       tc == pyomo.opt.results.TerminationCondition.other or \
+       tc == pyomo.opt.results.TerminationCondition.feasible or  \
+       tc == pyomo.opt.results.TerminationCondition.maxEvaluations:
+        return pao.common.solver.TerminationCondition.unknown
+
+    elif tc == pyomo.opt.results.TerminationCondition.maxTimeLimit:
+        return pao.common.solver.TerminationCondition.maxTimeLimit
+
+    elif tc == pyomo.opt.results.TerminationCondition.maxIterations:
+        return pao.common.solver.TerminationCondition.maxIterations
+
+    elif tc == pyomo.opt.results.TerminationCondition.minFunctionValue:
+        return pao.common.solver.TerminationCondition.objectiveLimit
+
+    elif tc == pyomo.opt.results.TerminationCondition.minStepLength:
+        return pao.common.solver.TerminationCondition.minStepLength
+
+    elif tc == pyomo.opt.results.TerminationCondition.optimal or \
+         tc == pyomo.opt.results.TerminationCondition.globallyOptimal or \
+         tc == pyomo.opt.results.TerminationCondition.locallyOptimal:
+        return pao.common.solver.TerminationCondition.optimal
+
+    elif tc == pyomo.opt.results.TerminationCondition.unbounded:
+        return pao.common.solver.TerminationCondition.unbounded
+
+    elif tc == pyomo.opt.results.TerminationCondition.infeasible:
+        return pao.common.solver.TerminationCondition.infeasible
+
+    elif tc == pyomo.opt.results.TerminationCondition.infeasibleOrUnbounded:
+        return pao.common.solver.TerminationCondition.infeasibleOrUnbounded
+
+    elif tc == pyomo.opt.results.TerminationCondition.invalidProblem or \
+         tc == pyomo.opt.results.TerminationCondition.noSolution or \
+         tc == pyomo.opt.results.TerminationCondition.internalSolverError or \
+         tc == pyomo.opt.results.TerminationCondition.solverFailure or \
+         tc == pyomo.opt.results.TerminationCondition.intermediateNonInteger:
+        return pao.common.solver.TerminationCondition.error
+
+    elif tc == pyomo.opt.results.TerminationCondition.userInterrupt or \
+         tc == pyomo.opt.results.TerminationCondition.resourceInterrupt:
+        return pao.common.solver.TerminationCondition.interrupted
+
+    elif tc == pyomo.opt.results.TerminationCondition.licensingProblems:
+        return pao.common.solver.TerminationCondition.licensingProblems 
+
+    raise RuntimeError("Unknown Pyomo termination condition: "+str(tc))
+    

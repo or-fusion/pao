@@ -23,7 +23,7 @@ class PyomoSubmodelSolver_FA(PyomoSubmodelSolverBase_LBP):
     config = PyomoSubmodelSolverBase_LBP.config()
     config.declare('mip_solver', ConfigValue(
         default='glpk',
-        description="The name of the MIP solver used by FA.  (default is glpk)"
+        description="The MIP solver used by FA.  (default is glpk)"
         ))
     #config.declare('mip_options', ConfigValue(
     #    default=None,
@@ -53,7 +53,7 @@ class PyomoSubmodelSolver_REG(PyomoSubmodelSolverBase_LBP):
     config = PyomoSubmodelSolverBase_LBP.config()
     config.declare('nlp_solver', ConfigValue(
         default='ipopt',
-        description="The name of the NLP solver used by REG.  (default is ipopt)"
+        description="The NLP solver used by REG.  (default is ipopt)"
         ))
     #config.declare('nlp_options', ConfigValue(
     #    default=None,
@@ -82,7 +82,7 @@ class PyomoSubmodelSolver_PCCG(PyomoSubmodelSolverBase_LBP):
     config = PyomoSubmodelSolverBase_LBP.config()
     config.declare('mip_solver', ConfigValue(
         default='cbc',
-        description="The name of the MIP solver used by PCCG.  (default is cbc)"
+        description="The MIP solver used by PCCG.  (default is cbc)"
         ))
     #config.declare('mip_options', ConfigValue(
     #    default=None,

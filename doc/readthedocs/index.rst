@@ -40,6 +40,7 @@ adversarial dynamics.  PAO integrates two different modeling abstractions:
    representations/pyomo.rst
    representations/mpr.rst
    solvers.rst
+   math.rst
    reference.rst
    bibliography.rst
 
