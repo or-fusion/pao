@@ -25,9 +25,9 @@ class PyomoSubmodelSolver_FA(PyomoSubmodelSolverBase_LBP):
         default='glpk',
         description="The name of the MIP solver used by FA.  (default is glpk)"
         ))
-    config.declare('mip_options', ConfigValue(
-        default=None,
-        description="A dictionary that defines the solver options for the MIP solver.  (default is None)"))
+    #config.declare('mip_options', ConfigValue(
+    #    default=None,
+    #    description="A dictionary that defines the solver options for the MIP solver.  (default is None)"))
     
     def __init__(self, **kwds):
         super().__init__('pao.pyomo.FA', 'pao.mpr.FA')
@@ -55,9 +55,9 @@ class PyomoSubmodelSolver_REG(PyomoSubmodelSolverBase_LBP):
         default='ipopt',
         description="The name of the NLP solver used by REG.  (default is ipopt)"
         ))
-    config.declare('nlp_options', ConfigValue(
-        default=None,
-        description="A dictionary that defines the solver options for the NLP solver.  (default is None)"))
+    #config.declare('nlp_options', ConfigValue(
+    #    default=None,
+    #    description="A dictionary that defines the solver options for the NLP solver.  (default is None)"))
     
     def __init__(self, **kwds):
         super().__init__('pao.pyomo.REG', 'pao.mpr.REG')
@@ -84,9 +84,9 @@ class PyomoSubmodelSolver_PCCG(PyomoSubmodelSolverBase_LBP):
         default='cbc',
         description="The name of the MIP solver used by PCCG.  (default is cbc)"
         ))
-    config.declare('mip_options', ConfigValue(
-        default=None,
-        description="A dictionary that defines the solver options for the MIP solver.  (default is None)"))
+    #config.declare('mip_options', ConfigValue(
+    #    default=None,
+    #    description="A dictionary that defines the solver options for the MIP solver.  (default is None)"))
     
     def __init__(self, **kwds):
         super().__init__('pao.pyomo.PCCG', 'pao.mpr.PCCG')

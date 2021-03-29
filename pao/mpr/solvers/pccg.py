@@ -43,9 +43,9 @@ class LinearMultilevelSolver_PCCG(LinearMultilevelSolverBase):
         default='cbc',
         description="The name of the MIP solver used by PCCG.  (default is cbc)"
         ))
-    config.declare('mip_options', ConfigValue(
-        default=None,
-        description="A dictionary that defines the solver options for the MIP solver.  (default is None)"))
+    #config.declare('mip_options', ConfigValue(
+    #    default=None,
+    #    description="A dictionary that defines the solver options for the MIP solver.  (default is None)"))
     config.declare('bigm', ConfigValue(
         default=1e6,
         domain=float,
