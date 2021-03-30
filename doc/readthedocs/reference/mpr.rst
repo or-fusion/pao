@@ -4,10 +4,6 @@ Compact Models
 LinearMultilevelProblem Representation
 --------------------------------------
 
-.. todo::
-    Flush out the description of the LinearMultilevelProblem, QuadraticMultilevelProblem and other functionality use to 
-    support compact problem representations.
-
 .. currentmodule:: pao.mpr.repn
 
 .. autoclass:: LinearMultilevelProblem

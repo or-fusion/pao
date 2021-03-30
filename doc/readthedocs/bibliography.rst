@@ -4,7 +4,7 @@ Bibliography
 .. [Bard98] J. F. Bard, Practical bilevel optimization: Algorithms and
             applications. Kluwer Academic Publishers, 1998.
 
-.. [FortunyMcCarl] Citation Here
+.. [FortunyMcCarl] J. Fortuny-Amat and B. McCarl, A representation and economic interpretation of a two-level programming problem, The Journal of the Operations Research Society. 32(9), 783-792, 1981.
 
 .. [NEOS] https://neos-server.org/neos/
 

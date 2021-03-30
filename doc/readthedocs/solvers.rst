@@ -1,14 +1,66 @@
-Solvers and Model Transformations
-=================================
+Solvers
+=======
 
 After formulating a multilevel problem, PAO users will generally need to
-(1) transform the model to a standard form, and (2) apply an optimizer to
-solve the problem.  The examples in the previous sections illustrate that
-step (1) is often optional.  PAO automates the applications of several
-model transformations, particularly for problems formulated with Pyomo.
-The following section describes how PAO manages solvers, and how model
-transformations can be applied in sequence.  Section :ref:`algorithms`
-provides a mathematical description of the solvers in PAO.
+(1) transform the model to a standard form, and (2) apply an optimizer
+to solve the problem.  The examples in the previous sections illustrate
+that step (1) is often optional;  PAO automates the applications of
+several model transformations, particularly for problems formulated with
+Pyomo.  The following section summarizes the solvers available in PAO,
+and describes how PAO manages solvers Section :ref:`transformations`
+describes model transformations in PAO.
+
+Summary of PAO Solvers
+----------------------
+
+The following summarizes the current solvers available in PAO:
+
+* pao.mpr.FA, pao.pyomo.FA
+
+        PAO solver for Multilevel Problem Representations that define linear
+        bilevel problems.  Solver uses big-M relaxations discussed by Fortuny-
+        Amat and McCarl (1981).
+
+* pao.mpr.PCCG, pao.pyomo.PCCG
+
+        PAO solver for Multilevel Problem Representations that define linear
+        bilevel problems. Solver uses projected column constraint generation
+        algorithm described by Yue et al. (2017).
+
+* pao.mpr.REG, pao.pyomo.REG
+
+        PAO solver for Multilevel Problem Representations that define linear
+        bilevel problems.  Solver uses regularization discussed by Scheel and
+        Scholtes (2000) and Ralph and Wright (2004).
+
+The following table summarize key features of the problems these solvers can be applied to:
+
++------------------------------+------------------+
+|                              | **Solver**       |
++------------------------------+-----+-----+------+
+| **Problem Feature**          |*FA* |*REG*|*PCCG*|
++-----------------+------------+-----+-----+------+
+|                 | Linear     | Y   | Y   | Y    |
+| Equation        +------------+-----+-----+------+
+| Structure       | Bilinear   | Y   | Y   | Y    |
+|                 +------------+-----+-----+------+
+|                 | Nonlinear  |     |     |      |
++-----------------+------------+-----+-----+------+
+| Upper-Level     | Integer    | Y   |     | Y    |
+| Variables       +------------+-----+-----+------+
+|                 | Real       | Y   | Y   | Y    |
++-----------------+------------+-----+-----+------+
+| Lower-Level     | Integer    |     |     | Y    |
+| Variables       +------------+-----+-----+------+
+|                 | Real       | Y   | Y   | Y    |
++-----------------+------------+-----+-----+------+
+| Multilevel      | Bilevel    | Y   | Y   | Y    |
+| Representation  +------------+-----+-----+------+
+|                 | Trilevel   |     |     |      |
+|                 +------------+-----+-----+------+
+|                 | k-Bilevel  | Y   | Y   |      |
++-----------------+------------+-----+-----+------+
+
 
 The Solver Interface
 --------------------
@@ -207,9 +259,7 @@ arguments for a specific solver.  For example:
             A summary of the optimization results.
     <BLANKLINE>
 
-..
-
-    ***
+..  ***
 
 The :meth:`solve` method returns a results object that contains
 data about the optimization process.  In particular, this object
@@ -282,16 +332,9 @@ The NEOS server requires a user to specify a valid email address:
     >>> results = opt.solve(M)
 
 
+.. warning::
 
-Model Transformations
----------------------
-
-
-
-.. todo::
-
-    Discuss termination conditions and error handling.
-
-    Describe interfaces to Pyomo solvers.
-
-    Provide pointers for solver-specific parameters
+    There is no common reference for solver-specific parameters for the
+    solvers available in Pyomo.  These are generally documented with
+    solver documentation, and users should expect to contact solver
+    developers to learn about these.
