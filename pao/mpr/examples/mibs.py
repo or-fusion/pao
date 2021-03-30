@@ -3,6 +3,8 @@
 #
 # https://coral.ise.lehigh.edu/wp-content/uploads/2016/02/MibS_inputFile.pdf
 #
+# The optimal solution is C0=6, C1=5
+#
 from pao.mpr import *
 
 
@@ -40,7 +42,7 @@ if __name__ == "__main__":          #pragma: no cover
     M = create()
     M.check()
     #M.print()
-    opt = Solver('pao.mpr.PCCG')
-    opt.solve(M, quiet=False, mip_solver='gurobi')
+    opt = Solver('pao.mpr.MIBS')
+    opt.solve(M)
     print(M.U.x.values)
     print(M.U.LL.x.values)

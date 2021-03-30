@@ -7,6 +7,7 @@
 #
 # TODO - Citations
 #
+import os
 import sys
 import time
 import numpy as np
@@ -36,6 +37,10 @@ class LinearMultilevelSolver_MIBS(LinearMultilevelSolverBase):
     config.declare('executable', ConfigValue(
         default='mibs',
         description="The executable used for MIBS.  (default is mibs)"
+        ))
+    config.declare('param_file', ConfigValue(
+        default=None,
+        description="The parameter file used to configure MIBS.  (default is None)"
         ))
 
     def __init__(self, **kwds):
@@ -77,51 +82,65 @@ class LinearMultilevelSolver_MIBS(LinearMultilevelSolverBase):
         #
         M = self.create_mibs_model(model, "mibs.mps", "mibs.aux")
 
-        sys.exit(0)
-        #
-        # Launch solver
-        #
+        cmd = [ self.config['executable'], '-Alps_instance', 'mibs.mps', '-MibS_auxiliaryInfoFile', 'mibs.aux']
+        if self.config['param_file'] is not None:
+            cmd.append('-param')
+            cmd.append('mibs.par')
 
-        #pyomo_results = opt.solve(M, tee=self.config.tee, 
-        #                             load_solutions=self.config.load_solutions)
-        #pyomo.opt.check_optimal_termination(pyomo_results)
-        #
-        #self._initialize_results(results, pyomo_results, M)
-        #results.solver.rc = getattr(opt, '_rc', None)
+        ans = pao.common.run_shellcmd(cmd, tee=self.config['tee'])
+        os.remove("mibs.mps")
+        os.remove("mibs.aux")
+        #print("RC", ans.rc)
+        #print("LOG", ans.log)
 
-        if self.config.load_solutions:
-            # Load results from the Pyomo model to the LinearMultilevelProblem
-            results.copy_solution(From=M, To=model)
-        else:
-            # Load results from the Pyomo model to the Results
-            results.load_from(pyomo_results)
+        results = self._initialize_results(ans, model)
+        results.check_optimal_termination()
 
         results.solver.wallclock_time = time.time() - start_time
         return results
 
-    def _initialize_results(self, results, pyomo_results, M):
+    def _initialize_results(self, ans, M):
         #
-        # SOLVER
+        # Default value is zero
         #
+        M.U.x.values = [0]*len(M.U.x)
+        M.U.LL.x.values = [0]*len(M.U.LL.x)
+        #
+        # Results
+        #
+        results = pao.common.Results()
         solv = results.solver
-        solv.name = self.config.mip_solver
-        solv.termination_condition = pyomo_util.pyomo2pao_termination_condition(pyomo_results.solver.termination_condition)
-        if hasattr(pyomo_results.solver, 'time'):
-            solv.solver_time = pyomo_results.solver.time
-        if self.config.load_solutions:
-            solv.best_feasible_objective = pe.value(M.o)
+        solv.termination_condition = pao.common.TerminationCondition.unknown
+        solv.name = self.config['executable']
+        solv.rc = ans.rc
         #
-        # PROBLEM - Maybe this should be the summary of the BLP itself?
+        # Parse Log
         #
-        prob = results.problem
-        prob.name = M.name
-        #prob.number_of_objectives = pyomo_results.problem.Number_of_objectives
-        #prob.number_of_constraints = pyomo_results.problem.Number_of_constraints
-        #prob.number_of_variables = pyomo_results.problem.Number_of_variables
-        #prob.number_of_nonzeros = pyomo_results.problem.Number_of_nonzeros
-        #prob.lower_bound = pyomo_results.problem.Lower_bound
-        #prob.upper_bound = pyomo_results.problem.Upper_bound
-        #prob.sense = 'minimize'
+        # TODO - Handle errors
+        #
+        if ans.rc == 0:
+            state = 0
+            for line in ans.log.split("\n"):
+                #print(state, line)
+                line = line.strip()
+                if state == 0:
+                    if line.startswith("Optimal solution:"):
+                        solv.termination_condition = pao.common.TerminationCondition.optimal
+                        state = 1
+                elif state == 1:
+                    solv.best_feasible_objective = float(line.split("=")[1])
+                    state = 2
+                elif state == 2:
+                    if line.startswith("Number"):
+                        state = 3
+                        continue
+                    name, _, val = line.split(" ")
+                    vname, index = name[:-1].split("[")
+                    #print(vname, index, val)
+                    if vname == "x":
+                        M.U.x.values[int(index)] = float(val)
+                    else:
+                        M.U.LL.x.values[int(index)] = float(val)
         return results
 
     def _debug(self, M):    # pragma: no cover
@@ -173,7 +192,15 @@ class LinearMultilevelSolver_MIBS(LinearMultilevelSolverBase):
         #---------------------------------------------------
         # TODO - get variable mapping information
         #
-        M.write(mps_filename)
+        M.write("tmp.mps")
+        #
+        # Add a space after "BOUND"
+        #
+        with open("tmp.mps", "r") as INPUT:
+            with open(mps_filename, "w") as OUTPUT:
+                for line in INPUT:
+                    OUTPUT.write(line.replace("BOUND ", "BOUND  "))
+        os.remove("tmp.mps")
 
         with open(aux_filename, "w") as OUTPUT:
             # Num lower-level variables
