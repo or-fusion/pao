@@ -39,8 +39,8 @@ def create():
 if __name__ == "__main__":          #pragma: no cover
     M = create()
     M.check()
-    M.print()
+    #M.print()
     opt = Solver('pao.mpr.PCCG')
-    opt.solve(M, quiet=False, mip_solver='cbc')
+    opt.solve(M, quiet=False, mip_solver='gurobi')
     print(M.U.x.values)
     print(M.U.LL.x.values)
