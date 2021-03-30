@@ -11,9 +11,7 @@ in PAO:
    reference/pyomo.rst
    reference/mpr.rst
 
-The following functionality is deprecated or not actively maintained:
+.. warning::
 
-.. toctree::
-   :maxdepth: 1
-
-   reference/duality.rst
+    The logic in ``pao.duality`` is currently disabled.  There are known errors in this code
+    that will be resolved by re-implementing it using the logic in ``pao.mpr``.

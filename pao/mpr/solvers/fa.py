@@ -32,11 +32,11 @@ class LinearMultilevelSolver_FA(LinearMultilevelSolverBase):
     config = LinearMultilevelSolverBase.config()
     config.declare('mip_solver', ConfigValue(
         default='glpk',
-        description="The name of the MIP solver used by FA.  (default is glpk)"
+        description="The MIP solver used by FA.  (default is glpk)"
         ))
-    config.declare('mip_options', ConfigValue(
-        default=None,
-        description="A dictionary that defines the solver options for the MIP solver.  (default is None)"))
+    #config.declare('mip_options', ConfigValue(
+    #    default=None,
+    #    description="A dictionary that defines the solver options for the MIP solver.  (default is None)"))
     config.declare('bigm', ConfigValue(
         default=100000,
         domain=float,
@@ -90,8 +90,8 @@ class LinearMultilevelSolver_FA(LinearMultilevelSolverBase):
         else:
             opt = self.config.mip_solver
 
-        if self.config.mip_options is not None:
-            opt.options.update(self.config.mip_options)
+        #if self.config.mip_options is not None:
+        #    opt.options.update(self.config.mip_options)
         pyomo_results = opt.solve(M, tee=self.config.tee, 
                                      load_solutions=self.config.load_solutions)
         pyomo.opt.check_optimal_termination(pyomo_results)
@@ -118,7 +118,7 @@ class LinearMultilevelSolver_FA(LinearMultilevelSolverBase):
         #
         solv = results.solver
         solv.name = self.config.mip_solver
-        solv.termination_condition = pyomo_results.solver.termination_condition
+        solv.termination_condition = pyomo_util.pyomo2pao_termination_condition(pyomo_results.solver.termination_condition)
         if hasattr(pyomo_results.solver, 'time'):
             solv.solver_time = pyomo_results.solver.time
         if self.config.load_solutions:

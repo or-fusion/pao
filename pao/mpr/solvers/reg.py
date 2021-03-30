@@ -91,11 +91,11 @@ class LinearMultilevelSolver_REG(LinearMultilevelSolverBase):
     config = LinearMultilevelSolverBase.config()
     config.declare('nlp_solver', ConfigValue(
         default='ipopt',
-        description="The name of the NLP solver used by REG.  (default is ipopt)"
+        description="The NLP solver used by REG.  (default is ipopt)"
         ))
-    config.declare('nlp_options', ConfigValue(
-        default=None,
-        description="A dictionary that defines the solver options for the NLP solver.  (default is None)"))
+    #config.declare('nlp_options', ConfigValue(
+    #    default=None,
+    #    description="A dictionary that defines the solver options for the NLP solver.  (default is None)"))
     config.declare('rho', ConfigValue(
         default=1e-7,
         domain=float,
@@ -154,8 +154,8 @@ class LinearMultilevelSolver_REG(LinearMultilevelSolverBase):
         else:
             opt = self.config.nlp_solver
 
-        if self.config.nlp_options is not None:
-            opt.options.update(self.config.nlp_options)
+        #if self.config.nlp_options is not None:
+        #    opt.options.update(self.config.nlp_options)
         pyomo_results = opt.solve(M, tee=self.config.tee, 
                                      load_solutions=self.config.load_solutions)
         pyomo.opt.check_optimal_termination(pyomo_results)
@@ -182,7 +182,7 @@ class LinearMultilevelSolver_REG(LinearMultilevelSolverBase):
         #
         solv = results.solver
         solv.name = self.config.nlp_solver
-        solv.termination_condition = pyomo_results.solver.termination_condition
+        solv.termination_condition = pyomo_util.pyomo2pao_termination_condition(pyomo_results.solver.termination_condition)
         if hasattr(pyomo_results.solver, 'time'):
             solv.solver_time = pyomo_results.solver.time
         if self.config.load_solutions:

@@ -45,6 +45,12 @@ class TerminationCondition(enum.Enum):
     optimal = 5
     """The solver exited with an optimal solution"""
 
+    locallyOptimal = 6
+    """The solver exited with a locally optimal solution"""
+
+    globallyOptimal = 7
+    """The solver exited with a locally optimal solution"""
+
     unbounded = 8
     """The solver exited because the problem is unbounded"""
 
@@ -77,11 +83,11 @@ class SolverAPI(abc.ABC):
     #    domain=float,
     #    description="Solver time limit (in seconds)",
     #    ))
-    config.declare('keep_files', ConfigValue(
-        default=False,
-        domain=bool,
-        description="If True, then temporary files are not deleted. (default is False)",
-        ))
+    #config.declare('keep_files', ConfigValue(
+    #    default=False,
+    #    domain=bool,
+    #    description="If True, then temporary files are not deleted. (default is False)",
+    #    ))
     config.declare('tee', ConfigValue(
         default=False,
         domain=bool,
@@ -273,7 +279,7 @@ class PyomoSolver(SolverAPI):
         tmp_options = self._update_config(options, config=tmp_config, validate_options=False)
         if tmp_config['executable'] is not None:
             self.solver.set_executable(tmp_config['executable'])
-        return self.solver.solve(model, tee=tmp_config.tee, keepfiles=tmp_config.keep_files, options=tmp_options)
+        return self.solver.solve(model, tee=tmp_config.tee, options=tmp_options)
 
 
 class NEOSSolver(SolverAPI):
@@ -315,7 +321,7 @@ class NEOSSolver(SolverAPI):
             tmp_config = self.config()
             tmp_options = copy.copy(self.solver_options)
             tmp_options.update( self._update_config(options, config=tmp_config, validate_options=False) )
-            results = solver_manager.solve(model, opt=self.name, tee=tmp_config.tee, keepfiles=tmp_config.keep_files, options=tmp_options)
+            results = solver_manager.solve(model, opt=self.name, tee=tmp_config.tee, options=tmp_options)
             return results
         except pyomo.opt.parallel.manager.ActionManagerError as err:
             raise RuntimeError(str(err)) from None
@@ -425,6 +431,21 @@ class Results(ResultsBase):
 
     def found_feasible_solution(self):
         return self._found_feasible_solution
+
+    def check_optimal_termination(self):
+        """
+        This function returns True if the termination condition for the solver
+        is 'optimal', 'locallyOptimal', or 'globallyOptimal', and the status is 'ok'
+
+        Returns
+        -------
+        bool
+        """
+        if self.solver.termination_condition == TerminationCondition.optimal \
+            or self.solver.termination_condition == TerminationCondition.locallyOptimal \
+            or self.solver.termination_condition == TerminationCondition.globallyOptimal:
+            return True
+        return False
 
     def __str__(self):
         problem = self.problem.__str__(indent='  ')

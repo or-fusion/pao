@@ -16,6 +16,8 @@ from pyomo.environ import *
 from pyomo.gdp import *
 from pyomo.mpec import *
 
+from . import pyomo_util
+
 
 infinity = float('inf')
 
@@ -564,7 +566,7 @@ def execute_PCCG_solver(mpr, config, results):
     elif k< maxit and flag !=1:
         if not quiet:
             print(f'Optimal Solution Found in {k} iterations and {elapsed} seconds: Obj={UB}')
-        results.solver.termination_condition = TerminationCondition.optimal
+        results.solver.termination_condition = pyomo_util.pyomo2pao_termination_condition(TerminationCondition.optimal)
         results.best_feasible_objective = UB
 
     return Parent.Master.xu, Parent.Master.yu, Parent.Master.xl0, Parent.Master.yl0

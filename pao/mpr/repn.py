@@ -730,7 +730,9 @@ class QuadraticLevelRepn(LinearLevelRepn):
 
 class LinearMultilevelProblem(object):
     """
-    For bilevel problems, let::
+    ::
+
+      For bilevel problems, let:
 
         U   = LinearMultilevelProblem.U
         L   = U.L
@@ -740,7 +742,7 @@ class LinearMultilevelProblem(object):
         U.A = [U.A[U], U.A[L]]  # sparse matrix
         L.A = [L.A[U], L.A[L]]  # sparse matrix
 
-    Then we have::
+      Then we have:
 
         min_{U.x}   U.c' * x + U.d
         s.t.        U.A  * x       <= U.b                  # Or ==
@@ -801,8 +803,9 @@ class LinearMultilevelProblem(object):
 
 class QuadraticMultilevelProblem(object):
     """
-    
-    For bilevel problems, let::
+    ::
+ 
+      For bilevel problems, let:
     
         U   = QuadraticMultilevelProblem.U
         L   = U.L
@@ -820,7 +823,7 @@ class QuadraticMultilevelProblem(object):
         L.Q = [L.Q[U,U], L.Q[U,L]]  # sparse matrix
               [0,        L.Q[L,L]]
     
-    Then we have::
+      Then we have:
     
         min_{U.x}   U.c' * x + x' * U.P * x + U.d
         s.t.        U.A  * x + x' * U.Q * x       <= U.b                 # Or ==
