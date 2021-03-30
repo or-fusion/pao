@@ -67,5 +67,5 @@ PAO with other OR-related capabilities:
 
 Ask a question on StackOverflow:
 
-* https://stackoverflow.com/questions/ask?tags=pyomo-community
+* https://stackoverflow.com/questions/ask?tags=pyomo
 
