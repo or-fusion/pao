@@ -589,6 +589,7 @@ def convert_to_standard_form(M, inequalities=False):
 
     1. Each real variable x is nonnegative (x >= 0)
     2. Constraints have the specified form (e.g. all equalities or all inequalities)
+    3. Each level is a minimization problem
 
     Args
     ----
