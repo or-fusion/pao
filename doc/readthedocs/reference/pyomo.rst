@@ -21,10 +21,15 @@ PAO Solvers
     :members:
     :inherited-members:
 
-.. autoclass:: PyomoSubmodelSolver_REG
+.. autoclass:: PyomoSubmodelSolver_MIBS
     :members:
     :inherited-members:
 
 .. autoclass:: PyomoSubmodelSolver_PCCG
     :members:
     :inherited-members:
+
+.. autoclass:: PyomoSubmodelSolver_REG
+    :members:
+    :inherited-members:
+

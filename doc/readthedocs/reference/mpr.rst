@@ -28,7 +28,7 @@ PAO Solvers
     :members:
     :inherited-members:
 
-.. autoclass:: pao.mpr.solvers.reg.LinearMultilevelSolver_REG
+.. autoclass:: pao.mpr.solvers.mibs.LinearMultilevelSolver_MIBS
     :members:
     :inherited-members:
 
@@ -36,4 +36,7 @@ PAO Solvers
     :members:
     :inherited-members:
 
+.. autoclass:: pao.mpr.solvers.reg.LinearMultilevelSolver_REG
+    :members:
+    :inherited-members:
 

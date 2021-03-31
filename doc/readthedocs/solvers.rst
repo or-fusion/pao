@@ -21,6 +21,11 @@ The following summarizes the current solvers available in PAO:
         bilevel problems.  Solver uses big-M relaxations discussed by Fortuny-
         Amat and McCarl (1981).
 
+* pao.mpr.MIBS, pao.pyomo.MIBS
+
+        PAO solver for Multilevel Problem Representations using the COIN-OR 
+        MIBS solver by Tahernejad, Ralphs, and DeNegre (2020).
+
 * pao.mpr.PCCG, pao.pyomo.PCCG
 
         PAO solver for Multilevel Problem Representations that define linear
@@ -35,31 +40,31 @@ The following summarizes the current solvers available in PAO:
 
 The following table summarize key features of the problems these solvers can be applied to:
 
-+------------------------------+------------------+
-|                              | **Solver**       |
-+------------------------------+-----+-----+------+
-| **Problem Feature**          |*FA* |*REG*|*PCCG*|
-+-----------------+------------+-----+-----+------+
-|                 | Linear     | Y   | Y   | Y    |
-| Equation        +------------+-----+-----+------+
-| Structure       | Bilinear   | Y   | Y   | Y    |
-|                 +------------+-----+-----+------+
-|                 | Nonlinear  |     |     |      |
-+-----------------+------------+-----+-----+------+
-| Upper-Level     | Integer    | Y   |     | Y    |
-| Variables       +------------+-----+-----+------+
-|                 | Real       | Y   | Y   | Y    |
-+-----------------+------------+-----+-----+------+
-| Lower-Level     | Integer    |     |     | Y    |
-| Variables       +------------+-----+-----+------+
-|                 | Real       | Y   | Y   | Y    |
-+-----------------+------------+-----+-----+------+
-| Multilevel      | Bilevel    | Y   | Y   | Y    |
-| Representation  +------------+-----+-----+------+
-|                 | Trilevel   |     |     |      |
-|                 +------------+-----+-----+------+
-|                 | k-Bilevel  | Y   | Y   |      |
-+-----------------+------------+-----+-----+------+
++------------------------------+-------------------------+
+|                              | **Solver**              |
++------------------------------+-----+-----+------+------+
+| **Problem Feature**          |*FA* |*REG*|*PCCG*|*MIBS*|
++-----------------+------------+-----+-----+------+------+
+|                 | Linear     | Y   | Y   | Y    | Y    |
+| Equation        +------------+-----+-----+------+------+
+| Structure       | Bilinear   | Y   | Y   | Y    | Y    |
+|                 +------------+-----+-----+------+------+
+|                 | Nonlinear  |     |     |      |      |
++-----------------+------------+-----+-----+------+------+
+| Upper-Level     | Integer    | Y   |     | Y    | Y    |
+| Variables       +------------+-----+-----+------+------+
+|                 | Real       | Y   | Y   | Y    | Y    |
++-----------------+------------+-----+-----+------+------+
+| Lower-Level     | Integer    |     |     | Y    | Y    |
+| Variables       +------------+-----+-----+------+------+
+|                 | Real       | Y   | Y   | Y    | Y    |
++-----------------+------------+-----+-----+------+------+
+| Multilevel      | Bilevel    | Y   | Y   | Y    | Y    |
+| Representation  +------------+-----+-----+------+------+
+|                 | Trilevel   |     |     |      |      |
+|                 +------------+-----+-----+------+------+
+|                 | k-Bilevel  | Y   | Y   |      |      |
++-----------------+------------+-----+-----+------+------+
 
 
 The Solver Interface
@@ -179,10 +184,12 @@ The current set of available PAO solvers can be queried using the
     >>> for name in pao.Solver:
     ...     print(name)
     pao.mpr.FA
+    pao.mpr.MIBS
     pao.mpr.PCCG
     pao.mpr.REG
     pao.mpr.interdiction
     pao.pyomo.FA
+    pao.pyomo.MIBS
     pao.pyomo.PCCG
     pao.pyomo.REG
 
@@ -191,6 +198,10 @@ The current set of available PAO solvers can be queried using the
         PAO solver for Multilevel Problem Representations that define linear
         bilevel problems.  Solver uses big-M relaxations discussed by Fortuny-
         Amat and McCarl (1981).
+    <BLANKLINE>
+    pao.mpr.MIBS
+        PAO solver for Multilevel Problem Representations using the COIN-OR
+        MIBS solver by Tahernejad, Ralphs, and DeNegre (2020).
     <BLANKLINE>
     pao.mpr.PCCG
         PAO solver for Multilevel Problem Representations that define linear
@@ -211,6 +222,10 @@ The current set of available PAO solvers can be queried using the
         PAO solver for Pyomo models that define linear and bilinear bilevel
         problems.  Solver uses big-M relaxations discussed by Fortuny-Amat and
         McCarl (1981).
+    <BLANKLINE>
+    pao.pyomo.MIBS
+        PAO solver for Multilevel Problem Representations using the COIN-OR
+        MIBS solver by Tahernejad, Ralphs, and DeNegre (2020).
     <BLANKLINE>
     pao.pyomo.PCCG
         PAO solver for Pyomo models that define linear and bilinear bilevel
