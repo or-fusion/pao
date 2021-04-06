@@ -41,10 +41,10 @@ pao.common.SolverAPI._generate_solve_docstring(PyomoSubmodelSolver_FA)
 
 @Solver.register(
         name='pao.pyomo.MIBS',
-        doc="PAO solver for Multilevel Problem Representations using the COIN-OR MIBS solver by Tahernejad, Ralphs, and DeNegre (2020).")
+        doc="PAO solver for Multilevel Problem Representations using the COIN-OR MibS solver by Tahernejad, Ralphs, and DeNegre (2020).")
 class PyomoSubmodelSolver_MIBS(PyomoSubmodelSolverBase_LBP):
     """
-    PAO MIBS solver for Pyomo models: pao.pyomo.MIBS
+    PAO MibS solver for Pyomo models: pao.pyomo.MIBS
 
     This solver converts the Pyomo model to a LinearBilevelProblem and
     calls the pao.mpr.MIBS solver.

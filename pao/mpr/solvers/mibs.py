@@ -1,5 +1,5 @@
 #
-# A solver interface to MIBS
+# A solver interface to MibS
 #
 # A branch-and-cut algorithm for mixed integer bilevel linear optimization problems and its implementation
 # S Tahernejad, TK Ralphs, ST DeNegre
@@ -27,20 +27,20 @@ from . import pyomo_util
 
 @Solver.register(
         name='pao.mpr.MIBS',
-        doc='PAO solver for Multilevel Problem Representations using the COIN-OR MIBS solver by Tahernejad, Ralphs, and DeNegre (2020).')
+        doc='PAO solver for Multilevel Problem Representations using the COIN-OR MibS solver by Tahernejad, Ralphs, and DeNegre (2020).')
 
 class LinearMultilevelSolver_MIBS(LinearMultilevelSolverBase):
     """
-    PAO MIBS solver for linear MPRs: pao.mpr.MIBS
+    PAO MibS solver for linear MPRs: pao.mpr.MIBS
     """
     config = LinearMultilevelSolverBase.config()
     config.declare('executable', ConfigValue(
         default='mibs',
-        description="The executable used for MIBS.  (default is mibs)"
+        description="The executable used for MibS.  (default is mibs)"
         ))
     config.declare('param_file', ConfigValue(
         default=None,
-        description="The parameter file used to configure MIBS.  (default is None)"
+        description="The parameter file used to configure MibS.  (default is None)"
         ))
 
     def __init__(self, **kwds):

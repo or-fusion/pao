@@ -24,7 +24,7 @@ The following summarizes the current solvers available in PAO:
 * pao.mpr.MIBS, pao.pyomo.MIBS
 
         PAO solver for Multilevel Problem Representations using the COIN-OR 
-        MIBS solver by Tahernejad, Ralphs, and DeNegre (2020).
+        MibS solver by Tahernejad, Ralphs, and DeNegre (2020).
 
 * pao.mpr.PCCG, pao.pyomo.PCCG
 
@@ -38,12 +38,13 @@ The following summarizes the current solvers available in PAO:
         bilevel problems.  Solver uses regularization discussed by Scheel and
         Scholtes (2000) and Ralph and Wright (2004).
 
-The following table summarize key features of the problems these solvers can be applied to:
+The following table summarize key features of the problems these solvers
+can be applied to:
 
 +------------------------------+-------------------------+
 |                              | **Solver**              |
 +------------------------------+-----+-----+------+------+
-| **Problem Feature**          |*FA* |*REG*|*PCCG*|*MIBS*|
+| **Problem Feature**          |*FA* |*REG*|*PCCG*|*MibS*|
 +-----------------+------------+-----+-----+------+------+
 |                 | Linear     | Y   | Y   | Y    | Y    |
 | Equation        +------------+-----+-----+------+------+
@@ -65,6 +66,12 @@ The following table summarize key features of the problems these solvers can be 
 |                 +------------+-----+-----+------+------+
 |                 | k-Bilevel  | Y   | Y   |      |      |
 +-----------------+------------+-----+-----+------+------+
+
+.. note::
+
+    The iterface to MibS is a prototype that has not been well-tested.
+    This interface will be documented and finalized in an upcomgin next
+    release of PAO.
 
 
 The Solver Interface
@@ -187,7 +194,6 @@ The current set of available PAO solvers can be queried using the
     pao.mpr.MIBS
     pao.mpr.PCCG
     pao.mpr.REG
-    pao.mpr.interdiction
     pao.pyomo.FA
     pao.pyomo.MIBS
     pao.pyomo.PCCG
@@ -201,7 +207,7 @@ The current set of available PAO solvers can be queried using the
     <BLANKLINE>
     pao.mpr.MIBS
         PAO solver for Multilevel Problem Representations using the COIN-OR
-        MIBS solver by Tahernejad, Ralphs, and DeNegre (2020).
+        MibS solver by Tahernejad, Ralphs, and DeNegre (2020).
     <BLANKLINE>
     pao.mpr.PCCG
         PAO solver for Multilevel Problem Representations that define linear
@@ -213,11 +219,6 @@ The current set of available PAO solvers can be queried using the
         bilevel problems.  Solver uses regularization discussed by Scheel and
         Scholtes (2000) and Ralph and Wright (2004).
     <BLANKLINE>
-    pao.mpr.interdiction
-        PAO solver for Multilevel Problem Representations that define linear
-        interdiction problems, where the upper- and lower-objectives are
-        opposite.
-    <BLANKLINE>
     pao.pyomo.FA
         PAO solver for Pyomo models that define linear and bilinear bilevel
         problems.  Solver uses big-M relaxations discussed by Fortuny-Amat and
@@ -225,7 +226,7 @@ The current set of available PAO solvers can be queried using the
     <BLANKLINE>
     pao.pyomo.MIBS
         PAO solver for Multilevel Problem Representations using the COIN-OR
-        MIBS solver by Tahernejad, Ralphs, and DeNegre (2020).
+        MibS solver by Tahernejad, Ralphs, and DeNegre (2020).
     <BLANKLINE>
     pao.pyomo.PCCG
         PAO solver for Pyomo models that define linear and bilinear bilevel

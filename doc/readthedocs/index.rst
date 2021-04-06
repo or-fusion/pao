@@ -30,7 +30,6 @@ adversarial dynamics.  PAO integrates two different modeling abstractions:
    implementation of solvers for bilevel, trilevel and other multilevel 
    optimization problems.
 
-
 .. toctree::
    :maxdepth: 1
 

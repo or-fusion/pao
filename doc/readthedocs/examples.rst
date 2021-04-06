@@ -73,10 +73,11 @@ the upper-level variables whose value is fixed in the lower-level problem.
 
 The ``pao.pyomo.FA`` uses the method for solving linear bilevel
 programs with big-M relaxations described by Fortuny-Amat and McCarl
-[FortunyMcCarl]_.  By default, the final values of the upper- and
-lower-level variables are loaded back into the Pyomo model.  The
-``results`` object contains information about the problem, the solver
-and the solver status.
+[FortunyMcCarl]_.  In this example, the default big-M value is used, but
+in general a user may need to explore suitable values for their problem.
+By default, the final values of the upper- and lower-level variables
+are loaded back into the Pyomo model.  The ``results`` object contains
+information about the problem, the solver and the solver status.
 
 
 Using LinearMultilevelProblem
@@ -123,9 +124,9 @@ numpy and scipy data:
 
     # Declare the lower-level constraints
     #   L.A[X] is the matrix coefficients in the constraints for variables in level X
-    >>> L.A[U] = coo_matrix((np.array([-1, -2, 2, 3]),
-    ...                    (np.array([0, 1, 2, 3]),
-    ...                     np.array([0, 0, 0, 0]))))
+    >>> L.A[U] = coo_matrix((np.array([-1, -2, 2, 3]),  # Coefficients
+    ...                    (np.array([0, 1, 2, 3]),     # Row indices of matrix entries
+    ...                     np.array([0, 0, 0, 0]))))   # Column indices of matrix entries
     >>> L.A[L] = coo_matrix((np.array([-1, 1, 1, -2]),
     ...                    (np.array([0, 1, 2, 3]),
     ...                     np.array([0, 0, 0, 0]))))
