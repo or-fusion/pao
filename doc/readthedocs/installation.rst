@@ -22,9 +22,15 @@ branch can be installed as follows:
 Using PIP
 ---------
 
-The standard utility for installing Python packages is **pip**.  You
-can use **pip** to install from the PAO software repository.  For
-example, the master branch can be installed as follows:
+The standard utility for installing Python packages is **pip**.  
+You can install the latest release of PAO by executing the following:
+
+::
+
+    pip install pao
+
+You can also use **pip** to install from the PAO software repository.
+For example, the master branch can be installed as follows:
 
 ::
 
@@ -32,14 +38,8 @@ example, the master branch can be installed as follows:
 
 .. note::
 
-    Support for Conda and PyPI installation is planned.
+    Support for Conda installation is planned.
 
-.. comment
-   The standard utility for installing Python packages is *pip*.  You
-   can install Pyomo in your system Python installation by executing
-   the following in a shell::
- 
-        pip install pao
 
 Conditional Dependencies
 ------------------------
