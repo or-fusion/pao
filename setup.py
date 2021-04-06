@@ -51,7 +51,7 @@ setup(name='pao',
       #     pyomo/pyomo/version/__init__.py
       #     pyomo/RELEASE.txt
       #
-      version='1.0.dev1',
+      version='1.0',
       maintainer='William E. Hart',
       maintainer_email='wehart@sandia.gov',
       #url='http://pyomo.org',
@@ -83,5 +83,5 @@ setup(name='pao',
       packages=packages,
       keywords=['optimization'],
       install_requires=requires,
-      python_requires='>=3.6',
+      python_requires='>=3.7',
       )
