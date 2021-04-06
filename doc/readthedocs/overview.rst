@@ -75,3 +75,13 @@ in PAO.
     that can be expressed with PAO, thereby motivating the development
     of new solvers for new classes of problems.
 
+.. note::
+
+    Although the modeling abstractions in PAO are suitable for both
+    pessimistic and optimistic multilevel optimization formulations,
+    PAO currently assumes that all problems are expressed and solved
+    in an an optimistic form.  Thus, when there multiple solutions in
+    lower-level problems, the choice of the solution is determined by
+    the follower not the leader.  This convention reflects the fact that
+    solution techniques for pessimistic forms are not well-developed.
+

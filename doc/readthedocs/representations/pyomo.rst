@@ -237,8 +237,9 @@ The **PAO2** model can be expressed in Pyomo as follows:
 Trilevel Problems
 ^^^^^^^^^^^^^^^^^
 
-Trilevel problems can be described with nested declarations of :class:`.SubModel` components.  Consider the 
-following trilevel continuous linear problem described by Anadalingam [Anadalingam]:
+Trilevel problems can be described with nested declarations of
+:class:`.SubModel` components.  Consider the following trilevel continuous
+linear problem described by Anadalingam [Anadalingam]_:
 
 .. math::
    :label: eq-anadalingam
@@ -289,13 +290,14 @@ Bilinear Problems
 ^^^^^^^^^^^^^^^^^
 
 PAO models using Pyomo represent general quadratic problems with quadratic
-terms in the objective and constraints at each level.  The special case
-where bilinear terms arise with an upper-level binary variable multiplied
-with a lower-level variable is common in many applications.  For this case, the PAO solvers
-for Pyomo models include an option to linearize these bilinear terms.
+terms in the objective and constraints at each level.  The special
+case where bilinear terms arise with an upper-level binary variable
+multiplied with a lower-level variable is common in many applications.
+For this case, the PAO solvers for Pyomo models include an option to
+linearize these bilinear terms.
 
-The following models considers a variation of the **PAO1** model where binary variables control
-the expression of lower-level constraints:
+The following models considers a variation of the **PAO1** model where
+binary variables control the expression of lower-level constraints:
 
 .. math::
    :label: eq-pao3

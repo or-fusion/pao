@@ -1,6 +1,8 @@
 Bibliography
 ============
 
+.. [Anadalingam] Anandalingam, G.: A mathematical programming model of decentralized multi-level systems.  J. Oper.Res. Soc.39(11), 1021–1033 (1988)
+
 .. [Bard98] J. F. Bard, Practical bilevel optimization: Algorithms and
             applications. Kluwer Academic Publishers, 1998.
 
