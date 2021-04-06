@@ -41,7 +41,7 @@ import sys
 packages = _find_packages('pao')
 
 setup(name='pao',
-      version='1.0',
+      version='1.0.1',
       maintainer='William E. Hart',
       maintainer_email='wehart@sandia.gov',
       url='https://github.com/or-fusion/pao',
