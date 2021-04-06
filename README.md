@@ -20,7 +20,7 @@ and application exemplars serve to illustrate PAO's general capabilities.
 This package was derived from the capabilities in **pyomo.bilevel** and
 **pyomo.dualize**, which are now deprecated.
 
-Pyomo is available under the BSD License, see the LICENSE.txt file.
+PAO is available under the BSD License, see the LICENSE.txt file.
 
 ### Documentation
 
@@ -34,7 +34,7 @@ Pyomo is available under the BSD License, see the LICENSE.txt file.
     
 ### Testing
 
-Pyomo is currently tested with the following Python implementations:
+PAO is currently tested with the following Python implementations:
 
 * CPython: 3.7, 3.8, 3.9
 

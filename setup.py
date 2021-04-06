@@ -39,26 +39,16 @@ from setuptools import setup
 import sys
 
 packages = _find_packages('pao')
-#print("PACKAGES",packages)
 
 setup(name='pao',
-      #
-      # Note: trunk should have *next* major.minor
-      #     VOTD and Final releases will have major.minor.revnum
-      #
-      # When cutting a release, ALSO update _major/_minor/_revnum in
-      #
-      #     pyomo/pyomo/version/__init__.py
-      #     pyomo/RELEASE.txt
-      #
       version='1.0',
       maintainer='William E. Hart',
       maintainer_email='wehart@sandia.gov',
-      #url='http://pyomo.org',
-      #license='BSD',
+      url='https://github.com/or-fusion/pao',
+      license='BSD',
       platforms=["any"],
       description='PAO: Python Adversarial Optimization',
-      long_description=read('README.md'),
+      long_description=read('README.txt'),
       classifiers=[
         #'Development Status :: 5 - Production/Stable',
         'Intended Audience :: End Users/Desktop',
@@ -69,12 +59,10 @@ setup(name='pao',
         'Operating System :: Microsoft :: Windows',
         'Operating System :: Unix',
         'Programming Language :: Python',
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.4',
-        'Programming Language :: Python :: 3.5',
-        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: Implementation :: CPython',
         #'Programming Language :: Python :: Implementation :: Jython',
         #'Programming Language :: Python :: Implementation :: PyPy',
