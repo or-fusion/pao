@@ -6,19 +6,6 @@ PAO currently supports the following versions of Python:
 * CPython: 3.7, 3.8, 3.9
 
 
-Using GIT
----------
-
-PAO can be installed by cloning the PAO software repostory and 
-then directly installing the software.  For example, the master
-branch can be installed as follows:
-
-::
-   
-   git clone https://github.com/or-fusion/pao.git
-   cd pao
-   python setup.py develop
-
 Using PIP
 ---------
 
@@ -36,9 +23,28 @@ For example, the master branch can be installed as follows:
 
     python -m pip install https://github.com/or-fusion/pao.git
 
-.. note::
+Using CONDA
+-----------
 
-    Support for Conda installation is planned.
+The **conda** utility can be used to install the latest release of PAO
+using the ``conda-forge`` channel:
+
+::
+
+    conda install -c conda-forge pao
+
+Using GIT
+---------
+
+PAO can be installed by cloning the PAO software repostory and 
+then directly installing the software.  For example, the master
+branch can be installed as follows:
+
+::
+   
+   git clone https://github.com/or-fusion/pao.git
+   cd pao
+   python setup.py develop
 
 
 Conditional Dependencies
