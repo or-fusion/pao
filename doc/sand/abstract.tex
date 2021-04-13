@@ -1,0 +1,22 @@
+PAO is a Python\sphinxhyphen{}based package for Adversarial Optimization.  The goal of
+this package is to provide a general modeling and analysis capability for
+bilevel, trilevel and other multilevel optimization forms that express
+adversarial dynamics.  PAO integrates two different modeling abstractions:
+\begin{enumerate}
+\sphinxsetlistlabels{\arabic}{enumi}{enumii}{}{.}%
+\item {}
+\sphinxstylestrong{Algebraic models} extend the modeling concepts in the
+\sphinxhref{https://github.com/Pyomo/pyomo}{Pyomo} algebraic modeling language
+to express problems with an intuitive algebraic syntax.  Thus, we
+expect that this modeling abstraction will commonly be used by PAO
+end\sphinxhyphen{}users.
+
+\item {}
+\sphinxstylestrong{Compact models} express objective and constraints in a manner
+that is typically used to express the mathematical form of these
+problems (e.g. using vector and matrix data types).  PAO defines
+custom \sphinxstyleemphasis{Multilevel Problem Representations} (MPRs) that simplify the
+implementation of solvers for bilevel, trilevel and other multilevel
+optimization problems.
+
+\end{enumerate}
