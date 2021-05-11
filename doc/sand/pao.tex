@@ -808,7 +808,7 @@ This model can be expressed in Pyomo as follows:
 \end{sphinxVerbatim}
 
 \begin{sphinxadmonition}{note}{Note:}
-PAO solvers cannot currently solve trilevel solvers like this,
+PAO solvers cannot currently solve trilevel problems like this,
 but an issue has been submitted to add this functionality.
 \end{sphinxadmonition}
 
@@ -864,6 +864,10 @@ The \sphinxstylestrong{PAO3} model can be expressed in Pyomo as follows:
 \PYG{g+gp}{\PYGZgt{}\PYGZgt{}\PYGZgt{} }\PYG{n+nb}{print}\PYG{p}{(}\PYG{n}{M}\PYG{o}{.}\PYG{n}{x}\PYG{o}{.}\PYG{n}{value}\PYG{p}{,} \PYG{n}{M}\PYG{o}{.}\PYG{n}{y}\PYG{o}{.}\PYG{n}{value}\PYG{p}{,} \PYG{n}{M}\PYG{o}{.}\PYG{n}{z}\PYG{o}{.}\PYG{n}{value}\PYG{p}{,} \PYG{n}{M}\PYG{o}{.}\PYG{n}{w}\PYG{p}{[}\PYG{l+m+mi}{1}\PYG{p}{]}\PYG{o}{.}\PYG{n}{value}\PYG{p}{,} \PYG{n}{M}\PYG{o}{.}\PYG{n}{w}\PYG{p}{[}\PYG{l+m+mi}{2}\PYG{p}{]}\PYG{o}{.}\PYG{n}{value}\PYG{p}{)}
 \PYG{g+go}{6.0 4.0 3.5 0 1}
 \end{sphinxVerbatim}
+
+In general, it may be difficult to determine a valid value of $M$.   Thus, this transformation may
+result in a restriction or relaxation of the original problem (depending on where the big-M values
+are introduced).
 
 
 \section{Multilevel Representations}
@@ -1221,7 +1225,7 @@ to solve the problem.  The examples in the previous sections illustrate
 that step (1) is often optional;  PAO automates the applications of
 several model transformations, particularly for problems formulated with
 Pyomo.  The following section summarizes the solvers available in PAO,
-and describes how PAO manages solvers Section \DUrole{xref,std,std-ref}{transformations}
+and describes how PAO manages solvers. Section \DUrole{xref,std,std-ref}{transformations}
 describes model transformations in PAO.
 
 
@@ -1420,7 +1424,7 @@ Y
 
 \begin{sphinxadmonition}{note}{Note:}
 The iterface to MibS is a prototype that has not been well\sphinxhyphen{}tested.
-This interface will be documented and finalized in an upcomgin next
+This interface will be documented and finalized in an upcoming
 release of PAO.
 \end{sphinxadmonition}
 
@@ -1501,7 +1505,7 @@ This allows for more dynamic specification of solver options:
 
 \begin{sphinxadmonition}{warning}{Warning:}
 The \sphinxcode{\sphinxupquote{solve()}} current passes unknown keyword arguments to the
-optimize used by PAO solvers, but this feature will be disabled.
+optimizer used by PAO solvers, but this feature will be disabled.
 \end{sphinxadmonition}
 
 
@@ -1700,7 +1704,7 @@ The following transformation functions are documented and suitable for use by en
 
 This function generates a {\hyperref[\detokenize{reference/mpr:pao.mpr.repn.LinearMultilevelProblem}]{\sphinxcrossref{\sphinxcode{\sphinxupquote{LinearMultilevelProblem}}}}} or
 {\hyperref[\detokenize{reference/mpr:pao.mpr.repn.QuadraticMultilevelProblem}]{\sphinxcrossref{\sphinxcode{\sphinxupquote{QuadraticMultilevelProblem}}}}} from a Pyomo model.  By default,
-all constrints in the MPR representation are inequalities.
+all constraints in the MPR representation are inequalities.
 \end{quote}
 
 \item {} 
@@ -1718,7 +1722,7 @@ MPRs that only contain inequality constraints.
 
 This function generates an equivalent linear multilevel representation for which all
 variables are non\sphinxhyphen{}negative and all constraints have the same form (inequalities or equalities).
-This simplifies the formulation of solvers, which typically assume a standard form
+This simplifies the implementation of solvers, which typically assume a standard form
 for subproblems.
 \end{quote}
 

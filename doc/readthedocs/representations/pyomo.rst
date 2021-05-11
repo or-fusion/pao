@@ -283,7 +283,7 @@ This model can be expressed in Pyomo as follows:
 
 .. note::
 
-    PAO solvers cannot currently solve trilevel solvers like this,
+    PAO solvers cannot currently solve trilevel problems like this,
     but an issue has been submitted to add this functionality.
 
 Bilinear Problems
@@ -344,4 +344,8 @@ The **PAO3** model can be expressed in Pyomo as follows:
     >>> results = opt.solve(M)
     >>> print(M.x.value, M.y.value, M.z.value, M.w[1].value, M.w[2].value)
     6.0 4.0 3.5 0 1
+
+In general, it may be difficult to determine a valid value of $M$.   Thus, this transformation may
+result in a restriction or relaxation of the original problem (depending on where the big-M values
+are introduced).
 

@@ -7,7 +7,7 @@ to solve the problem.  The examples in the previous sections illustrate
 that step (1) is often optional;  PAO automates the applications of
 several model transformations, particularly for problems formulated with
 Pyomo.  The following section summarizes the solvers available in PAO,
-and describes how PAO manages solvers Section :ref:`transformations`
+and describes how PAO manages solvers.  Section :ref:`transformations`
 describes model transformations in PAO.
 
 Summary of PAO Solvers
@@ -70,7 +70,7 @@ can be applied to:
 .. note::
 
     The iterface to MibS is a prototype that has not been well-tested.
-    This interface will be documented and finalized in an upcomgin next
+    This interface will be documented and finalized in an upcoming 
     release of PAO.
 
 
@@ -176,7 +176,7 @@ This allows for more dynamic specification of solver options:
 .. warning::
 
     The :meth:`solve` current passes unknown keyword arguments to the
-    optimize used by PAO solvers, but this feature will be disabled.
+    optimizer used by PAO solvers, but this feature will be disabled.
 
 
 PAO Solvers

@@ -23,7 +23,7 @@ The following transformation functions are documented and suitable for use by en
 
     This function generates a :class:`.LinearMultilevelProblem` or
     :class:`.QuadraticMultilevelProblem` from a Pyomo model.  By default,
-    all constrints in the MPR representation are inequalities.
+    all constraints in the MPR representation are inequalities.
 
 * :func:`pao.mpr.convert_repn.linearize_bilinear_terms`
 
@@ -35,6 +35,6 @@ The following transformation functions are documented and suitable for use by en
 
     This function generates an equivalent linear multilevel representation for which all
     variables are non-negative and all constraints have the same form (inequalities or equalities).
-    This simplifies the formulation of solvers, which typically assume a standard form
+    This simplifies the implementation of solvers, which typically assume a standard form
     for subproblems.
 
