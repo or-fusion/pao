@@ -152,7 +152,7 @@ class TestMultilevelTree(unittest.TestCase):
         M.z[4].setlb(0)
         M.z[4].setub(1)
         M.o = pe.Objective(expr=M.x+sum(M.y[i] for i in M.y)+sum(M.z[i] for i in M.z))
-        M.c1 = pe.Constraint(expr=M.p <= 0)
+        #M.c1 = pe.Constraint(expr=M.p <= 0)            Changed in Pyomo 6.0
         
         var = {}
         try:
@@ -172,7 +172,7 @@ class TestMultilevelTree(unittest.TestCase):
         M.z[4].setlb(0)
         M.z[4].setub(1)
         M.o = pe.Objective(expr=M.x+sum(M.y[i] for i in M.y)+sum(M.z[i] for i in M.z))
-        M.c1 = pe.Constraint(expr=pe.inequality(2, M.p, 3))
+        #M.c1 = pe.Constraint(expr=pe.inequality(2, M.p, 3))         Changed in Pyomo 6.0
         
         var = {}
         try:
@@ -192,7 +192,7 @@ class TestMultilevelTree(unittest.TestCase):
         M.z[4].setlb(0)
         M.z[4].setub(1)
         M.o = pe.Objective(expr=M.x+sum(M.y[i] for i in M.y)+sum(M.z[i] for i in M.z))
-        M.c1 = pe.Constraint(expr=M.p == 0)
+        #M.c1 = pe.Constraint(expr=M.p == 0)            Changed in Pyomo 6.0
         
         var = {}
         try:
@@ -248,7 +248,7 @@ class TestMultilevelTree(unittest.TestCase):
             return pe.Constraint.Skip
         M.c1 = pe.Constraint([0], rule=c_rule)
         M.c2 = pe.Constraint(expr=M.x[0] <= np.PINF)
-        M.c3 = pe.Constraint(expr=M.p <= 2)
+        #M.c3 = pe.Constraint(expr=M.p <= 2)            Changed in Pyomo 6.0
         
         M.s = SubModel(fixed=M.x)
 
@@ -282,7 +282,7 @@ class TestMultilevelTree(unittest.TestCase):
             return pe.Constraint.Skip
         M.c1 = pe.Constraint([0], rule=c_rule)
         M.c2 = pe.Constraint(expr=M.x[0] <= np.PINF)
-        M.c3 = pe.Constraint(expr=M.p <= 2)
+        #M.c3 = pe.Constraint(expr=M.p <= 2)                Changed in Pyomo 6.0
         
         M.s = SubModel(fixed=M.x)
 
@@ -290,7 +290,7 @@ class TestMultilevelTree(unittest.TestCase):
 
         M.s.c1 = pe.Constraint([0], rule=c_rule)
         M.s.c2 = pe.Constraint(expr=M.x[0] <= np.PINF)
-        M.s.c3 = pe.Constraint(expr=M.p <= 2)
+        #M.s.c3 = pe.Constraint(expr=M.p <= 2)              Changed in Pyomo 6.0
 
         lmpr,_ = convert_pyomo2LinearMultilevelProblem(M, inequalities=True)
         

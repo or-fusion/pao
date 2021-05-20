@@ -1,0 +1,235 @@
+%
+\documentclass[pdf,12pt,article,relax,innertitle]{SANDreport}
+
+\input{pao_preamble.tex}
+
+\usepackage{tabularx}
+%\usepackage{mathptmx}	% Use the Postscript Times font
+%\usepackage[FIGBOTCAP,normal,bf,tight]{subfigure}
+%\usepackage{draftwatermark}
+%\SetWatermarkScale{.5}
+%\SetWatermarkText{Sample, contains no OUO}
+
+%\usepackage[colorlinks=true,urlcolor=blue,citecolor=blue,linkcolor=blue]{hyperref}
+
+% If you want to relax some of the SAND98-0730 requirements, use the "relax"
+% option. It adds spaces and boldface in the table of contents, and does not
+% force the page layout sizes.
+% e.g. \documentclass[relax,12pt]{SANDreport}
+%
+% You can also use the "strict" option, which applies even more of the
+% SAND98-0730 guidelines. It gets rid of section numbers which are often
+% useful; e.g. \documentclass[strict]{SANDreport}
+
+\usepackage{courier}
+\usepackage[authoryear]{natbib}
+\usepackage{listings}
+\usepackage{url}
+\usepackage{color}
+%\usepackage{graphics}
+\usepackage{amsmath}
+\usepackage{amssymb}
+%\usepackage{todonotes}
+\usepackage{longtable}
+\usepackage[ruled,vlined]{algorithm2e}
+\usepackage{subcaption}
+\bibpunct{[}{]}{,}{n}{}{}
+
+%\usepackage{fancyhdr}
+
+\include{macros}
+
+% ---------------------------------------------------------------------------- %
+%
+% Set the title, author, and date
+%
+\title{PAO 1.0: A Python Library for Adversarial Optimization}
+
+
+\author{William E. Hart\\
+            Sandia National Laboratories\\
+           PO Box 5800, MS 1318 \\
+           Albuquerque, NM 87185 \\
+           wehart@sandia.gov\\
+\\
+        Anya Castillo\\
+            8767 Springwood Dr\\
+            Woodbury, MN 55125\\
+            anya.castillo@gmail.com\\
+\\
+        Emma S. Johnson\\
+        H. Milton Stewart School of Industrial and Systems Engineering\\
+        Georgia Institute of Technology\\
+        755 Ferst Drive NW\\
+        Atlanta, GA 30332\\
+        ejohnson335@gatech.edu\\
+\\
+        She'ifa Punla-Green\\
+        Department of Mathematical Sciences\\
+        Rensselaer Polytechnic Institute\\
+        110 8th St, Amos Eaton Hall\\
+        Troy, NY 12180\\
+        sheifazera@gmail.com
+        }
+
+    % There is a "Printed" date on the title page of a SAND report, so
+    % the generic \date should generally be empty.
+    \date{}
+
+
+% ---------------------------------------------------------------------------- %
+% Set some things we need for SAND reports. These are mandatory
+%
+\SANDnum{SAND2021-XXXX}
+\SANDprintDate{April 2021}
+\SANDauthor{William E. Hart, Anya Castillo, Emma S. Johnson, She'ifa Punla-Green}
+
+
+% ---------------------------------------------------------------------------- %
+% Include the markings required for your SAND report. The default is "Unlimited
+% Release". You may have to edit the file included here, or create your own
+% (see the examples provided).
+%
+%\SANDmarkTop{\leftmark\hfill\rightmark}
+%\renewcommand{\headrulewidth}{1.0pt}
+
+
+% ---------------------------------------------------------------------------- %
+% The following definition does not have a default value and will not
+% print anything, if not defined
+%
+%\SANDsupersed{SAND1901-0001}{January 1901}
+%\input{MarkOUO}
+
+
+% ---------------------------------------------------------------------------- %
+%
+% Start the document
+%
+\begin{document}
+%\pagestyle{fancy}
+
+    \maketitle
+
+    % ------------------------------------------------------------------------ %
+    % An Abstract is required for SAND reports
+    %
+    \begin{abstract}
+	\input{abstract}
+    \end{abstract}
+
+
+    % ------------------------------------------------------------------------ %
+    % An Acknowledgement section is optional but important, if someone made
+    % contributions or helped beyond the normal part of a work assignment.
+    % Use \section* since we don't want it in the table of context
+    %
+    \clearpage
+    \section*{Acknowledgment}
+	\input{acknow}
+
+
+    % ------------------------------------------------------------------------ %
+    % The table of contents and list of figures and tables
+    % Comment out \listoffigures and \listoftables if there are no
+    % figures or tables. Make sure this starts on an odd numbered page
+    %
+    %\cleardoublepage		% TOC needs to start on an odd page
+    %\tableofcontents
+    %\listoffigures
+    %\listoftables
+
+
+    % ---------------------------------------------------------------------- %
+    % An optional preface or Foreword
+    %\clearpage
+    %\section*{Preface}
+    %\addcontentsline{toc}{section}{Preface}
+    %	\input{CommonPreface}
+
+
+    % ---------------------------------------------------------------------- %
+    % An optional executive summary
+    %\clearpage
+    %\section*{Summary}
+    %\addcontentsline{toc}{section}{Summary}
+    %	\input{CommonSummary}
+
+
+    % ---------------------------------------------------------------------- %
+    % An optional glossary. We don't want it to be numbered
+    %\clearpage
+    %\section*{Nomenclature}
+    %\addcontentsline{toc}{section}{Nomenclature}
+    %\begin{description}
+    %	\item[dry spell]
+    %	    using a dry erase marker to spell words
+    %	\item[dry wall]
+    %	    the writing on the wall
+    %	\item[dry humor]
+    %	    when people just do not understand
+    %	\item[DRY]
+    %	    Don't Repeat Yourself
+    %\end{description}
+
+    % ---------------------------------------------------------------------- %
+    % This is where the body of the report begins; usually with an Introduction
+    %
+    \SANDmain		% Start the main part of the report
+    %\pagestyle{fancy}
+    %\fancyhf{}
+    %\fancyhead[L]{FOO}
+    %\fancyhead[H]{BAR}
+    %\fancyhead[CO,CE]{---Draft---}
+    %\renewcommand{\headrulewidth}{1.0pt}
+
+	\input{paper}
+
+    %\nocite{*}
+
+
+\if 0
+    % ---------------------------------------------------------------------- %
+    % References
+    %
+    \clearpage
+    % If hyperref is included, then \phantomsection is already defined.
+    % If not, we need to define it.
+    \providecommand*{\phantomsection}{}
+    \phantomsection
+    %\addcontentsline{toc}{section}{References}
+    %\bibliographystyle{plain}
+    \bibliographystyle{plainnat}
+    \bibliography{references}
+\fi
+
+    % ---------------------------------------------------------------------- %
+    %
+\if 0
+    \appendix
+	\input{appendix}
+\fi
+
+
+    \begin{SANDdistribution}[NM]% or [CA]
+    % \SANDdistCRADA    % If this report is about CRADA work
+    % \SANDdistPatent   % If this report has a Patent Caution or Patent Interest
+    % \SANDdistLDRD % If this report is about LDRD work
+
+    % External Address Format: {num copies}{Address}
+    %\SANDdistExternal{}{}
+    %\bigskip
+
+    % The following MUST BE between the external and internal distributions!
+    % \SANDdistClassified % If this report is classified
+
+    % Internal Address Format: {num copies}{Mail stop}{Name}{Org}
+    %\SANDdistInternal{}{}{}{}
+
+    % Mail Channel Address Format: {num copies}{Mail Channel}{Name}{Org}
+    %\SANDdistInternalM{}{}{}{}
+    \end{SANDdistribution}
+
+
+
+\end{document}

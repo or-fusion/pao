@@ -16,12 +16,16 @@ This module defines Pyomo components used to declare multi-level problems.
 
 __all__ = ("SubModel",)
 
-from pyomo.core import SimpleBlock, ModelComponentFactory, Component
+from pyomo.core import ModelComponentFactory, Component
+try:
+    from pyomo.core import ScalarBlock
+except:
+    from pyomo.core import SimpleBlock as ScalarBlock
 import pyomo.core.base.component_order
 
 
 @ModelComponentFactory.register("A submodel in a multi-level problem")
-class SubModel(SimpleBlock):
+class SubModel(ScalarBlock):
     """
     This Pyomo model component defines a sub-model in a multi-level problem.
 
@@ -41,9 +45,9 @@ class SubModel(SimpleBlock):
         Parameters
         ----------
         *args
-            Arguments passed to the SimpleBlock base class.
+            Arguments passed to the ScalarBlock base class.
         **kwargs
-            Other keyword arguments passed to the SimpleBlock base class.
+            Other keyword arguments passed to the ScalarBlock base class.
         """
         #
         # Collect kwargs for SubModel
@@ -51,10 +55,10 @@ class SubModel(SimpleBlock):
         _rule = kwargs.pop('rule', None)
         _fixed = kwargs.pop('fixed', None)
         #
-        # Initialize the SimpleBlock
+        # Initialize the ScalarBlock
         #
         kwargs.setdefault('ctype', SubModel)
-        SimpleBlock.__init__(self, *args, **kwargs)
+        ScalarBlock.__init__(self, *args, **kwargs)
         #
         # Initialize from kwargs
         #
