@@ -13,6 +13,12 @@ from pyutilib.misc import Options
 
 import pyomo.opt.parallel.manager
 import pyomo.environ as pe
+using_ScalarBlock = False
+try:
+    getattr(pe, "ScalarBlock")
+    using_ScalarBlock = True
+except:
+    pass
 from pyomo.common.config import ConfigValue, ConfigBlock, add_docstring_list
 from pyomo.neos.kestrel import kestrelAMPL
 
@@ -274,7 +280,7 @@ class PyomoSolver(SolverAPI):
         return self.solver.available(exception_flag=False)
 
     def solve(self, model, **options):
-        assert (isinstance(model, pe.Model) or isinstance(model, pe.SimpleBlock)), "The Pyomo solver '%s' cannot solve a model of type %s" % (self.name, str(type(model)))
+        assert (isinstance(model, pe.Model) or (using_ScalarBlock and isinstance(model, pe.ScalarBlock)) or (not using_ScalarBlock and isinstance(model, pe.SimpleBlock))), "The Pyomo solver '%s' cannot solve a model of type %s" % (self.name, str(type(model)))
         tmp_config = self.config()
         tmp_options = self._update_config(options, config=tmp_config, validate_options=False)
         if tmp_config['executable'] is not None:
