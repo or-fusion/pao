@@ -48,7 +48,7 @@ Linear Bilevel Examples
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 We consider again the bilevel problem PAO1 :eq:`eq-pao1`.  This problem
-has has linear upper- and lower-level problems with different objectives
+has linear upper- and lower-level problems with different objectives
 in each level.
 
 .. doctest:: mpr_repn
@@ -162,7 +162,7 @@ representation.
 Multiple Lower Levels
 ^^^^^^^^^^^^^^^^^^^^^
 
-We consider again the bilevel problem PAO2 :eq:`eq-pao2`, which has has
+We consider again the bilevel problem PAO2 :eq:`eq-pao2`, which has
 multiple lower-level problems.  The **PAO2** model can be expressed as
 a linear multilevel problem as follows:
 

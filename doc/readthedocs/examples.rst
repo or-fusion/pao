@@ -19,7 +19,7 @@ by Bard [Bard98]_ (example 5.1.1):
     \end{array}
     \end{equation*}
 
-This problem has has linear upper- and lower-level problems with different
+This problem has linear upper- and lower-level problems with different
 objectives in each level.  Thus, this problem can be represented in
 PAO using a Pyomo model representation or the ``LinearMultilevelProblem``
 representation.
