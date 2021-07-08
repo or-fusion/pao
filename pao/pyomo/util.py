@@ -17,7 +17,7 @@ This module defines utility functions for working with Pyomo multi-level problem
 from pyomo.core import Reference, Var, Transformation, Param, Set
 #pylint: disable-msg=too-many-ancestors
 
-from pyomo.core import SimpleBlock, ModelComponentFactory, Component
+from pyomo.core import ModelComponentFactory, Component
 
 
 def varref(model, origin=None, vars=None):

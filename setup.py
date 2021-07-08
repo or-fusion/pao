@@ -28,6 +28,15 @@ def _find_packages(path):
 def read(*rnames):
     return open(os.path.join(os.path.dirname(__file__), *rnames)).read()
 
+def get_version():
+    # Source pao/_version.py to get version
+    _verInfo = dict(globals())
+    _verFile = os.path.join(os.path.dirname(__file__),
+                            'pao','_version.py')
+    with open(_verFile) as _FILE:
+        exec(_FILE.read(), _verInfo)
+    return _verInfo['__version__']
+
 requires = [
     'Pyomo',
     'parameterized',
@@ -41,13 +50,14 @@ import sys
 packages = _find_packages('pao')
 
 setup(name='pao',
-      version='1.0.1',
+      version=get_version(),
       maintainer='William E. Hart',
       maintainer_email='wehart@sandia.gov',
       url='https://github.com/or-fusion/pao',
       license='BSD',
-      platforms=["any"],
       description='PAO: Python Adversarial Optimization',
+
+      platforms=["any"],
       long_description=read('README.txt'),
       classifiers=[
         #'Development Status :: 5 - Production/Stable',

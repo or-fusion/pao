@@ -28,7 +28,7 @@ Instead, users should import symbols directly from pao sub-packages:
 Version: %s
 """
 
-__version__ = '1.0.dev0'
+from pao._version import __version__
 __doc__ = __doc__ % __version__
 
 __all__ = ('__version__')
