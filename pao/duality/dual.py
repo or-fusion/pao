@@ -38,7 +38,8 @@ class Dual(PersistentBase):
 
         self._dual.grad_lag = IndexedConstraint(self._dual.grad_lag_set)
 
-        self._dual.objective = pe.Objective(expr=0)
+        raise NotImplementedError('need to handle maximization problems!')
+        self._dual.objective = pe.Objective(expr=0, sense=pe.maximize)
 
     def _set_dual_obj(self):
         self._dual.objective.expr = sum(self._lagrangian_terms.values())
@@ -195,6 +196,7 @@ class Dual(PersistentBase):
         raise NotImplementedError('Dual does not support SOS constraints')
 
     def _set_objective(self, obj: _GeneralObjectiveData):
+        raise ValueError('Need to handle maximization problems!!!')
         if self._old_obj is not None:
             for v in self._old_obj_vars:
                 if v in self._grad_lag_map:
