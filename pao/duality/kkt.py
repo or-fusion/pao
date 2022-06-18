@@ -1,7 +1,7 @@
 import pyomo.environ as pe
-from pyomo.core.base.block import _BlockData
+from pyomo.core.base.block import _BlockData, ScalarBlock
 from pyomo.core.base.var import _GeneralVarData, ScalarVar, IndexedVar
-from typing import Sequence
+from typing import Sequence, Optional, Iterable
 import math
 from pyomo.common.collections import ComponentSet
 from pyomo.core.expr.visitor import identify_variables
@@ -40,9 +40,9 @@ class ComponentHasher(object):
 
 def convert_integers_to_binaries(
     model: _BlockData,
-    integer_vars: Sequence[_GeneralVarData],
+    integer_vars: Iterable[_GeneralVarData],
 ) -> _BlockData:
-    parent = pe.Block(concrete=True)
+    parent = ScalarBlock(concrete=True)
     parent.int_set = pe.Set(dimen=1)
     parent.bin_set = pe.Set(dimen=2)
 
@@ -77,9 +77,9 @@ def convert_integers_to_binaries(
 
 def convert_binary_domain_to_constraint(
     model: _BlockData,
-    binary_vars: Sequence[_GeneralVarData],
+    binary_vars: Iterable[_GeneralVarData],
 ) -> _BlockData:
-    parent = pe.Block(concrete=True)
+    parent = ScalarBlock(concrete=True)
     parent.bin_set = pe.Set(dimen=1)
     parent.bin_cons = pe.Constraint(parent.bin_set)
 
@@ -109,6 +109,7 @@ def _get_vars_in_expr(expr, all_vars, bin_vars, int_vars):
 
 def construct_kkt(
     model: _BlockData,
+    variables: Optional[Sequence[_GeneralVarData]] = None
 ) -> _BlockData:
     all_vars = ComponentSet()
     int_vars = ComponentSet()
@@ -123,14 +124,24 @@ def construct_kkt(
         if obj is not None:
             raise ValueError('found multiple active objectives')
         obj = _obj
-        _get_vars_in_expr(obj.expr, all_vars, bin_vars, int_vars)
+        if variables is None:
+            _get_vars_in_expr(obj.expr, all_vars, bin_vars, int_vars)
 
     for con in model.component_data_objects(
             pe.Constraint, active=True, descend_into=True
     ):
         if con.lb is not None or con.ub is not None:
             all_cons.add(con)
-            _get_vars_in_expr(con.body, all_vars, bin_vars, int_vars)
+            if variables is None:
+                _get_vars_in_expr(con.body, all_vars, bin_vars, int_vars)
+
+    if variables is not None:
+        for v in variables:
+            all_vars.add(v)
+            if v.is_binary():
+                bin_vars.add(v)
+            elif v.is_integer():
+                int_vars.add(v)
 
     if len(int_vars) > 0:
         model = convert_integers_to_binaries(model, int_vars)
@@ -140,7 +151,7 @@ def construct_kkt(
     if len(bin_vars) > 0:
         model = convert_binary_domain_to_constraint(model, bin_vars)
 
-    parent = pe.Block(concrete=True)
+    parent = ScalarBlock(concrete=True)
     parent.block = model
     parent.eq_dual_set = pe.Set(dimen=1)
     parent.ineq_dual_set = pe.Set(dimen=1)
