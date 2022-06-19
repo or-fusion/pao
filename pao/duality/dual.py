@@ -38,7 +38,6 @@ class Dual(PersistentBase):
 
         self._dual.grad_lag = IndexedConstraint(self._dual.grad_lag_set)
 
-        raise NotImplementedError('need to handle maximization problems!')
         self._dual.objective = pe.Objective(expr=0, sense=pe.maximize)
 
     def _set_dual_obj(self):
@@ -66,6 +65,7 @@ class Dual(PersistentBase):
                     self._grad_lag_map[v].pop(hasher)
                     del self._dual.ineq_duals[hasher]
                     self._dual.ineq_dual_set.remove(hasher)
+                    self._lagrangian_terms.pop(hasher)
             else:
                 if hasher not in self._grad_lag_map[v]:
                     self._dual.ineq_dual_set.add(hasher)
@@ -103,10 +103,12 @@ class Dual(PersistentBase):
             if lb_hasher in self._dual.ineq_dual_set:
                 del self._dual.ineq_duals[lb_hasher]
                 self._dual.ineq_dual_set.remove(lb_hasher)
+                self._lagrangian_terms.pop(lb_hasher)
 
             if ub_hasher in self._dual.ineq_dual_set:
                 del self._dual.ineq_duals[ub_hasher]
                 self._dual.ineq_dual_set.remove(ub_hasher)
+                self._lagrangian_terms.pop(ub_hasher)
 
             if v_hasher in self._dual.grad_lag_set:
                 # the variable may have been removed from these already if it was fixed
@@ -163,6 +165,7 @@ class Dual(PersistentBase):
 
     def _removal_helper(self, c_hasher, variables):
         if c_hasher in self._dual.eq_dual_set or c_hasher in self._dual.ineq_dual_set:
+            self._lagrangian_terms.pop(c_hasher)
             for v in variables:
                 if v in self._grad_lag_map:
                     self._grad_lag_map[v].pop(c_hasher)
@@ -196,8 +199,11 @@ class Dual(PersistentBase):
         raise NotImplementedError('Dual does not support SOS constraints')
 
     def _set_objective(self, obj: _GeneralObjectiveData):
-        raise ValueError('Need to handle maximization problems!!!')
+        if obj.sense != pe.minimize:
+            raise NotImplementedError('Dual does not support maximization problems yet')
         if self._old_obj is not None:
+            old_hasher = ComponentHasher(self._old_obj, None)
+            self._lagrangian_terms.pop(old_hasher)
             for v in self._old_obj_vars:
                 if v in self._grad_lag_map:
                     self._grad_lag_map[v].pop(ComponentHasher(self._old_obj, None))
@@ -205,6 +211,7 @@ class Dual(PersistentBase):
 
         hasher = ComponentHasher(obj, None)
         e = obj.expr
+        self._lagrangian_terms[hasher] = e
         self._process_lagrangian_term(e, self._vars_referenced_by_obj, hasher)
         self._old_obj = obj
         self._old_obj_vars = self._vars_referenced_by_obj
