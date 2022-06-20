@@ -42,7 +42,6 @@ class Dual(PersistentBase):
 
     def _set_dual_obj(self):
         self._dual.objective.expr = sum(self._lagrangian_terms.values())
-        raise NotImplementedError('Still need to make sure self._lagrangian_terms gets updated correctly')
 
     def dual(self, model: _BlockData):
         if model is not self._model:
@@ -193,10 +192,12 @@ class Dual(PersistentBase):
                 self._regenerate_grad_lag_for_var(v)
 
     def _add_sos_constraints(self, cons: List[_SOSConstraintData]):
-        raise NotImplementedError('Dual does not support SOS constraints')
+        if len(cons) > 0:
+            raise NotImplementedError('Dual does not support SOS constraints')
 
     def _remove_sos_constraints(self, cons: List[_SOSConstraintData]):
-        raise NotImplementedError('Dual does not support SOS constraints')
+        if len(cons) > 0:
+            raise NotImplementedError('Dual does not support SOS constraints')
 
     def _set_objective(self, obj: _GeneralObjectiveData):
         if obj.sense != pe.minimize:
