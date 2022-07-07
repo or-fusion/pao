@@ -4,7 +4,7 @@ from pyomo.core.base.var import _GeneralVarData, ScalarVar, IndexedVar
 from typing import Sequence, Optional, Iterable, List
 import math
 from pyomo.common.collections import ComponentSet
-from pyomo.core.expr.visitor import identify_variables
+from pyomo.core.expr.visitor import identify_variables, replace_expressions
 from pyomo.core.expr.calculus.diff_with_pyomo import reverse_sd
 from pyomo.contrib.appsi.base import PersistentBase
 from pyomo.core.base.param import _ParamData
@@ -12,6 +12,7 @@ from pyomo.core.base.constraint import _GeneralConstraintData, IndexedConstraint
 from .utils import ComponentHasher
 from pyomo.core.base.sos import _SOSConstraintData
 from pyomo.core.base.objective import _GeneralObjectiveData
+from pyomo.repn.standard_repn import generate_standard_repn
 
 
 class Dual(PersistentBase):
@@ -27,6 +28,7 @@ class Dual(PersistentBase):
             self._fixed_vars = ComponentSet(fixed_vars)
         self._old_obj = None
         self._old_obj_vars = list()
+        self._linear_primals = ComponentSet()
 
     def _setup_dual(self):
         self._dual.grad_lag_set = pe.Set(dimen=1)
@@ -41,7 +43,12 @@ class Dual(PersistentBase):
         self._dual.objective = pe.Objective(expr=0, sense=pe.maximize)
 
     def _set_dual_obj(self):
-        self._dual.objective.expr = sum(self._lagrangian_terms.values())
+        new_obj = sum(self._lagrangian_terms.values())
+        sub_map = dict()
+        for v in self._linear_primals:
+            sub_map[id(v)] = 0
+        new_obj = replace_expressions(new_obj, substitution_map=sub_map)
+        self._dual.objective.expr = new_obj
 
     def dual(self, model: _BlockData):
         if model is not self._model:
@@ -73,7 +80,7 @@ class Dual(PersistentBase):
                 else:
                     e = self._dual.ineq_duals[hasher] * (v - v_ub)
                 if hasher in self._grad_lag_map[v]:
-                    self._grad_lag_map[v][hasher] = reverse_sd(e)[v]
+                    self._grad_lag_map[v][hasher] = (reverse_sd(e)[v], True)
                     self._lagrangian_terms[hasher] = e
                 else:
                     self._process_lagrangian_term(e, [v], hasher)
@@ -89,11 +96,14 @@ class Dual(PersistentBase):
             self._dual.grad_lag_set.add(v_hasher)
             self._dual.grad_lag[v_hasher] = (0, 0)
             self._update_var_bounds(v)
+            self._linear_primals.add(v)
 
     def _remove_variables(self, variables: List[_GeneralVarData]):
         for v in variables:
             if v in self._fixed_vars:
                 continue
+
+            self._linear_primals.discard(v)
 
             v_hasher = ComponentHasher(v, None)
             lb_hasher = ComponentHasher(v, 'lb')
@@ -119,8 +129,11 @@ class Dual(PersistentBase):
     def _regenerate_grad_lag_for_var(self, v):
         v_hasher = ComponentHasher(v, None)
         new_body = 0
-        for c, der in self._grad_lag_map[v].items():
+        self._linear_primals.add(v)
+        for c, (der, linear) in self._grad_lag_map[v].items():
             new_body += der
+            if not linear:
+                self._linear_primals.discard(v)
         self._dual.grad_lag[v_hasher] = (new_body, 0)
 
     def _add_params(self, params: List[_ParamData]):
@@ -132,16 +145,30 @@ class Dual(PersistentBase):
     def _process_lagrangian_term(self, expr, variables, c_hasher):
         self._lagrangian_terms[c_hasher] = expr
         ders = reverse_sd(expr)
-        for v in variables:
+        unfixed_vars = [v for v in variables if not v.fixed]
+        orig_values = [v.value for v in unfixed_vars]
+
+        for v in unfixed_vars:
+            v.fix(0)
+
+        for v in unfixed_vars:
             if v in self._fixed_vars:
                 continue
-            if v.fixed:
-                continue
+            v.unfix()
             v_hasher = ComponentHasher(v, None)
             orig_body = self._dual.grad_lag[v_hasher].body
             new_body = orig_body + ders[v]
             self._dual.grad_lag[v_hasher] = (new_body, 0)
-            self._grad_lag_map[v][c_hasher] = ders[v]
+            repn = generate_standard_repn(ders[v], quadratic=False)
+            linear = repn.is_linear()
+            if not linear:
+                self._linear_primals.discard(v)
+            self._grad_lag_map[v][c_hasher] = (ders[v], linear)
+            v.fix()
+
+        for v, val in zip(unfixed_vars, orig_values):
+            v.unfix()
+            v.value = val
 
     def _add_constraints(self, cons: List[_GeneralConstraintData]):
         for c in cons:
