@@ -13,6 +13,7 @@ from .utils import ComponentHasher
 from pyomo.core.base.sos import _SOSConstraintData
 from pyomo.core.base.objective import _GeneralObjectiveData
 from pyomo.repn.standard_repn import generate_standard_repn
+from pyomo.contrib.appsi.cmodel import cmodel, cmodel_available
 
 
 class Dual(PersistentBase):
@@ -49,6 +50,17 @@ class Dual(PersistentBase):
             sub_map[id(v)] = 0
         new_obj = replace_expressions(new_obj, substitution_map=sub_map)
         self._dual.objective.expr = new_obj
+
+    def set_instance(self, model):
+        saved_update_config = self.update_config
+        self.__init__(fixed_vars=self._fixed_vars)
+        self.update_config = saved_update_config
+        self._model = model
+        if self.use_extensions and cmodel_available:
+            self._expr_types = cmodel.PyomoExprTypes()
+        self.add_block(model)
+        if self._objective is None:
+            self.set_objective(None)
 
     def dual(self, model: _BlockData):
         if model is not self._model:
@@ -145,28 +157,33 @@ class Dual(PersistentBase):
     def _process_lagrangian_term(self, expr, variables, c_hasher):
         self._lagrangian_terms[c_hasher] = expr
         ders = reverse_sd(expr)
-        unfixed_vars = [v for v in variables if not v.fixed]
-        orig_values = [v.value for v in unfixed_vars]
 
-        for v in unfixed_vars:
+        vars_in_expr = identify_variables(expr, include_fixed=False)
+        unfixed_vars_in_expr = [v for v in vars_in_expr if not v.fixed]
+        orig_values = [v.value for v in unfixed_vars_in_expr]
+        unfixed_var_set = ComponentSet(unfixed_vars_in_expr)
+
+        for v in unfixed_vars_in_expr:
             v.fix(0)
 
-        for v in unfixed_vars:
+        for v in variables:
             if v in self._fixed_vars:
+                continue
+            if v not in unfixed_var_set:
                 continue
             v.unfix()
             v_hasher = ComponentHasher(v, None)
             orig_body = self._dual.grad_lag[v_hasher].body
             new_body = orig_body + ders[v]
             self._dual.grad_lag[v_hasher] = (new_body, 0)
-            repn = generate_standard_repn(ders[v], quadratic=False)
+            repn = generate_standard_repn(expr, quadratic=False)
             linear = repn.is_linear()
             if not linear:
                 self._linear_primals.discard(v)
             self._grad_lag_map[v][c_hasher] = (ders[v], linear)
             v.fix()
 
-        for v, val in zip(unfixed_vars, orig_values):
+        for v, val in zip(unfixed_vars_in_expr, orig_values):
             v.unfix()
             v.value = val
 
@@ -194,7 +211,7 @@ class Dual(PersistentBase):
             self._lagrangian_terms.pop(c_hasher)
             for v in variables:
                 if v in self._grad_lag_map:
-                    self._grad_lag_map[v].pop(c_hasher)
+                    self._grad_lag_map[v].pop(c_hasher, None)
             if c_hasher in self._dual.eq_dual_set:
                 del self._dual.eq_duals[c_hasher]
                 self._dual.eq_dual_set.remove(c_hasher)
@@ -234,7 +251,7 @@ class Dual(PersistentBase):
             self._lagrangian_terms.pop(old_hasher)
             for v in self._old_obj_vars:
                 if v in self._grad_lag_map:
-                    self._grad_lag_map[v].pop(ComponentHasher(self._old_obj, None))
+                    self._grad_lag_map[v].pop(ComponentHasher(self._old_obj, None), None)
                     self._regenerate_grad_lag_for_var(v)
 
         hasher = ComponentHasher(obj, None)
