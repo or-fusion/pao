@@ -7,6 +7,8 @@ on:
   pull_request:
     branches:
       - master
+  schedule:
+  - cron: "0 2 * * 1-5"
 
 jobs:
   linux:
@@ -32,10 +34,10 @@ jobs:
         conda init bash
         conda env list
 
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v3
 
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
 
@@ -46,11 +48,12 @@ jobs:
         conda activate test
         conda config --set always_yes yes
         python -m pip install --upgrade pip
+        # scipy >= 1.8 does not support Python 3.7
+        pip install nose coverage codecov pyyaml scipy==1.7.3 sphinx sphinx_rtd_theme gurobipy coramin
         pip install --quiet git+https://github.com/PyUtilib/pyutilib
         pip install --quiet git+https://github.com/Pyomo/pyomo
         python setup.py develop
         pip install wheel
-        pip install nose coverage codecov pyyaml numpy scipy sphinx sphinx_rtd_theme
         conda install -c conda-forge coincbc glpk ipopt
         conda list
 

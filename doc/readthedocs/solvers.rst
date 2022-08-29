@@ -287,7 +287,8 @@ termination condition indicates that an optimal solution was found.  For example
 
     >>> nlp = pao.Solver('ipopt', print_level=3)
     >>> opt = pao.Solver('pao.pyomo.REG', nlp_solver=nlp)
-    >>> results = opt.solve(M)
+    >>> results = opt.solve(M) #doctest:+ELLIPSIS
+    W...
     >>> print(results.solver.termination_condition)
     TerminationCondition.optimal
     >>> results.check_optimal_termination()
@@ -329,7 +330,8 @@ Pyomo solver is initially created:
 
     >>> nlp = pao.Solver('ipopt', print_level=3)
     >>> opt = pao.Solver('pao.pyomo.REG', nlp_solver=nlp)
-    >>> results = opt.solve(M)
+    >>> results = opt.solve(M) #doctest:+ELLIPSIS
+    W...
 
 When executing locally, the :keyword:`executable` option can be used
 to explicitly specify the path to the executable that is used by this solver.
