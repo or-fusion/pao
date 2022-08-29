@@ -34,10 +34,10 @@ jobs:
         conda init bash
         conda env list
 
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v3
 
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
 
