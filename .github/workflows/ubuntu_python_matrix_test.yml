@@ -7,6 +7,8 @@ on:
   pull_request:
     branches:
       - master
+  schedule:
+  - cron: "0 2 * * 1-5"
 
 jobs:
   linux:
@@ -50,7 +52,7 @@ jobs:
         pip install --quiet git+https://github.com/Pyomo/pyomo
         python setup.py develop
         pip install wheel
-        pip install nose coverage codecov pyyaml numpy scipy sphinx sphinx_rtd_theme
+        pip install nose coverage codecov pyyaml scipy sphinx sphinx_rtd_theme gurobipy coramin
         conda install -c conda-forge coincbc glpk ipopt
         conda list
 
