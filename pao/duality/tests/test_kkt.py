@@ -2,7 +2,11 @@ import unittest
 import pyomo.environ as pe
 from pyomo.contrib import appsi
 from pao.duality.kkt import construct_kkt
-import coramin
+try:
+    import coramin
+    coramin_available = True
+except ImportError:
+    coramin_available = False
 
 
 class TestKKT(unittest.TestCase):
@@ -37,6 +41,7 @@ class TestKKT(unittest.TestCase):
         for k, v in res1.items():
             self.assertAlmostEqual(v, res2[k], 5)
 
+    @unittest.skipIf(not coramin_available, "coramin is not available")
     def test_milp(self):
         m = pe.ConcreteModel()
         m.x = pe.Var(bounds=(0, 2), domain=pe.Integers)
@@ -54,9 +59,14 @@ class TestKKT(unittest.TestCase):
         )
 
         d = construct_kkt(m)
+        self.assertEqual(len(d.grad_lag.index_set()), 6)
+
+        coramin.relaxations.relax(d, in_place=True, use_alpha_bb=False)
+        for b in coramin.relaxations.relaxation_data_objects(d, active=True):
+            b.rebuild(build_nonlinear_constraint=True)
+
         opt2 = appsi.solvers.Gurobi()
         opt2.gurobi_options['nonconvex'] = 2
-        m.obj.sense = pe.maximize
         res2 = opt2.solve(d)
         self.assertEqual(
             res2.termination_condition,

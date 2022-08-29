@@ -118,9 +118,14 @@ def construct_kkt(
         model = convert_integers_to_binaries(model, int_vars)
         for v in model.bins.values():
             bin_vars.add(v)
+            all_vars.add(v)
+        for c in model.int_cons.values():
+            all_cons.add(c)
 
     if len(bin_vars) > 0:
         model = convert_binary_domain_to_constraint(model, bin_vars)
+        for c in model.bin_cons.values():
+            all_cons.add(c)
 
     parent = ScalarBlock(concrete=True)
     parent.block = model
