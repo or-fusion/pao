@@ -124,6 +124,9 @@ class LinearMultilevelSolver_MIBS(LinearMultilevelSolverBase):
                 #print(state, line)
                 line = line.strip()
                 if state == 0:
+                    if line.startswith("ERROR"):
+                        solv.termination_condition = pao.common.TerminationCondition.error
+                        raise RuntimeError(line)
                     if line.startswith("Optimal solution:"):
                         solv.termination_condition = pao.common.TerminationCondition.optimal
                         state = 1
@@ -131,16 +134,23 @@ class LinearMultilevelSolver_MIBS(LinearMultilevelSolverBase):
                     solv.best_feasible_objective = float(line.split("=")[1])
                     state = 2
                 elif state == 2:
+                    state = 2.1
+                    first_index = 0
+                elif state == 2.1:
+                    if line.startswith("Second"):
+                        state = 2.2
+                        second_index = 0
+                        continue
+                    name, _, val = line.split(" ")
+                    M.U.x.values[first_index] = float(val)
+                    first_index += 1
+                elif state == 2.2:
                     if line.startswith("Number"):
                         state = 3
                         continue
                     name, _, val = line.split(" ")
-                    vname, index = name[:-1].split("[")
-                    #print(vname, index, val)
-                    if vname == "x":
-                        M.U.x.values[int(index)] = float(val)
-                    else:
-                        M.U.LL.x.values[int(index)] = float(val)
+                    M.U.LL.x.values[second_index] = float(val)
+                    second_index += 1
         return results
 
     def _debug(self, M):    # pragma: no cover
