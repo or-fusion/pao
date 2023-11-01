@@ -8,6 +8,8 @@ from . import besancon27
 from . import besancon27_shifted
 from . import getachew_ex1
 from . import getachew_ex2
+from . import mibs
+from . import moore
 from . import pineda
 from . import toyexample1
 from . import toyexample2
