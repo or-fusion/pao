@@ -16,7 +16,7 @@ This module defines the collect_bilevel_matrix_representation() function, which
 collects information that is used to in bilevel algorithm development.
 """
 
-from pyutilib.misc import Bunch
+from pyomo.common.collections import Bunch
 from pyomo.repn import generate_standard_repn
 from pyomo.core import (Var,
                         Constraint,

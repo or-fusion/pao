@@ -5,7 +5,7 @@ import pprint
 import collections.abc
 from scipy.sparse import csr_matrix, dok_matrix
 import numpy as np
-from pyutilib.misc import Bunch
+from pyomo.common.collections import Bunch
 
 
 def _equal_nparray(Ux, U_coef, Lx, L_coef):

@@ -3,7 +3,7 @@ import sys
 import subprocess
 import io
 
-from pyutilib.misc import Bunch
+from pyomo.common.collections import Bunch
 from pyutilib.subprocess import run_command
 
 

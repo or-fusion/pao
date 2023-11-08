@@ -23,7 +23,7 @@ __all__ = ("create_linear_dual_from",)
 #pylint: disable-msg=too-many-branches
 #pylint: disable-msg=too-many-statements
 
-from pyutilib.misc import Bunch
+from pyomo.common.collections import Bunch
 from pyomo.repn import generate_standard_repn
 from pyomo.core import (Var,
                         Constraint,
