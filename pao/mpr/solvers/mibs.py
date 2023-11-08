@@ -233,7 +233,7 @@ class LinearMultilevelSolver_MIBS(LinearMultilevelSolverBase):
                 OUTPUT.write("OS 1\n")
             else:
                 OUTPUT.write("OS -1\n")
-        
+
         return M
 
 pao.common.SolverAPI._generate_solve_docstring(LinearMultilevelSolver_MIBS)

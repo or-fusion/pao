@@ -325,11 +325,8 @@ class Test_bilevel_MIBS(unittest.TestCase):
         mpr.check()
 
         opt = Solver('pao.mpr.MIBS')
-        try:
+        with self.assertRaisesRegex(RuntimeError, "ERROR:All linking variables should be integer"):
             opt.solve(mpr)
-            self.fail("Expected an error: linking variables should be integer")
-        except RuntimeError as err:
-            print("Solver run-time error:", err)
 
         # self.assertTrue(math.isclose(mpr.U.x.values[0], 4, abs_tol=1e-4))
         # self.assertTrue(math.isclose(mpr.U.LL.x.values[0], 4, abs_tol=1e-4))
@@ -339,11 +336,8 @@ class Test_bilevel_MIBS(unittest.TestCase):
         mpr.check()
 
         opt = Solver('pao.mpr.MIBS')
-        try:
+        with self.assertRaisesRegex(RuntimeError, "ERROR:All linking variables should be integer"):
             opt.solve(mpr)
-            self.fail("Expected an error: linking variables should be integer")
-        except RuntimeError as err:
-            print("Solver run-time error:", err)
 
         # self.assertTrue(math.isclose(mpr.U.x.values[0], 4, abs_tol=1e-4))
         # self.assertTrue(math.isclose(mpr.U.LL.x.values[0], 4, abs_tol=1e-4))
@@ -373,11 +367,8 @@ class Test_bilevel_MIBS(unittest.TestCase):
         mpr.check()
 
         opt = Solver('pao.mpr.MIBS')
-        try:
+        with self.assertRaisesRegex(RuntimeError, "ERROR:All linking variables should be integer"):
             opt.solve(mpr)
-            self.fail("Expected an error: linking variables should be integer")
-        except RuntimeError as err:
-            print("Solver run-time error:", err)
 
         # self.assertTrue(math.isclose(mpr.U.x.values[0], 0, abs_tol=1e-4))
         # self.assertTrue(math.isclose(mpr.U.LL.x.values[0], 1, abs_tol=1e-4))
@@ -387,11 +378,8 @@ class Test_bilevel_MIBS(unittest.TestCase):
         mpr.check()
 
         opt = Solver('pao.mpr.MIBS')
-        try:
+        with self.assertRaisesRegex(RuntimeError, "ERROR:All linking variables should be integer"):
             opt.solve(mpr)
-            self.fail("Expected an error: linking variables should be integer")
-        except RuntimeError as err:
-            print("Solver run-time error:", err)
 
         # self.assertTrue(math.isclose(mpr.U.x.values[0], 2.5, abs_tol=1e-4))
         # self.assertTrue(math.isclose(mpr.U.LL.x.values[0], 1.25, abs_tol=1e-4))
@@ -401,11 +389,8 @@ class Test_bilevel_MIBS(unittest.TestCase):
         mpr.check()
 
         opt = Solver('pao.mpr.MIBS')
-        try:
+        with self.assertRaisesRegex(RuntimeError, "ERROR:All linking variables should be integer"):
             opt.solve(mpr)
-            self.fail("Expected an error: linking variables should be integer")
-        except RuntimeError as err:
-            print("Solver run-time error:", err)
 
         # self.assertTrue(math.isclose(mpr.U.x.values[0], 8, abs_tol=1e-4))
         # self.assertTrue(math.isclose(mpr.U.LL.x.values[0], 6, abs_tol=1e-4))
@@ -415,11 +400,8 @@ class Test_bilevel_MIBS(unittest.TestCase):
         mpr.check()
 
         opt = Solver('pao.mpr.MIBS')
-        try:
+        with self.assertRaisesRegex(RuntimeError, "ERROR:All linking variables should be integer"):
             opt.solve(mpr)
-            self.fail("Expected an error: linking variables should be integer")
-        except RuntimeError as err:
-            print("Solver run-time error:", err)
 
         # self.assertTrue(math.isclose(mpr.U.x.values[0], 6, abs_tol=1e-4))
         # self.assertTrue(math.isclose(mpr.U.LL.x.values[0], 8, abs_tol=1e-4))
@@ -449,11 +431,8 @@ class Test_bilevel_MIBS(unittest.TestCase):
         mpr.check()
 
         opt = Solver('pao.mpr.MIBS')
-        try:
+        with self.assertRaisesRegex(RuntimeError, "ERROR:All linking variables should be integer"):
             opt.solve(mpr)
-            self.fail("Expected an error: linking variables should be integer")
-        except RuntimeError as err:
-            print("Solver run-time error:", err)
 
         # self.assertTrue(math.isclose(mpr.U.x.values[0], 2, abs_tol=1e-4))
         # self.assertTrue(math.isclose(mpr.U.LL.x.values[0], 100, abs_tol=1e-4))
@@ -484,11 +463,8 @@ class Test_bilevel_MIBS(unittest.TestCase):
 
         opt = Solver('pao.mpr.MIBS')
 
-        try:
+        with self.assertRaisesRegex(RuntimeError, "ERROR:All linking variables should be integer"):
             opt.solve(mpr)
-            self.fail("Expected an error: linking variables should be integer")
-        except RuntimeError as err:
-            print("Solver run-time error:", err)
 
         # self.assertTrue(math.isclose(mpr.U.x.values[0], 3, abs_tol=1e-4))
         # self.assertTrue(math.isclose(mpr.U.LL.x.values[0], 0.5, abs_tol=1e-4))
