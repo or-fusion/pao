@@ -9,7 +9,7 @@ import enum
 import textwrap
 import logging
 
-from pyomo.common.collections import Options
+from pyomo.common.collections import Bunch
 
 import pyomo.opt.parallel.manager
 import pyomo.environ as pe
@@ -370,11 +370,11 @@ class ResultsBase(abc.ABC):
 
     def __init__(self):
         self.solution_manager = None
-        self.solver = Options(
+        self.solver = Bunch(
                 termination_condition=TerminationCondition.unknown,
                 best_feasible_objective=None,
                 )
-        self.problem = Options()
+        self.problem = Bunch()
 
     @abc.abstractmethod
     def found_feasible_solution(self):

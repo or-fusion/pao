@@ -21,7 +21,6 @@ except ImportError:
     yaml_available=False
 
 import pyomo.common.collections
-from pyomo.common.collections import Options, Container
 import pyomo.common.unittest as unittest
 from pyomo.common.fileutils import import_file
 
