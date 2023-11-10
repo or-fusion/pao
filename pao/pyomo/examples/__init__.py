@@ -5,6 +5,8 @@ from . import barguel
 from . import besancon27
 from . import getachew_ex1
 from . import getachew_ex2
+from . import mibs
+from . import moore
 from . import pineda
 from . import sip_example1
 from . import toyexample1

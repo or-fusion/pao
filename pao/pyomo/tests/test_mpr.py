@@ -5,7 +5,7 @@ from pao.pyomo import examples
 import pyomo.opt
 
 
-solvers = pyomo.opt.check_available_solvers('glpk','cbc','ipopt','gurobi')
+solvers = pyomo.opt.check_available_solvers('glpk','cbc','ipopt','gurobi', 'mibs')
 
 
 class Test_solver(unittest.TestCase):
@@ -257,6 +257,105 @@ class Test_pyomo_PCCG(unittest.TestCase):
         self.assertTrue(math.isclose(M.L.xR.value, 0.5, abs_tol=1e-4))
         self.assertEqual(M.xZ.value, 8)
         self.assertEqual(M.L.xZ.value, 0)
+
+
+@unittest.skipIf('mibs' not in solvers, "MibS solver is not available")
+class Test_bilevel_MIBS(unittest.TestCase):
+
+    def test_bard511(self):
+        M = examples.bard511.create()
+
+        opt = Solver('pao.pyomo.MIBS')
+
+        with self.assertRaisesRegex(RuntimeError, "ERROR:All linking variables should be integer"):
+            opt.solve(M)
+
+    def test_barguel(self):
+        M = examples.barguel.create()
+
+        opt = Solver('pao.pyomo.MIBS')
+        try:
+            opt.solve(M)
+            self.fail("Expected an assertion error")
+        except AssertionError:
+            pass
+
+        opt.solve(M, linearize_bigm=1e6)
+
+        self.assertTrue(math.isclose(M.u.value, 0))
+        self.assertTrue(math.isclose(M.x.value, 0))
+        self.assertTrue(math.isclose(M.y.value, 0))
+
+    def test_besancon27(self):
+        M = examples.besancon27.create()
+
+        opt = Solver('pao.pyomo.MIBS')
+        with self.assertRaisesRegex(RuntimeError, "ERROR:All linking variables should be integer"):
+            opt.solve(M)
+
+    def test_getachew_ex1(self):
+        M = examples.getachew_ex1.create()
+
+        opt = Solver('pao.pyomo.MIBS')
+        with self.assertRaisesRegex(RuntimeError, "ERROR:All linking variables should be integer"):
+            opt.solve(M)
+
+    def test_getachew_ex2(self):
+        M = examples.getachew_ex2.create()
+
+        opt = Solver('pao.pyomo.MIBS')
+        with self.assertRaisesRegex(RuntimeError, "ERROR:All linking variables should be integer"):
+            opt.solve(M)
+
+    def test_mibs(self):
+        M = examples.mibs.create()
+
+        opt = Solver('pao.pyomo.MIBS')
+        opt.solve(M)
+
+        self.assertTrue(math.isclose(M.x.value, 6, abs_tol=1e-4))
+        self.assertTrue(math.isclose(M.y.value, 5, abs_tol=1e-4))
+
+    def test_moore(self):
+        M = examples.moore.create()
+
+        opt = Solver('pao.pyomo.MIBS')
+        opt.solve(M)
+
+        self.assertEqual(M.xZ.value, 2)
+        self.assertEqual(M.L.xZ.value, 2)
+
+    def test_pineda(self):
+        M = examples.pineda.create()
+
+        opt = Solver('pao.pyomo.MIBS')
+        with self.assertRaisesRegex(RuntimeError, "ERROR:All linking variables should be integer"):
+            opt.solve(M)
+
+    def test_toyexample1(self):
+        M = examples.toyexample1.create()
+
+        opt = Solver('pao.pyomo.MIBS')
+        opt.solve(M)
+
+        self.assertEqual(M.xZ.value, 2)
+        self.assertEqual(M.L.xZ.value, 2)
+
+    def test_toyexample2(self):
+        M = examples.toyexample2.create()
+
+        opt = Solver('pao.pyomo.MIBS')
+        opt.solve(M)
+
+        self.assertEqual(M.xZ.value, 8)
+        self.assertEqual(M.L.xZ.value, 6)
+
+    def test_toyexample3(self):
+        M = examples.toyexample3.create()
+
+        opt = Solver('pao.pyomo.MIBS')
+        with self.assertRaisesRegex(RuntimeError, "ERROR:All linking variables should be integer"):
+            opt.solve(M)
 
 
 if __name__ == "__main__":
