@@ -4,7 +4,6 @@
 #
 import time
 import numpy as np
-import pyutilib
 import pyomo.environ as pe
 import pyomo.opt
 from pyomo.common.config import ConfigBlock, ConfigValue

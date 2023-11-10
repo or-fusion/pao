@@ -1,5 +1,5 @@
 import math
-import pyutilib.th as unittest
+import pyomo.common.unittest as unittest
 import pyomo.environ as pe
 
 from pao import Solver
@@ -121,7 +121,7 @@ class Test_neos(unittest.TestCase):
         opt = Solver('cbc', server='neos', email='pao@gmail.com')
         self.assertTrue(opt.available())
         res = opt.solve(M, tee=True)
-        
+
         self.assertTrue(math.isclose(M.x.value, 1, abs_tol=1e-6))
         self.assertTrue(math.isclose(M.y.value, 0, abs_tol=1e-6))
 
@@ -131,7 +131,7 @@ class Test_neos(unittest.TestCase):
         opt = Solver('cbc', server='neos', email='pao@gmail.com', foo=1, bar=None)
         self.assertTrue(opt.available())
         res = opt.solve(M)
-        
+
         self.assertTrue(math.isclose(M.x.value, 1, abs_tol=1e-6))
         self.assertTrue(math.isclose(M.y.value, 0, abs_tol=1e-6))
 

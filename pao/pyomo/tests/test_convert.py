@@ -1,5 +1,5 @@
 import numpy as np
-import pyutilib.th as unittest
+import pyomo.common.unittest as unittest
 import pyomo.environ as pe
 from pao.pyomo.convert import collect_multilevel_tree, convert_pyomo2LinearMultilevelProblem, convert_pyomo2MultilevelProblem
 from pao.pyomo import SubModel

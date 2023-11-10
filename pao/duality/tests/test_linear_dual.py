@@ -20,9 +20,10 @@ try:
 except ImportError:
     yaml_available=False
 
-import pyutilib.misc
-from pyutilib.misc import Options, Container
-import pyutilib.th as unittest
+import pyomo.common.collections
+from pyomo.common.collections import Options, Container
+import pyomo.common.unittest as unittest
+from pyomo.common.fileutils import import_file
 
 from pyomo.environ import TransformationFactory, SolverFactory, ComponentUID
 import pyomo.opt
@@ -45,7 +46,7 @@ class CommonTests(object):
             #
             # Import the model file to create the model
             #
-            usermodel = pyutilib.misc.import_file(_args[0], clear_cache=True)
+            usermodel = import_file(_args[0], clear_cache=True)
             instance = usermodel.model
             #
             # Collected local variables

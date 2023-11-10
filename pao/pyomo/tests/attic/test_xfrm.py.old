@@ -12,7 +12,7 @@
 # Test transformations for linear duality
 #
 
-import pyutilib.th as unittest
+import pyomo.common.unittest as unittest
 from pyomo.environ import *
 import pao
 

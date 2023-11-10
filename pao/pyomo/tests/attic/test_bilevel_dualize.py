@@ -14,7 +14,7 @@
 
 from os.path import abspath, dirname, join
 from parameterized import parameterized
-import pyutilib.th as unittest
+import pyomo.common.unittest as unittest
 
 from pyomo.environ import *
 from pao.pyomo.components import SubModel
