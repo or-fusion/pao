@@ -9,7 +9,7 @@ import enum
 import textwrap
 import logging
 
-from pyutilib.misc import Options
+from pyomo.common.collections import Bunch
 
 import pyomo.opt.parallel.manager
 import pyomo.environ as pe
@@ -245,7 +245,7 @@ class SolverAPI(abc.ABC):
         for k,v in config_options.items():
             if k in config:
                 config[k] = v
-                keys.remove(k)    
+                keys.remove(k)
         if validate_options:
             assert (len(keys) == 0), "Unexpected options to solve() have been specified: %s" % " ".join(sorted(k for k in keys))
         return {key:config_options[key] for key in keys}
@@ -331,7 +331,7 @@ class NEOSSolver(SolverAPI):
             return results
         except pyomo.opt.parallel.manager.ActionManagerError as err:
             raise RuntimeError(str(err)) from None
-        
+
 
 """
 >>> opt = Solver('my_solver')
@@ -370,11 +370,11 @@ class ResultsBase(abc.ABC):
 
     def __init__(self):
         self.solution_manager = None
-        self.solver = Options(
+        self.solver = Bunch(
                 termination_condition=TerminationCondition.unknown,
                 best_feasible_objective=None,
                 )
-        self.problem = Options()
+        self.problem = Bunch()
 
     @abc.abstractmethod
     def found_feasible_solution(self):
@@ -464,7 +464,7 @@ class SolverFactory(object):
     """
     A class that manages a registry of solvers.
 
-    A solver factory manages a registry that enables 
+    A solver factory manages a registry that enables
     solvers to be created by name.
     """
 
@@ -487,7 +487,7 @@ class SolverFactory(object):
         Returns
         -------
         decorator
-            If the **cls** parameter is None, then a class 
+            If the **cls** parameter is None, then a class
             decorator function
             is returned that can be used to register a solver.
         """

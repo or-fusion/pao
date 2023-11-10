@@ -5,7 +5,6 @@
 #
 import time
 import numpy as np
-import pyutilib
 import pyomo.environ as pe
 import pyomo.opt
 

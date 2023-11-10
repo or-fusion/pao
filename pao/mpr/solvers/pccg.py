@@ -1,20 +1,19 @@
 #
 # A solver for linear bilevel programs using
 # using projected column constraint generation
-# "A projection-based reformulation and decomposition algorithm for global optimization 
+# "A projection-based reformulation and decomposition algorithm for global optimization
 #  of a class of mixed integer bilevel linear programs" by Dajun Yue, Jiyao Gao, Bo Zeng, Fengqi You
 #
 # Adapted from an implementation by She'ifa Punla-Green at Sandia National Labs
 #
 #This algorithm seeks to solve the following bilevel MILP:
-#    min cR*xu + cZ*yu + dR*xl0 + dZ*yl0 
+#    min cR*xu + cZ*yu + dR*xl0 + dZ*yl0
 #    s.t. AR*xu + AZ*yu + BR*xl0 + BZ* yl0 <= r
 #     (xl0,yl0) in argmax {wR*xl+wZ*yl: PR*xl+PZ*yl<=s-QR*xu-QZ*yu}
 #
 import time
 import numpy as np
 from munch import Munch
-import pyutilib
 import pyomo.environ as pe
 import pyomo.opt
 from pyomo.common.config import ConfigBlock, ConfigValue

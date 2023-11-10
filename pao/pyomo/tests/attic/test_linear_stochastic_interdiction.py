@@ -15,7 +15,7 @@
 from os.path import abspath, dirname, join
 import math
 from parameterized import parameterized
-import pyutilib.th as unittest
+import pyomo.common.unittest as unittest
 
 import pyomo.opt
 from pyomo.environ import *

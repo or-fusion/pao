@@ -1,5 +1,5 @@
 import math
-import pyutilib.th as unittest
+import pyomo.common.unittest as unittest
 from pao.mpr import *
 from pao.mpr import examples
 import pyomo.opt

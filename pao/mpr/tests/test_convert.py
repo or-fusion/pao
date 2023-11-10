@@ -1,5 +1,5 @@
 import numpy as np
-import pyutilib.th as unittest
+import pyomo.common.unittest as unittest
 from pao.mpr import *
 from pao.mpr.convert_repn import convert_to_standard_form, convert_binaries_to_integers
 

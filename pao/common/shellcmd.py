@@ -3,16 +3,28 @@ import sys
 import subprocess
 import io
 
-from pyutilib.misc import Bunch
-from pyutilib.subprocess import run_command
-
+from pyomo.common.collections import Bunch
+from pyomo.common.tee import TeeStream
 
 
 def run_shellcmd(cmd, *, env=None, tee=False, time_limit=None):
     ostr = io.StringIO()
-    rc, log = run_command(cmd, tee=tee, env=env, timelimit=time_limit,
-            stdout=ostr,
-            stderr=ostr)
+    if not tee:
+        rc, log = subprocess.run(cmd, env=env, timeout=time_limit,
+                stdout=ostr,
+                stderr=ostr)
+    else:
+        with TeeStream(*ostr) as t:
+            results = subprocess.run(
+                cmd,
+                env=env,
+                stdout=t.STDOUT,
+                stderr=t.STDERR,
+                timeout=time_limit,
+                universal_newlines=True,
+            )
+        rc = results.returncode
+        log = ostr[0].getvalue()
 
     return Bunch(rc=rc, log=ostr.getvalue())
 
